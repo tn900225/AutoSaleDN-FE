@@ -15,10 +15,20 @@ import Messages from "./pages/admin/Messages";
 import SellCars from "./pages/admin/SellCars";
 import Services from "./pages/admin/Services";
 import Settings from "./pages/admin/Settings";
-import Assets from "./pages/admin/Assets";
-import Booking from "./pages/admin/Booking";
+import Dashboard from "./pages/admin/Dashboard";
+import Messages from "./pages/admin/Messages";
+import SellCars from "./pages/admin/SellCars";
+import Services from "./pages/admin/Services";
+import Settings from "./pages/admin/Settings";
+import ShowroomManagement from "./pages/admin/ShowroomManagement";
+import EmployeeAdmin from "./pages/admin/EmployeeAdmin";
 import CustomerAdmin from "./pages/admin/CustomerAdmin";
 import CarAdmin from "./pages/admin/CarAdmin";
+import TransactionDetail from "./pages/admin/TransactionDetail";
+import AddNewCarPage from "./pages/admin/AddNewCarPage";
+import CarFeatures from "./pages/admin/CarFeatures";
+import CarColor from "./pages/admin/CarColor";
+import CarManufacturers from "./pages/admin/CarManufacturers";
 
 function UserLayout({ children }) {
   return (
@@ -50,16 +60,65 @@ function App() {
             </UserLayout>
           }
         />
-        {/* Route admin dùng layout riêng, không có Header/Footer/UserProvider ở ngoài */}
-        <Route path="/admin/dashboard" element={<Dashboard />} />
-        <Route path="/admin/messages" element={<Messages />} />
-        <Route path="/admin/sell-cars" element={<SellCars />} />
-        <Route path="/admin/services" element={<Services />} />
-        <Route path="/admin/settings" element={<Settings />} />
-        <Route path="/admin/assets" element={<Assets />} />
-        <Route path="/admin/booking" element={<Booking />} />
-        <Route path="/admin/customers" element={<CustomerAdmin />} />
-        <Route path="/admin/cars" element={<CarAdmin />} />
+                <Route
+          path="/admin/*"
+          element={
+            <RequireRole allow={["Admin", "Seller"]}>
+              <DashboardLayout>
+                <Routes>
+                  <Route path="dashboard" element={<Dashboard />} />
+                  <Route path="messages" element={<Messages />} />
+                  <Route path="sell-cars" element={<SellCars />} />
+                  <Route path="services" element={<Services />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="showroom" element={<ShowroomManagement />} />
+                  <Route path="employee" element={<EmployeeAdmin />} />
+                  <Route path="car-features" element={<CarFeatures />} />
+                  <Route path="car-colors" element={<CarColor />} />
+                  <Route path="car-manufacturers-models" element={<CarManufacturers />} />
+                  <Route path="cars/edit/:listingId" element={<UpdateCar />} />
+
+                  {/* Admin-only routes */}
+                  <Route
+                    path="customers"
+                    element={
+                      <RequireRole allow={["Admin"]}>
+                        <CustomerAdmin />
+                      </RequireRole>
+                    }
+                  />
+                  <Route
+                    path="cars"
+                    element={
+                      <RequireRole allow={["Admin"]}>
+                        <CarAdmin />
+                      </RequireRole>
+                    }
+                  />
+                  <Route
+                    path="transactions/:id"
+                    element={
+                      <RequireRole allow={["Admin"]}>
+                        <TransactionDetail />
+                      </RequireRole>
+                    }
+                  />
+                  <Route
+                    path="add-new-car"
+                    element={
+                      <RequireRole allow={["Admin"]}>
+                        <AddNewCarPage />
+                      </RequireRole>
+                    }
+                  />
+
+                  {/* Default route for admin */}
+                  <Route path="" element={<Navigate to="dashboard" replace />} />
+                </Routes>
+              </DashboardLayout>
+            </RequireRole>
+          }
+        />
       </Routes>
     </Router>
   );
