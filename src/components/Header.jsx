@@ -43,8 +43,8 @@ export default function Header() {
         {/* Logo */}
         <Link to="/" className="flex items-center mr-10 select-none">
           <span className="text-[#3452e1] text-2xl font-extrabold italic font-[Montserrat,sans-serif] tracking-tight">
-            carvago
-            <span className="text-[#3452e1] text-2xl font-extrabold not-italic align-super">.</span>
+            AutoSaleDN
+            <span className="text-[#3452e1] text-2xl font-extrabold not-italic align-super"></span>
           </span>
         </Link>
         {/* Menu */}

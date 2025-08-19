@@ -1,6 +1,4 @@
 import React, { useRef } from "react";
-
-// You can install Swiper for React: npm install swiper
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination } from "swiper/modules";
 import "swiper/css";
@@ -12,13 +10,13 @@ const slides = [
     href: "/cars?with-discount=true",
     banner: true,
     icon: (
-      <svg viewBox="0 0 16 16" width={20} height={20} fill="none">
-        <path d="M3 13L13 3M3 6.5V3h3.5" stroke="#3452e1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <svg viewBox="0 0 16 16" width={16} height={16} fill="none">
+        <path d="M3 13L13 3M3 6.5V3h3.5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     ),
     label: "Discount",
-    headline: <>Thousands of cars<br/>with a discount</>,
-    carsCount: "368 815 cars",
+    headline: "Thousands of cars<br>with a discount",
+    carsCount: "296 838 cars",
     image: "/images/discount_1x.webp",
     image2x: "/images/discount_2x.webp",
     alt: "discount cars",
@@ -74,16 +72,11 @@ export default function PopularCar() {
   return (
     <section className="bg-white py-10 border-b border-[#e6e9f3]">
       <div className="max-w-[1200px] mx-auto px-4 md:px-8">
-        <h2 className="text-2xl md:text-3xl font-extrabold text-[#253887] mb-7">Popular at Carvago</h2>
+        <h2 className="text-2xl md:text-3xl font-extrabold text-[#253887] mb-7">Popular at AutoSaleDN</h2>
         <div className="relative">
           <Swiper
-            slidesPerView={1.15}
-            spaceBetween={24}
-            breakpoints={{
-              640: { slidesPerView: 2.2 },
-              1024: { slidesPerView: 3.5 },
-              1280: { slidesPerView: 4.5 },
-            }}
+            slidesPerView="auto"
+            spaceBetween={32}
             modules={[Navigation, Pagination]}
             navigation={{
               prevEl: prevRef.current,
@@ -98,31 +91,73 @@ export default function PopularCar() {
             }}
             className="!pb-10"
           >
-            {slides.map((slide, idx) =>
-              slide.banner ? (
-                <SwiperSlide key={idx}>
-                  <a href={slide.href} className="block group relative rounded-2xl bg-gradient-to-br from-[#f7fafd] to-white shadow hover:shadow-lg transition overflow-hidden px-6 pt-6 pb-5 h-[330px]">
-                    <div className="flex items-center gap-2 mb-2">
-                      {slide.icon}
-                      <span className="text-[#3452e1] font-bold text-sm">{slide.label}</span>
+            {slides.map((slide, idx) => (
+              <SwiperSlide
+                key={idx}
+                style={
+                  slide.banner
+                    ? { width: 410, minWidth: 410, maxWidth: 410 }
+                    : { width: 260, minWidth: 260, maxWidth: 260 }
+                }
+                className="group"
+              >
+                {slide.banner ? (
+                  <a
+                    href={slide.href}
+                    className="block relative rounded-2xl shadow border border-transparent transition-all duration-200 hover:shadow-2xl hover:-translate-y-1 hover:border-[#F79C2E] focus:outline-none"
+                    style={{
+                      background: "linear-gradient(120deg, #FFE6B9 0%, #FFD595 100%)",
+                      height: 200,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      padding: "24px 24px 20px 24px"
+                    }}
+                  >
+                    {/* Discount badge */}
+                    <div className="flex items-center mb-3">
+                      <span
+                        className="flex items-center gap-2 px-3 py-1 rounded-md text-white font-bold text-sm"
+                        style={{
+                          background: "#F79C2E",
+                          fontSize: 14,
+                          lineHeight: "20px",
+                          boxShadow: "0px 2px 8px 0px #F79C2E20"
+                        }}
+                      >
+                        <span className="w-4 h-4 flex items-center justify-center">{slide.icon}</span>
+                        {slide.label}
+                      </span>
                     </div>
-                    <h4 className="text-xl font-extrabold text-[#253887] mb-2" dangerouslySetInnerHTML={{__html: slide.headline}} />
-                    <p className="text-[#3452e1] font-semibold flex items-center gap-2">
+                    {/* Headline */}
+                    <div className="mb-4">
+                      <h4
+                        className="text-2xl font-extrabold text-[#253887] leading-tight"
+                        style={{ fontFamily: 'Montserrat, sans-serif' }}
+                        dangerouslySetInnerHTML={{ __html: slide.headline }}
+                      />
+                    </div>
+                    {/* Cars count */}
+                    <p className="text-[#253887] font-bold text-lg flex items-center gap-1 mb-2">
                       {slide.carsCount}
-                      <svg viewBox="0 0 24 24" width={18} height={18} fill="#3452e1"><path d="M9 6l6 6-6 6" stroke="#3452e1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      <svg viewBox="0 0 24 24" width={20} height={20} fill="none">
+                        <path d="M9 6l6 6-6 6" stroke="#253887" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                     </p>
+                    {/* Car image */}
                     <img
                       src={slide.image}
-                      srcSet={`${slide.image2x} 2x`}
+                      srcSet={slide.image2x ? `${slide.image2x} 2x` : undefined}
                       alt={slide.alt}
-                      className="absolute bottom-0 right-0 w-[220px] h-[130px] object-contain z-10"
-                      style={{zIndex: 1}}
+                      className="absolute bottom-3 right-3 w-[200px] h-[90px] object-contain pointer-events-none"
+                      style={{ zIndex: 1 }}
                     />
                   </a>
-                </SwiperSlide>
-              ) : (
-                <SwiperSlide key={idx}>
-                  <a href={slide.href} className="block group relative rounded-2xl bg-white border border-[#e6e9f3] shadow hover:shadow-lg transition overflow-hidden px-6 pt-8 pb-5 h-[230px] flex flex-col items-start">
+                ) : (
+                  <a
+                    href={slide.href}
+                    className="block relative rounded-2xl bg-white border border-[#e6e9f3] shadow transition-all duration-200 hover:shadow-2xl hover:-translate-y-1 hover:border-[#3452e1] focus:outline-none px-6 pt-8 pb-5 h-[200px] flex flex-col items-start"
+                  >
                     <h4 className="text-lg font-extrabold text-[#253887] mb-3 flex items-center gap-2">
                       {slide.title}
                       <svg viewBox="0 0 24 24" width={18} height={18} fill="none"><path d="M16.33 10H3" stroke="#3452e1" strokeWidth="1.67" strokeLinecap="round"/><path d="M12.17 4.17L18 10l-5.83 5.83" stroke="#3452e1" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -130,23 +165,23 @@ export default function PopularCar() {
                     <img
                       src={slide.image}
                       alt={slide.alt}
-                      width={200}
-                      height={120}
-                      className="w-[200px] h-[120px] object-contain"
+                      width={140}
+                      height={80}
+                      className="w-[140px] h-[80px] object-contain"
                     />
                   </a>
-                </SwiperSlide>
-              )
-            )}
+                )}
+              </SwiperSlide>
+            ))}
             {/* Navigation */}
             <div className="absolute top-1/2 left-0 -translate-y-1/2 z-20">
               <button ref={prevRef} className="swiper-btn-prev bg-white border rounded-full shadow p-2 hover:bg-[#f6f8fd] transition" aria-label="Previous slide">
-                <svg viewBox="0 0 24 24" width={22} height={22} fill="none"><path d="M15 6l-6 6 6 6" stroke="#3452e1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <svg viewBox="0 0 24 24" width={22} height={22} fill="none"><path d="M15 6l-6 6 6 6" stroke="#253887" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </button>
             </div>
             <div className="absolute top-1/2 right-0 -translate-y-1/2 z-20">
               <button ref={nextRef} className="swiper-btn-next bg-white border rounded-full shadow p-2 hover:bg-[#f6f8fd] transition" aria-label="Next slide">
-                <svg viewBox="0 0 24 24" width={22} height={22} fill="none"><path d="M9 6l6 6-6 6" stroke="#3452e1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <svg viewBox="0 0 24 24" width={22} height={22} fill="none"><path d="M9 6l6 6-6 6" stroke="#253887" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </button>
             </div>
           </Swiper>
