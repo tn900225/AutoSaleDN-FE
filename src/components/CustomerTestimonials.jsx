@@ -5,7 +5,7 @@ const reviews = [
     name: "Paul M.",
     countryFlag: "/images/germany.svg",
     rating: 5,
-    review: "We used Carvago on the recommendation of friends and have not regretted it. The car is as good as new and at a fraction of the original price. It serves us reliably and meets our needs completely. We were pleased about the warranty included in the price, but we are sure that we will not need to use it.",
+    review: "We used AutoSaleDN on the recommendation of friends and have not regretted it. The car is as good as new and at a fraction of the original price. It serves us reliably and meets our needs completely. We were pleased about the warranty included in the price, but we are sure that we will not need to use it.",
     car: {
       brandLogo: "/images/toyota.webp",
       name: "Toyota RAV4",
@@ -18,7 +18,7 @@ const reviews = [
     name: "Natascha S.",
     countryFlag: "/images/germany.svg",
     rating: 5,
-    review: "I wanted a nice and well-maintained car, but a new one was beyond my financial means. It took me a long time to decide on a car on Carvag, but in the end I found a car and I'm very happy with it. It drives well and even has my favorite color. Thanks to the extended warranty, I feel that Carvago will take care of it if something goes wrong.",
+    review: "I wanted a nice and well-maintained car, but a new one was beyond my financial means. It took me a long time to decide on a car on Carvag, but in the end I found a car and I'm very happy with it. It drives well and even has my favorite color. Thanks to the extended warranty, I feel that AutoSaleDN will take care of it if something goes wrong.",
     car: {
       brandLogo: "/images/audi.webp",
       name: "Audi A4",
@@ -31,7 +31,7 @@ const reviews = [
     name: "Hannah S.",
     countryFlag: "/images/germany.svg",
     rating: 5,
-    review: "Hurray! I finally have the car I wanted so much. I'm glad that Carvago took care of everything and I didn't have to worry. In a word: great!",
+    review: "Hurray! I finally have the car I wanted so much. I'm glad that AutoSaleDN took care of everything and I didn't have to worry. In a word: great!",
     car: {
       brandLogo: "/images/mercedes_benz.webp",
       name: "Mercedes-Benz GLC 250",
@@ -57,7 +57,7 @@ const reviews = [
     name: "Friedrich M.",
     countryFlag: "/images/germany.svg",
     rating: 5,
-    review: "I can only say praise and thanks. Buying through Carvago saved me a lot of time and worry.",
+    review: "I can only say praise and thanks. Buying through AutoSaleDN saved me a lot of time and worry.",
     car: {
       brandLogo: "/images/ford.webp",
       name: "Ford Explorer",
