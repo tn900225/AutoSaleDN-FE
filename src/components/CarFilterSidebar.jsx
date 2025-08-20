@@ -61,16 +61,6 @@ export default function CarFilterSidebar() {
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-xl font-bold text-[#253887]">Filter</h4>
-        <button
-          type="button"
-          aria-label="close"
-          className="p-2 rounded hover:bg-gray-100 transition"
-          onClick={handleClosePopup}
-        >
-          <svg width={20} height={20} fill="none" viewBox="0 0 20 20" className="text-[#253887]">
-            <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
-          </svg>
-        </button>
       </div>
 
       {/* Tabs */}
