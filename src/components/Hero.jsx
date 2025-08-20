@@ -1,20 +1,56 @@
-import React from "react";
+import React, { useState } from "react";
+
+// Bạn có thể tải và lưu ảnh này vào public/images/hero-bg.jpg hoặc dùng link trực tiếp (Unsplash example)
+const HERO_BG =
+  "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=1500&q=80"; // Modern house, car, sky
 
 export default function Hero() {
+  const [openIndex, setOpenIndex] = useState(null);
+
+  const benefitDetails = [
+    "You have 14 days to return the car after delivery. We refund your money in full if you are not satisfied and the car is in the same condition as delivered.",
+    "Every car is inspected by our certified experts. You receive a detailed CarAudit™ report on technical and legal state, so you can buy with full peace of mind.",
+    "Your car comes with a free 6-month warranty covering major mechanical and electrical components. Drive worry-free right from the start.",
+  ];
+
+  const benefits = [
+    {
+      img: "/images/finance-32.svg",
+      alt: "Money-back guarantee",
+      title: "Money back guarantee",
+      desc: "If you don't fall in love with the vehicle, simply return it to us.",
+    },
+    {
+      img: "/images/caraudit-32.svg",
+      alt: "Safe purchase",
+      title: "Safe purchase",
+      desc: "We guarantee the technical condition of every vehicle sold.",
+    },
+    {
+      img: "/images/legal-32.svg",
+      alt: "6-month warranty",
+      title: "6-month warranty",
+      desc: "In addition, with every car you receive an extended warranty.",
+    },
+  ];
+
+  const detailClass =
+    "bg-white text-[#253887] rounded-xl p-4 shadow border border-[#e6e9f3] text-sm";
+
   return (
-    <section className="bg-[#f6f8fd] border-b border-[#e6e9f3]">
+    <section
+      className="relative bg-[#f6f8fd] border-b border-[#e6e9f3]"
+      style={{
+        backgroundImage: `linear-gradient(rgba(36,56,135,0.56), rgba(36,56,135,0.56)), url('${HERO_BG}')`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
       <div className="max-w-[1200px] mx-auto flex flex-col md:flex-row items-center justify-between py-12 px-4 md:px-8 gap-8">
-        {/* Left: illustration (optional, can add image/svg here) */}
-        <div className="hidden md:flex items-center justify-center w-2/5 min-w-[310px]">
-          {/* Placeholder for possible hero illustration */}
-          <div className="rounded-full bg-gradient-to-br from-[#e9ecfa] to-[#f6f8fd] w-72 h-72 flex items-center justify-center">
-            {/* You can place an SVG car or other illustration here */}
-          </div>
-        </div>
         {/* Center: Content */}
         <div className="flex-1">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-[#253887] mb-6 leading-tight">
-            You choose your car online.<br className="hidden md:block"/> We inspect it and deliver it.
+          <h1 className="text-3xl md:text-4xl font-extrabold text-[#fff] mb-6 leading-tight drop-shadow-lg">
+            You choose your car online.<br className="hidden md:block" /> We inspect it and deliver it.
           </h1>
           {/* Search Form */}
           <div className="bg-white shadow rounded-xl p-6 w-full max-w-xl">
@@ -32,7 +68,7 @@ export default function Hero() {
                       placeholder="Make or model"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                      <svg width={16} height={16} fill="none" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="#253887" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      <svg width={16} height={16} fill="none" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="#253887" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                     </span>
                   </div>
                 </div>
@@ -49,7 +85,7 @@ export default function Hero() {
                       placeholder="Mileage"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                      <svg width={16} height={16} fill="none" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="#253887" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      <svg width={16} height={16} fill="none" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="#253887" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                     </span>
                   </div>
                 </div>
@@ -65,7 +101,7 @@ export default function Hero() {
                       placeholder="Registration from"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                      <svg width={16} height={16} fill="none" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="#253887" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      <svg width={16} height={16} fill="none" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="#253887" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                     </span>
                   </div>
                 </div>
@@ -82,7 +118,7 @@ export default function Hero() {
                       placeholder="Price up to"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                      <svg width={16} height={16} fill="none" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="#253887" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      <svg width={16} height={16} fill="none" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="#253887" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                     </span>
                   </div>
                 </div>
@@ -101,7 +137,7 @@ export default function Hero() {
                 </button>
                 <button type="button" className="flex items-center gap-1 border border-[#3452e1] text-[#3452e1] hover:bg-[#e9ecfa] font-semibold px-4 py-2 rounded-lg transition text-sm">
                   Advanced search
-                  <svg width={20} height={20} fill="none" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="#3452e1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  <svg width={20} height={20} fill="none" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="#3452e1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </button>
               </div>
             </form>
@@ -110,44 +146,51 @@ export default function Hero() {
       </div>
       {/* Benefits */}
       <div className="max-w-[1200px] mx-auto px-4 md:px-8 py-10">
-        <ul className="flex flex-col md:flex-row gap-6">
-          {/* Benefit 1 */}
-          <li className="flex-1 bg-white shadow rounded-xl p-6 flex items-start gap-4">
-            <img src="/images/icons/finance-32.svg" alt="Money-back guarantee" className="w-10 h-10 flex-shrink-0" />
-            <div>
-              <h6 className="text-[#253887] font-bold text-lg mb-1">Money back guarantee</h6>
-              <p className="text-[#425187] text-sm mb-2">If you don't fall in love with the vehicle, simply return it to us.</p>
-              <button className="text-[#3452e1] font-semibold text-sm flex items-center gap-1 hover:underline">
-                More
-                <svg width={16} height={16} fill="#3452e1" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="#3452e1"/><path d="M8.65 4c0-.36-.29-.65-.65-.65s-.65.29-.65.65v2.35H4a.65.65 0 100 1.3h3.35V12c0 .36.29.65.65.65s.65-.29.65-.65V7.65H12a.65.65 0 100-1.3H8.65V4z" fill="#fff"/></svg>
-              </button>
+        {/* Cards & Detail below */}
+        <div className="flex flex-col md:flex-row gap-6">
+          {benefits.map((b, i) => (
+            <div key={b.title} className="flex flex-col items-center flex-1">
+              <div className="bg-white shadow rounded-xl p-6 flex items-start gap-4 w-full min-h-[184px]">
+                <img src={b.img} alt={b.alt} className="w-10 h-10 flex-shrink-0" />
+                <div>
+                  <h6 className="text-[#253887] font-bold text-lg mb-1">{b.title}</h6>
+                  <p className="text-[#425187] text-sm mb-2">{b.desc}</p>
+                  <button
+                    type="button"
+                    className="text-[#3452e1] font-semibold text-sm flex items-center gap-1 hover:underline focus:outline-none"
+                    onClick={() => setOpenIndex(openIndex === i ? null : i)}
+                  >
+                    {openIndex === i ? "Less" : "More"}
+                    <svg width={16} height={16} fill="#3452e1" viewBox="0 0 16 16">
+                      <circle cx="8" cy="8" r="8" fill="#3452e1" />
+                      {openIndex === i ? (
+                        // Dấu -
+                        <rect x="4" y="7.25" width="8" height="1.5" rx="0.75" fill="#fff" />
+                      ) : (
+                        // Dấu +
+                        <>
+                          <rect x="4" y="7.25" width="8" height="1.5" rx="0.75" fill="#fff" />
+                          <rect x="7.25" y="4" width="1.5" height="8" rx="0.75" fill="#fff" />
+                        </>
+                      )}
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              {/* Detail OUTSIDE the card, fixed width, no card resize */}
+              <div
+                className={`transition-all duration-300 ${
+                  openIndex === i ? "max-h-[200px] mt-3 opacity-100" : "max-h-0 mt-0 opacity-0 pointer-events-none"
+                } overflow-hidden w-full`}
+                aria-hidden={openIndex !== i}
+              >
+                <div className={detailClass}>
+                  {benefitDetails[i]}
+                </div>
+              </div>
             </div>
-          </li>
-          {/* Benefit 2 */}
-          <li className="flex-1 bg-white shadow rounded-xl p-6 flex items-start gap-4">
-            <img src="/images/icons/caraudit-32.svg" alt="Safe purchase" className="w-10 h-10 flex-shrink-0" />
-            <div>
-              <h6 className="text-[#253887] font-bold text-lg mb-1">Safe purchase</h6>
-              <p className="text-[#425187] text-sm mb-2">We guarantee the technical condition of every vehicle sold.</p>
-              <button className="text-[#3452e1] font-semibold text-sm flex items-center gap-1 hover:underline">
-                More
-                <svg width={16} height={16} fill="#3452e1" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="#3452e1"/><path d="M8.65 4c0-.36-.29-.65-.65-.65s-.65.29-.65.65v2.35H4a.65.65 0 100 1.3h3.35V12c0 .36.29.65.65.65s.65-.29.65-.65V7.65H12a.65.65 0 100-1.3H8.65V4z" fill="#fff"/></svg>
-              </button>
-            </div>
-          </li>
-          {/* Benefit 3 */}
-          <li className="flex-1 bg-white shadow rounded-xl p-6 flex items-start gap-4">
-            <img src="/images/icons/legal-32.svg" alt="6-month warranty" className="w-10 h-10 flex-shrink-0" />
-            <div>
-              <h6 className="text-[#253887] font-bold text-lg mb-1">6-month warranty</h6>
-              <p className="text-[#425187] text-sm mb-2">In addition, with every car you receive an extended warranty.</p>
-              <button className="text-[#3452e1] font-semibold text-sm flex items-center gap-1 hover:underline">
-                More
-                <svg width={16} height={16} fill="#3452e1" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="#3452e1"/><path d="M8.65 4c0-.36-.29-.65-.65-.65s-.65.29-.65.65v2.35H4a.65.65 0 100 1.3h3.35V12c0 .36.29.65.65.65s.65-.29.65-.65V7.65H12a.65.65 0 100-1.3H8.65V4z" fill="#fff"/></svg>
-              </button>
-            </div>
-          </li>
-        </ul>
+          ))}
+        </div>
       </div>
     </section>
   );

@@ -3,11 +3,11 @@ import React, { useState } from "react";
 const reviews = [
   {
     name: "Paul M.",
-    countryFlag: "/images/flags/germany.svg",
+    countryFlag: "/images/germany.svg",
     rating: 5,
     review: "We used Carvago on the recommendation of friends and have not regretted it. The car is as good as new and at a fraction of the original price. It serves us reliably and meets our needs completely. We were pleased about the warranty included in the price, but we are sure that we will not need to use it.",
     car: {
-      brandLogo: "/images/brands/toyota.webp",
+      brandLogo: "/images/toyota.webp",
       name: "Toyota RAV4",
       link: "/cars?model[]=MAKE_TOYOTA-MODELFAMILY_RAV4"
     },
@@ -16,11 +16,11 @@ const reviews = [
   },
   {
     name: "Natascha S.",
-    countryFlag: "/images/flags/germany.svg",
+    countryFlag: "/images/germany.svg",
     rating: 5,
     review: "I wanted a nice and well-maintained car, but a new one was beyond my financial means. It took me a long time to decide on a car on Carvag, but in the end I found a car and I'm very happy with it. It drives well and even has my favorite color. Thanks to the extended warranty, I feel that Carvago will take care of it if something goes wrong.",
     car: {
-      brandLogo: "/images/brands/audi.webp",
+      brandLogo: "/images/audi.webp",
       name: "Audi A4",
       link: "/cars?model[]=MAKE_AUDI-MODELFAMILY_A4"
     },
@@ -29,11 +29,11 @@ const reviews = [
   },
   {
     name: "Hannah S.",
-    countryFlag: "/images/flags/germany.svg",
+    countryFlag: "/images/germany.svg",
     rating: 5,
     review: "Hurray! I finally have the car I wanted so much. I'm glad that Carvago took care of everything and I didn't have to worry. In a word: great!",
     car: {
-      brandLogo: "/images/brands/mercedes_benz.webp",
+      brandLogo: "/images/mercedes_benz.webp",
       name: "Mercedes-Benz GLC 250",
       link: "/cars?model[]=MAKE_MERCEDES_BENZ-MODELFAMILY_GLC_250"
     },
@@ -42,11 +42,11 @@ const reviews = [
   },
   {
     name: "Muhittin B.",
-    countryFlag: "/images/flags/germany.svg",
+    countryFlag: "/images/germany.svg",
     rating: 5,
     review: "Thank you very much for the uncomplicated and smooth handling of the purchase process. I can recommend you without reservation.",
     car: {
-      brandLogo: "/images/brands/volkswagen.webp",
+      brandLogo: "/images/volkswagen.webp",
       name: "Volkswagen Passat • 2022",
       link: "/cars?model[]=MAKE_VOLKSWAGEN-MODELFAMILY_PASSAT&registration-date-from=2022"
     },
@@ -55,11 +55,11 @@ const reviews = [
   },
   {
     name: "Friedrich M.",
-    countryFlag: "/images/flags/germany.svg",
+    countryFlag: "/images/germany.svg",
     rating: 5,
     review: "I can only say praise and thanks. Buying through Carvago saved me a lot of time and worry.",
     car: {
-      brandLogo: "/images/brands/ford.webp",
+      brandLogo: "/images/ford.webp",
       name: "Ford Explorer",
       link: "/cars?model[]=MAKE_FORD-MODELFAMILY_EXPLORER"
     },
@@ -180,17 +180,7 @@ export default function CustomerTestimonials() {
                     <StarRating value={review.rating} />
                   </div>
                   <p className="text-[#253887] opacity-95 text-[1rem] leading-[1.52] mb-2">{review.review}</p>
-                  <div className="flex items-center gap-2 mb-2">
-                    <a
-                      href={review.source}
-                      className="text-xs text-[#3452e1] underline"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Source
-                    </a>
-                    <span className="text-xs text-[#8e9cc5]">Google</span>
-                  </div>
+
                 </div>
                 {/* Card footer */}
                 <div className="border-t border-[#eceef7] px-5 py-3 bg-white flex items-center gap-3">
@@ -221,20 +211,6 @@ export default function CustomerTestimonials() {
         {/* Media trust */}
         <div className="mt-12 flex flex-col items-center">
           <p className="text-[#253887] text-base font-bold mb-3 tracking-wide uppercase">They also trust us in the media</p>
-          <div className="flex flex-wrap gap-11 items-center justify-center">
-            {mediaLogos.map((logo, idx) => (
-              <a
-                key={logo.title}
-                href={logo.href}
-                target="_blank"
-                rel="noreferrer"
-                title={logo.title}
-                className="inline-block"
-              >
-                <svg className="inline" style={{ height: 34 }}><use href={logo.logo}></use></svg>
-              </a>
-            ))}
-          </div>
         </div>
       </div>
     </div>
