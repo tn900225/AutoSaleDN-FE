@@ -86,7 +86,7 @@ export default function Header() {
           </button>
           {/* Flag */}
           <button className="flex items-center" aria-label="Language">
-            <img src="https://flagcdn.com/gb.svg" alt="EN" className="w-6 h-6 rounded-full border border-[#253887]" />
+            <img src="https://flagcdn.com/vn.svg" alt="VN" className="w-6 h-6 rounded-full border border-[#253887]" />
           </button>
           {/* User/Login */}
           <div
