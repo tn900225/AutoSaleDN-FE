@@ -1,6 +1,6 @@
 import React from "react";
 import { useParams } from "react-router-dom";
-import cars from "../data/cars";
+import { mockCars } from "../data/mockCars";
 
 export default function CarDetailPage() {
   const { carId } = useParams();
