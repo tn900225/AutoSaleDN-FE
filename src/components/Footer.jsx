@@ -41,7 +41,7 @@ const mainLinks = [
     title: "Carvago",
     links: [
       { label: "Buy", href: "/cars" },
-      { label: "How it works", href: "/how-carvago-works" },
+      { label: "How it works", href: "/how-auto-works" },
       { label: "Reviews", href: "/customer-reviews" },
       { label: "Electric & Hybrid", href: "/electric-hybrid-vehicles" },
       { label: "Site map", href: "/sitemap" }

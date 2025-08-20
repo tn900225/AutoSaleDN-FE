@@ -6,6 +6,7 @@ import Home from "./pages/Home";
 import './index.css'
 import CarDetailPage from "./pages/CarDetailPage";
 import CarPage from "./pages/CarPage";
+import HowAutoSaleWork from "./pages/HowAutoSaleWork";
 function App() {
   return (
     <Router>
@@ -13,7 +14,9 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/cars" element={<CarPage />} />
+        <Route path="/how-auto-works" element={<HowAutoSaleWork />} />
         <Route path="/cars/:carId" element={<CarDetailPage />} />
+         
       </Routes>
       <Footer />
     </Router>

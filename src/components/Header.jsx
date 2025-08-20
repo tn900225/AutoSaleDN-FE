@@ -6,7 +6,7 @@ import HeaderUserDropdown from "./HeaderUserDropDown";
 
 const navLinks = [
   { label: "Buy", to: "/cars" },
-  { label: "How it works", to: "/how-carvago-works" },
+  { label: "How it works", to: "/how-auto-works" },
   { label: "Reviews", to: "/customer-reviews" },
   { label: "Services", to: "#", dropdown: true },
   { label: "Electric & Hybrid", to: "/electric-hybrid-vehicles" },
@@ -50,7 +50,7 @@ export default function Header() {
         {/* Menu */}
         <nav className="flex items-center gap-6">
           <Link to="/cars" className="text-[#253887] font-semibold text-base hover:text-[#3452e1] transition">Buy</Link>
-          <Link to="/how-carvago-works" className="text-[#253887] font-semibold text-base hover:text-[#3452e1] transition">How it works</Link>
+          <Link to="/how-auto-works" className="text-[#253887] font-semibold text-base hover:text-[#3452e1] transition">How it works</Link>
           <Link to="/customer-reviews" className="text-[#253887] font-semibold text-base hover:text-[#3452e1] transition">Reviews</Link>
           {/* Services Dropdown */}
           <div
