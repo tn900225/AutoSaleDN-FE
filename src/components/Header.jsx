@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Login from "./Login";
+import AccountMenu from "./AccountMenu";
 import HeaderUserDropdown from "./HeaderUserDropDown";
+import { useUserContext } from "./context/UserContext";
 
 const navLinks = [
   { label: "Buy", to: "/cars" },
@@ -19,13 +21,28 @@ const servicesDropdown = [
 ];
 
 export default function Header() {
+  const { user, setUser } = useUserContext();
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef();
   const [showServices, setShowServices] = useState(false);
-  const [showUser, setShowUser] = useState(false);
   const [showSignInModal, setShowSignInModal] = useState(false);
 
-    useEffect(() => {
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      // Fetch user info from API using token
+      fetch('/api/User/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      .then(resp => resp.json())
+      .then(data => setUser(data))
+      .catch(error => console.error('Error fetching user info:', error));
+    }
+  }, [setUser]);
+
+  useEffect(() => {
     if (!showDropdown) return;
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -35,6 +52,11 @@ export default function Header() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showDropdown]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+  };
 
   return (
     <header className="bg-white border-b border-[#253887]">
@@ -94,25 +116,34 @@ export default function Header() {
             ref={dropdownRef}
           >
             <button className="flex items-center gap-1 text-[#253887] font-semibold text-base" type="button" onClick={() => setShowDropdown((s) => !s)}>
+
               <svg width={26} height={26} fill="none" stroke="#253887" strokeWidth={1.7} viewBox="0 0 24 24">
                 <circle cx="12" cy="9" r="4" />
                 <path d="M4 20c0-3.314 3.134-6 7-6s7 2.686 7 6" />
               </svg>
-              <span className="ml-1">Login</span>
+              <span className="ml-1">{user ? user.fullName : 'Login'}</span>
               <svg width={16} height={16} fill="none" className="ml-1">
                 <path d="M4 6l4 4 4-4" stroke="#253887" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
-            {/* Dropdown (fake) */}
+            {/* Dropdown */}
             {showDropdown && (
-              <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 shadow-md rounded z-50 min-w-[120px] py-2">
-                 <HeaderUserDropdown onLoginClick={() => setShowSignInModal(true)} />
-              </div>
-            )}
+            <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 shadow-md rounded z-50 min-w-[120px] py-2" style={{width:'320px'}}>
+              {user ? (
+                <AccountMenu user={user} onLogout={handleLogout} />
+              ) : (
+                <HeaderUserDropdown onLoginClick={() => setShowSignInModal(true)} />
+              )}
+            </div>
+             )}
           </div>
         </div>
       </div>
-      <Login show={showSignInModal} onClose={() => setShowSignInModal(false)} />
+
+      <Login
+        show={showSignInModal}
+        onClose={() => setShowSignInModal(false)}
+      />
     </header>
   );
 }

@@ -14,18 +14,9 @@ export default function HeaderUserDropdown({ onLoginClick }) {
 
   return (
     <>
-      <div className="absolute right-0 top-full mt-4 min-w-[320px] bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
+      <div className="">
         {/* Arrow/top pointer */}
-        <div className="absolute -top-2 right-6 w-6 h-3">
-          <svg width="100%" height="100%" viewBox="0 0 24 8">
-            <path
-              d="M12 8L24 0H0L12 8Z"
-              fill="white"
-              stroke="#e5e7eb"
-              strokeWidth="1"
-            />
-          </svg>
-        </div>
+        
         <div className="py-4 px-7 flex flex-col gap-1">
           {/* Menu items */}
           <a href="/saved-searches" className="flex items-center gap-3 py-2 text-[#253887] hover:bg-[#f6f8fd] rounded-lg transition font-medium text-base">
