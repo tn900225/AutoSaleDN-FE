@@ -62,7 +62,7 @@ const carAuditData = [
     checkedPoints: 270,
     partners: [
       { src: "/images/pirelli.svg", alt: "Pirelli" },
-      { src: "/images/carvago-cooperate.svg", alt: "Carvago" },
+      { src: "/images/tuv.svg", alt: "Carvago" },
       { src: "/images/dekra.svg", alt: "Dekra" }
     ]
   },
@@ -289,7 +289,7 @@ export default function CarAuditSection() {
             "I have never ever known so many details about a car before buying it!"
           </blockquote>
           <div className="flex items-center gap-3 mt-2">
-            <img src="/images/avatar-customer.jpg" alt="Jürgen S." className="w-8 h-8 rounded-full object-cover"/>
+            <img src="/images/jurgen-1x.webp" alt="Jürgen S." className="w-8 h-8 rounded-full object-cover"/>
             <span className="text-[#253887] font-bold text-sm">Jürgen S.</span>
             <span className="text-xs text-[#b7bfdc]">Linz</span>
           </div>

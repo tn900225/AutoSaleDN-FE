@@ -138,12 +138,16 @@ export default function CarvagoFooter() {
             <div className="grid grid-cols-2 gap-x-10">
               <div className="flex flex-col space-y-1">
                 {popularCategories.slice(0, 4).map(c => (
-                  <a key={c.label} href={c.href} className="hover:underline font-normal">{c.label}</a>
+                  <a key={c.label} href={c.href} className="hover:underline font-normal"><p className="font-[EuclidCircularB,sans-serif] not-italic text-gray-600 text-[1.2rem] leading-[2rem] font-normal whitespace-nowrap md:text-[0.8rem] md:leading-[1.6rem]">
+  {c.label}
+</p></a>
                 ))}
               </div>
               <div className="flex flex-col space-y-1">
                 {popularCategories.slice(4).map(c => (
-                  <a key={c.label} href={c.href} className="hover:underline font-normal">{c.label}</a>
+                  <a key={c.label} href={c.href} className="hover:underline font-normal"><p className="font-[EuclidCircularB,sans-serif] not-italic text-gray-600 text-[1.2rem] leading-[2rem] font-normal whitespace-nowrap md:text-[0.8rem] md:leading-[1.6rem]">
+  {c.label}
+</p></a>
                 ))}
               </div>
             </div>
@@ -154,12 +158,16 @@ export default function CarvagoFooter() {
             <div className="grid grid-cols-2 gap-x-10">
               <div className="flex flex-col space-y-1">
                 {selectedMakes.slice(0, 5).map(c => (
-                  <a key={c.label} href={c.href} className="hover:underline font-normal">{c.label}</a>
+                  <a key={c.label} href={c.href} className="hover:underline font-normal"><p className="font-[EuclidCircularB,sans-serif] not-italic text-gray-600 text-[1.2rem] leading-[2rem] font-normal whitespace-nowrap md:text-[0.8rem] md:leading-[1.6rem]">
+  {c.label}
+</p></a>
                 ))}
               </div>
               <div className="flex flex-col space-y-1">
                 {selectedMakes.slice(5).map(c => (
-                  <a key={c.label} href={c.href} className="hover:underline font-normal">{c.label}</a>
+                  <a key={c.label} href={c.href} className="hover:underline font-normal"><p className="font-[EuclidCircularB,sans-serif] not-italic text-gray-600 text-[1.2rem] leading-[2rem] font-normal whitespace-nowrap md:text-[0.8rem] md:leading-[1.6rem]">
+  {c.label}
+</p></a>
                 ))}
               </div>
             </div>
@@ -170,12 +178,18 @@ export default function CarvagoFooter() {
             <div className="grid grid-cols-2 gap-x-10">
               <div className="flex flex-col space-y-1">
                 {selectedModels.slice(0, 5).map(c => (
-                  <a key={c.label} href={c.href} className="hover:underline font-normal">{c.label}</a>
+                  <a key={c.label} href={c.href} className="hover:underline font-normal">
+                    <p className="font-[EuclidCircularB,sans-serif] not-italic text-gray-600 text-[1.2rem] leading-[2rem] font-normal whitespace-nowrap md:text-[0.8rem] md:leading-[1.6rem]">
+  {c.label}
+</p>
+</a>
                 ))}
               </div>
               <div className="flex flex-col space-y-1">
                 {selectedModels.slice(5).map(c => (
-                  <a key={c.label} href={c.href} className="hover:underline font-normal">{c.label}</a>
+                  <a key={c.label} href={c.href} className="hover:underline font-normal"><p className="font-[EuclidCircularB,sans-serif] not-italic text-gray-600 text-[1.2rem] leading-[2rem] font-normal whitespace-nowrap md:text-[0.8rem] md:leading-[1.6rem]">
+  {c.label}
+</p></a>
                 ))}
               </div>
             </div>
@@ -187,8 +201,8 @@ export default function CarvagoFooter() {
         <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-10 mb-3">
           {/* Logo + copyright + socials */}
           <div className="flex flex-col items-start md:items-start gap-3 min-w-[230px] md:min-w-[230px]">
-            <img src="/images/logo/logo.svg" alt="Carvago logo" className="w-[130px] h-auto mb-2" />
-            <span className="text-[13px] font-normal text-[#253887]">Carvago 2025 • All rights reserved</span>
+            <img src="/images/logo.png" alt="AutoSaleDN logo" className="w-[130px] h-auto mb-2" />
+            <span className="text-[13px] font-normal text-[#253887]">AutoSaleDN 2025 • All rights reserved</span>
             <div className="flex gap-4 mt-2">
               {socialLinks.map(item => (
                 <a
@@ -213,7 +227,11 @@ export default function CarvagoFooter() {
                   {group.links.map(link =>
                     link.isButton ? (
                       <li key={link.label}>
-                        <button className="text-[#3452e1] hover:underline text-left text-[15px] font-normal">{link.label}</button>
+                        <button className="text-[#3452e1] hover:underline text-left text-[15px] font-normal">
+                          <p className="font-[EuclidCircularB,sans-serif] not-italic text-gray-600 text-[1.2rem] leading-[2rem] font-normal whitespace-nowrap md:text-[0.8rem] md:leading-[1.6rem]">
+  {link.label}
+</p>
+                          </button>
                       </li>
                     ) : (
                       <li key={link.label}>
@@ -223,7 +241,9 @@ export default function CarvagoFooter() {
                           target={link.external ? "_blank" : undefined}
                           rel={link.external ? "noopener noreferrer" : undefined}
                         >
-                          {link.label}
+                          <p className="chakra-text css-wjmqcc"><p className="font-[EuclidCircularB,sans-serif] not-italic text-gray-600 text-[1.2rem] leading-[2rem] font-normal whitespace-nowrap md:text-[0.8rem] md:leading-[1.6rem]">
+  {link.label}
+</p></p>
                         </a>
                       </li>
                     )
@@ -245,11 +265,6 @@ export default function CarvagoFooter() {
               <img key={icon.alt} src={icon.src} alt={icon.alt} className="h-[30px] w-auto" />
             ))}
           </div>
-        </div>
-        <div className="text-[12px] font-normal text-[#253887] opacity-80 leading-relaxed max-w-full mb-2">
-          This is a commercial communication of the company Carvago s.r.o. It is not a draft agreement or contract within the meaning of § 1731 of Act No. 89/2012 Coll. of the Commercial Code. The lender is Santander Consumer Bank, Santander-Platz 1, 410 61 Mönchengladbach.<br /><br />
-          ¹Representative example of low rate financing: Net loan amount €20,000; down payment €10,000; contract term 60 months; annual percentage rate of charge 8.99%, fixed borrowing rate 8.64% p.a.; 60 monthly instalments of €87 each; final instalment €9000; total amount €14,110.00. The above information also represents the representative calculation example pursuant to § 6a para. 4 PAngV. Please note that we will make a creditworthiness enquiry. All prices include VAT.<br /><br />
-          ²Net loan amount 20,000 €; contract term 60 months; annual percentage rate of charge 8.99%, fixed borrowing rate 8.64% p.a.; 60 monthly instalments of 206.00 € each; total amount 12,352 €. The above information also represents the representative calculation example pursuant to § 6a para. 4 PAngV. Please note that we will make a creditworthiness enquiry. All prices include VAT.
         </div>
       </div>
     </footer>
