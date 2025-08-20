@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Login from "./Login";
 import HeaderUserDropdown from "./HeaderUserDropDown";
-// Font dùng: 'Montserrat', sans-serif (carvago dùng Montserrat)
 
 const navLinks = [
   { label: "Buy", to: "/cars" },

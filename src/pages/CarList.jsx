@@ -238,7 +238,7 @@ export default function CarFilterSidebar() {
       {/* Info section */}
       <div className="bg-[#f6f8fd] rounded-xl p-4 mt-6 flex flex-col items-center">
         <div className="font-semibold text-[#253887] mb-2">
-          What is Carvago and how does it work?
+          What is AutoSaleDN and how does it work?
         </div>
         <button type="button" className="flex items-center gap-2 text-[#3452e1] font-semibold hover:underline">
           <svg width={22} height={22} fill="currentColor" viewBox="0 0 22 22">
