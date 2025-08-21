@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaArrowLeft } from "react-icons/fa";
+import { FaArrowLeft, FaEdit, FaTrash, FaEye, FaCheck, FaTimes, FaUser, FaCar } from "react-icons/fa";
 import { useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import AdminSidebar from "../../components/admin/AdminSidebar";
@@ -113,10 +113,8 @@ export default function TransactionDetail() {
             </span>
           </div>
           <div className="flex items-center gap-6">
-            <button className="p-2 rounded-full hover:bg-gray-100">
-              <svg width="22" height="22" fill="none" stroke="currentColor">
-                <path d="M11 21c1.1 0 2-.9 2-2h-4a2 2 0 002 2zM18 16v-5c0-3.07-1.63-5.64-5-6.32V4a1 1 0 10-2 0v.68C7.63 5.36 6 7.92 6 11v5l-1 1v1h14v-1l-1-1z" />
-              </svg>
+            <button className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700">
+              <FaArrowLeft size={20} />
             </button>
             <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden border-2 border-white flex items-center justify-center">
               <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="profile" />
@@ -127,7 +125,7 @@ export default function TransactionDetail() {
         <main className="flex-1 px-8 py-8 overflow-y-auto">
           <div className="flex items-center gap-4 mb-8">
             <button
-              className="text-gray-500 hover:text-gray-700"
+              className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700"
               onClick={() => window.history.back()}
               aria-label="Back"
             >
@@ -136,59 +134,107 @@ export default function TransactionDetail() {
             <h1 className="text-2xl font-bold text-gray-800">
               Transaction Details
             </h1>
-            <span className="ml-3 px-3 py-1 rounded-full bg-violet-100 text-violet-700 text-sm font-semibold border border-violet-300">
-              {getTransactionRole()}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 rounded-full bg-violet-100 text-violet-700 text-sm font-semibold border border-violet-300">
+                {getTransactionRole()}
+              </span>
+              <button className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700">
+                <FaEye size={18} title="View Details" />
+              </button>
+              <button className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700">
+                <FaEdit size={18} title="Edit Transaction" />
+              </button>
+              <button className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700">
+                <FaTrash size={18} title="Delete Transaction" />
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
             {/* Transaction Info */}
             <div className="bg-white rounded-xl p-8 shadow-sm">
-              <h3 className="text-lg font-bold mb-4 text-violet-700">Transaction Information</h3>
+              <div className="flex items-center gap-3 mb-4">
+                <FaCheck className="text-green-500" size={20} />
+                <h3 className="text-lg font-bold text-gray-800">Transaction Information</h3>
+              </div>
               <div className="space-y-3 text-sm">
-                <div>
-                  <span className="font-medium text-gray-600">Transaction Date: </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-gray-600">Date:</span>
                   <span className="text-gray-900">{formatDate(transaction.saleDate || transaction.SaleDate)}</span>
                 </div>
-                <div>
-                  <span className="font-medium text-gray-600">Status: </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-gray-600">Status:</span>
                   <span className="text-gray-900">{transaction.saleStatus || transaction.SaleStatus}</span>
                 </div>
-                <div>
-                  <span className="font-medium text-gray-600">Final Price: </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-gray-600">Price:</span>
                   <span className="text-violet-600 font-semibold">
                     {Number(transaction.finalPrice || transaction.FinalPrice).toLocaleString(undefined, { style: "currency", currency: "USD" })}
                   </span>
                 </div>
-                <div>
-                  <span className="font-medium text-gray-600">Created At: </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-gray-600">Created:</span>
                   <span className="text-gray-900">{formatDate(transaction.createdAt || transaction.CreatedAt)}</span>
                 </div>
-                <div>
-                  <span className="font-medium text-gray-600">Last Updated: </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-gray-600">Updated:</span>
                   <span className="text-gray-900">{formatDate(transaction.updatedAt || transaction.UpdatedAt)}</span>
                 </div>
               </div>
             </div>
+
             {/* Customer Info */}
             <div className="bg-white rounded-xl p-8 shadow-sm">
-              <h3 className="text-lg font-bold mb-4 text-violet-700">Customer Information</h3>
+              <div className="flex items-center gap-3 mb-4">
+                <FaUser className="text-blue-500" size={20} />
+                <h3 className="text-lg font-bold text-gray-800">Customer Information</h3>
+              </div>
               <div className="space-y-3 text-sm">
-                <div>
-                  <span className="font-medium text-gray-600">Full Name: </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-gray-600">Name:</span>
                   <span className="text-gray-900">{getVal("customer", "fullName")}</span>
                 </div>
-                <div>
-                  <span className="font-medium text-gray-600">Email: </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-gray-600">Email:</span>
                   <span className="text-gray-900">{getVal("customer", "email")}</span>
                 </div>
-                <div>
-                  <span className="font-medium text-gray-600">Mobile: </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-gray-600">Phone:</span>
                   <span className="text-gray-900">{getVal("customer", "mobile")}</span>
                 </div>
-                <div>
-                  <span className="font-medium text-gray-600">Role: </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-gray-600">Role:</span>
                   <span className="text-gray-900">{getTransactionRole()}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Car Info */}
+            <div className="bg-white rounded-xl p-8 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <FaCar className="text-orange-500" size={20} />
+                <h3 className="text-lg font-bold text-gray-800">Vehicle Information</h3>
+              </div>
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-gray-600">Make:</span>
+                  <span className="text-gray-900">{carInfo.manufacturer}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-gray-600">Model:</span>
+                  <span className="text-gray-900">{carInfo.model}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-gray-600">Year:</span>
+                  <span className="text-gray-900">{carInfo.year}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-gray-600">Mileage:</span>
+                  <span className="text-gray-900">{carInfo.mileage}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-gray-600">Price:</span>
+                  <span className="text-violet-600 font-semibold">{carInfo.price}</span>
                 </div>
               </div>
             </div>

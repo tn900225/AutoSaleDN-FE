@@ -487,8 +487,8 @@ export default function Customers() {
                         <div className="text-gray-900">{viewUser.mobile || viewUser.Mobile || "-"}</div>
                       </div>
                       <div>
-                        <div className="font-medium text-gray-700">Role:</div>
-                        <div className="text-gray-900">{viewUser.role || viewUser.Role}</div>
+                        <div className="font-medium text-gray-700">Address:</div>
+                        <div className="text-gray-900">{viewUser.province || viewUser.Province}</div>
                       </div>
                       <div>
                         <div className="font-medium text-gray-700">Created At:</div>

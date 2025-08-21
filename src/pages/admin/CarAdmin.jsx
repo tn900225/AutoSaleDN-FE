@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminTopbar from "../../components/admin/AdminTopbar";
-import { FaSearch, FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { FaSearch, FaChevronLeft, FaChevronRight, FaEdit, FaTrash, FaPlus, FaTimes } from "react-icons/fa";
 import { HiUserGroup } from "react-icons/hi";
 import Swal from "sweetalert2";
 
@@ -260,26 +260,27 @@ export default function Cars() {
         {/* Select */}
         <div className="flex flex-col items-center justify-center min-w-[120px]">
           <button
-            className="w-24 py-2 rounded-lg bg-pink-500 hover:bg-pink-600 text-white font-bold transition"
+            className="w-24 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold transition flex items-center justify-center gap-2"
             type="button"
           >
-            Select
+            <FaPlus className="text-lg" />
+            <span>Select</span>
           </button>
         </div>
       </div>
       {/* Edit/Delete */}
       <div className="flex flex-col items-center justify-center gap-2 bg-gray-100 px-4 min-w-[90px]">
         <button
-          className="w-16 py-1 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-blue-50"
+          className="w-16 py-1 rounded-lg border border-blue-500 text-blue-600 hover:bg-blue-50 flex items-center justify-center gap-1"
           onClick={() => openEditModal(car)}
         >
-          Edit
+          <FaEdit className="text-lg" />
         </button>
         <button
-          className="w-16 py-1 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-red-50"
+          className="w-16 py-1 rounded-lg border border-red-500 text-red-600 hover:bg-red-50 flex items-center justify-center gap-1"
           onClick={() => openDeleteModal(car)}
         >
-          Delete
+          <FaTrash className="text-lg" />
         </button>
       </div>
     </div>
@@ -298,14 +299,19 @@ export default function Cars() {
             </div>
             <div className="flex gap-4">
               <button
-                className="px-6 py-2 rounded-lg bg-red-500 text-white font-semibold"
+                className="px-6 py-2 rounded-lg bg-red-600 text-white font-semibold flex items-center gap-2"
                 onClick={handleModalSubmit}
                 disabled={loading}
               >
-                Delete
+                <FaTrash className="text-lg" />
+                <span>Delete</span>
               </button>
-              <button className="px-6 py-2 rounded-lg bg-gray-200" onClick={() => setOpenModal(false)}>
-                Cancel
+              <button 
+                className="px-6 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 flex items-center gap-2"
+                onClick={() => setOpenModal(false)}
+              >
+                <FaTimes className="text-lg" />
+                <span>Cancel</span>
               </button>
             </div>
           </div>
@@ -563,7 +569,7 @@ export default function Cars() {
           </div>
           {/* Footer */}
           <footer className="mt-6 text-xs text-gray-400 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-            <div>Copyright © {new Date().getFullYear()} AutoSaleDN.</div>
+            <div>Copyright {new Date().getFullYear()} AutoSaleDN.</div>
             <div className="flex gap-4">
               <a href="#" className="hover:underline">
                 Privacy Policy
