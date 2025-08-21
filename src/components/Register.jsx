@@ -1,21 +1,206 @@
 import React, { useState } from "react";
+import Swal from "sweetalert2";
+
+// Mock data: 63 provinces/cities and postal codes
+const provincePostalList = [
+    { name: "An Giang", postal: "88000" },
+    { name: "Bà Rịa - Vũng Tàu", postal: "79000" },
+    { name: "Bắc Giang", postal: "26000" },
+    { name: "Bắc Kạn", postal: "23000" },
+    { name: "Bạc Liêu", postal: "97000" },
+    { name: "Bắc Ninh", postal: "16000" },
+    { name: "Bến Tre", postal: "86000" },
+    { name: "Bình Định", postal: "55000" },
+    { name: "Bình Dương", postal: "82000" },
+    { name: "Bình Phước", postal: "83000" },
+    { name: "Bình Thuận", postal: "77000" },
+    { name: "Cà Mau", postal: "98000" },
+    { name: "Cần Thơ", postal: "90000" },
+    { name: "Cao Bằng", postal: "21000" },
+    { name: "Đà Nẵng", postal: "50000" },
+    { name: "Đắk Lắk", postal: "63000" },
+    { name: "Đắk Nông", postal: "65000" },
+    { name: "Điện Biên", postal: "32000" },
+    { name: "Đồng Nai", postal: "81000" },
+    { name: "Đồng Tháp", postal: "87000" },
+    { name: "Gia Lai", postal: "61000" },
+    { name: "Hà Giang", postal: "20000" },
+    { name: "Hà Nam", postal: "18000" },
+    { name: "Hà Nội", postal: "10000" },
+    { name: "Hà Tĩnh", postal: "45000" },
+    { name: "Hải Dương", postal: "03000" },
+    { name: "Hải Phòng", postal: "04000" },
+    { name: "Hậu Giang", postal: "95000" },
+    { name: "Hòa Bình", postal: "36000" },
+    { name: "Hưng Yên", postal: "17000" },
+    { name: "Khánh Hòa", postal: "65000" },
+    { name: "Kiên Giang", postal: "91000" },
+    { name: "Kon Tum", postal: "60000" },
+    { name: "Lai Châu", postal: "30000" },
+    { name: "Lâm Đồng", postal: "67000" },
+    { name: "Lạng Sơn", postal: "25000" },
+    { name: "Lào Cai", postal: "31000" },
+    { name: "Long An", postal: "85000" },
+    { name: "Nam Định", postal: "07000" },
+    { name: "Nghệ An", postal: "43000" },
+    { name: "Ninh Bình", postal: "08000" },
+    { name: "Ninh Thuận", postal: "66000" },
+    { name: "Phú Thọ", postal: "35000" },
+    { name: "Phú Yên", postal: "56000" },
+    { name: "Quảng Bình", postal: "47000" },
+    { name: "Quảng Nam", postal: "51000" },
+    { name: "Quảng Ngãi", postal: "53000" },
+    { name: "Quảng Ninh", postal: "01000" },
+    { name: "Quảng Trị", postal: "48000" },
+    { name: "Sóc Trăng", postal: "96000" },
+    { name: "Sơn La", postal: "34000" },
+    { name: "Tây Ninh", postal: "80000" },
+    { name: "Thái Bình", postal: "06000" },
+    { name: "Thái Nguyên", postal: "24000" },
+    { name: "Thanh Hóa", postal: "40000" },
+    { name: "Thừa Thiên Huế", postal: "49000" },
+    { name: "Tiền Giang", postal: "84000" },
+    { name: "TP. Hồ Chí Minh", postal: "70000" },
+    { name: "Trà Vinh", postal: "94000" },
+    { name: "Tuyên Quang", postal: "22000" },
+    { name: "Vĩnh Long", postal: "89000" },
+    { name: "Vĩnh Phúc", postal: "15000" },
+    { name: "Yên Bái", postal: "33000" }
+];
+
+// Validation helpers
+const validateEmail = (email) =>
+    /^([a-zA-Z0-9_\-.+])+@([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/.test(email);
+const validatePassword = (pw) => pw.length >= 8;
+const validateName = (name) => name.trim().length > 0;
+const validatePhone = (phone) =>
+    /^[0-9\-+\s()]{6,20}$/.test(phone) && phone.trim().length > 0;
 
 export default function Register({ show, onClose, onShowLogin }) {
     const [showPassword, setShowPassword] = useState(false);
     const [agree, setAgree] = useState(false);
-
+    const [form, setForm] = useState({
+        email: "",
+        password: "",
+        name: "",
+        surname: "",
+        countryCode: "+84",
+        phone: "",
+        province: "",
+        postal: "",
+    });
+    const [errors, setErrors] = useState({});
     if (!show) return null;
 
-    // Xử lý submit đăng ký (bạn có thể thêm logic xử lý đăng ký ở đây)
-    const handleRegister = (e) => {
-        e.preventDefault();
-        // Thực hiện đăng ký ở đây nếu cần
+    // Validate postal code: must match province & be 5 digits
+    const validatePostal = (province, postal) => {
+        if (!postal) return false;
+        if (!province) return false;
+        const found = provincePostalList.find((p) => p.name === province);
+        if (!found) return false;
+        return postal === found.postal;
     };
+
+    // Form validation
+    const validateForm = () => {
+        const err = {};
+        if (!validateEmail(form.email)) err.email = "Invalid email address.";
+        if (!validatePassword(form.password)) err.password = "Password must be at least 8 characters.";
+        if (!validateName(form.name)) err.name = "Please enter your first name.";
+        if (!validateName(form.surname)) err.surname = "Please enter your last name.";
+        if (!validatePhone(form.phone)) err.phone = "Invalid phone number.";
+        if (!form.province) err.province = "Please select a province/city.";
+        if (!form.postal) err.postal = "Please enter the postal code.";
+        else if (!validatePostal(form.province, form.postal))
+            err.postal = "Postal code does not match the selected province.";
+        if (!agree) err.agree = "You must agree to the terms.";
+        return err;
+    };
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setForm((prev) => ({ ...prev, [name]: value }));
+        setErrors((prev) => ({ ...prev, [name]: undefined }));
+    };
+
+    // Auto-fill postal code when province changes
+    const handleProvinceChange = (e) => {
+        const province = e.target.value;
+        const found = provincePostalList.find((p) => p.name === province);
+        setForm((prev) => ({
+            ...prev,
+            province,
+            postal: found ? found.postal : ""
+        }));
+        setErrors((prev) => ({ ...prev, province: undefined, postal: undefined }));
+    };
+
+    const handleCheckbox = () => {
+        setAgree((prev) => !prev);
+        setErrors((prev) => ({ ...prev, agree: undefined }));
+    };
+
+    const handleRegister = async (e) => {
+    e.preventDefault();
+    const err = validateForm();
+    setErrors(err);
+
+    if (Object.keys(err).length == 0) {
+      try {
+        // Chuẩn bị DTO đúng như backend yêu cầu (RegisterDto)
+        const registerDto = {
+          Name: form.name,
+          Email: form.email,
+          FullName: `${form.name} ${form.surname}`,
+          Mobile: form.phone,
+          Password: form.password,
+          Province: form.province
+        };
+        console.log("Register DTO:", registerDto);
+        const resp = await fetch("/api/User/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(registerDto)
+        });
+        console.log("Response status:", resp.status);
+        if (resp.ok) {
+          Swal.fire({
+            icon: "success",
+            title: "Registration successful!",
+            text: "Your account has been created.",
+          });
+          // Có thể reset form hoặc tự động đóng modal tại đây nếu muốn
+        } else {
+          const data = await resp.json();
+          console.error("Registration error:", data);
+          Swal.fire({
+            icon: "error",
+            title: "Registration failed",
+            text: data?.message || "An error occurred. Please try again.",
+          });
+        }
+      } catch (err) {
+        Swal.fire({
+          icon: "error",
+          title: "Registration failed",
+          text: "An error occurred. Please try again.",
+        });
+      }
+    }
+  };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 font-sans">
-            <div className="relative bg-white rounded-2xl shadow-lg w-full max-w-4xl mx-auto p-0 flex animate-fade-in overflow-hidden" style={{ minHeight: 650 }}>
-                <div className="w-full max-w-xl px-12 py-10 bg-white" style={{ borderTopLeftRadius: 22, borderBottomLeftRadius: 22 }}>
+            <div
+                className="relative bg-white rounded-2xl shadow-lg w-full max-w-4xl mx-auto p-0 flex animate-fade-in overflow-hidden"
+                style={{ minHeight: 650 }}
+            >
+                <div
+                    className="w-full max-w-xl px-12 py-10 bg-white"
+                    style={{ borderTopLeftRadius: 22, borderBottomLeftRadius: 22 }}
+                >
                     {/* Close button */}
                     <button
                         onClick={onClose}
@@ -24,38 +209,75 @@ export default function Register({ show, onClose, onShowLogin }) {
                         style={{ zIndex: 2 }}
                     >
                         <svg width={24} height={24} fill="none" viewBox="0 0 16 16">
-                            <path d="M4 4l8 8M12 4l-8 8" stroke="#253887" strokeWidth={2} strokeLinecap="round" />
+                            <path
+                                d="M4 4l8 8M12 4l-8 8"
+                                stroke="#253887"
+                                strokeWidth={2}
+                                strokeLinecap="round"
+                            />
                         </svg>
                     </button>
-                    <h4 className="text-[2rem] font-bold text-[#253887] mb-2 mt-2 leading-tight" style={{ textAlign: "center" }}>Registration</h4>
-                    <div className="flex items-center justify-center gap-2 mb-7"  >
-                        <span className="text-[#425187] text-base">Have an account?</span>
-                        <button className="text-[#3452e1] text-base font-semibold hover:underline focus:outline-none" onClick={onShowLogin}>
+                    <h4
+                        className="text-[2rem] font-bold text-[#253887] mb-2 mt-2 leading-tight"
+                        style={{ textAlign: "center" }}
+                    >
+                        Registration
+                    </h4>
+                    <div className="flex items-center justify-center gap-2 mb-7">
+                        <span className="text-[#425187] text-base">Already have an account?</span>
+                        <button
+                            className="text-[#3452e1] text-base font-semibold hover:underline focus:outline-none"
+                            onClick={onShowLogin}
+                        >
                             Login
                         </button>
                     </div>
                     {/* Social login */}
                     <div className="flex gap-5 mb-7">
-                        <button className="flex items-center gap-2 border border-gray-200 rounded-lg px-8 py-3 font-semibold shadow-md hover:bg-gray-50 transition w-1/2 justify-center bg-white text-[#253887] text-lg"
-                            style={{ boxShadow: "0 2px 8px 0 rgba(60,80,180,0.04)" }}>
+                        <button
+                            className="flex items-center gap-2 border border-gray-200 rounded-lg px-8 py-3 font-semibold shadow-md hover:bg-gray-50 transition w-1/2 justify-center bg-white text-[#253887] text-lg"
+                            style={{ boxShadow: "0 2px 8px 0 rgba(60,80,180,0.04)" }}
+                            type="button"
+                            tabIndex={-1}
+                        >
                             <span>
                                 {/* Google SVG */}
                                 <svg viewBox="0 0 20 20" width={24} height={24} aria-hidden="true">
-                                    <path fill="#EA4335" fillRule="evenodd" d="M10 3.867c1.877 0 3.144.81 3.866 1.489L16.69 2.6C14.955.989 12.699 0 9.999 0 6.09 0 2.712 2.244 1.067 5.511L4.3 8.022c.81-2.41 3.055-4.155 5.7-4.155z" clipRule="evenodd"></path>
-                                    <path fill="#4285F4" fillRule="evenodd" d="M19.6 10.222c0-.822-.067-1.422-.211-2.044H10v3.71h5.511c-.111.923-.711 2.312-2.044 3.245l3.155 2.445c1.89-1.745 2.978-4.311 2.978-7.356z" clipRule="evenodd"></path>
-                                    <path fill="#FBBC05" fillRule="evenodd" d="M4.311 11.978c-.211-.623-.333-1.29-.333-1.978 0-.689.122-1.356.322-1.978l-3.233-2.51C.389 6.866 0 8.388 0 10c0 1.611.389 3.133 1.067 4.489l3.244-2.511z" clipRule="evenodd"></path>
-                                    <path fill="#34A853" fillRule="evenodd" d="M10 20c2.7 0 4.967-.889 6.623-2.422l-3.156-2.445c-.844.59-1.978 1-3.467 1-2.644 0-4.889-1.744-5.689-4.155l-3.233 2.51C2.723 17.757 6.09 20 10 20z" clipRule="evenodd"></path>
+                                    <circle cx="12" cy="12" r="12" fill="#EA4335" />
+                                    <path
+                                        d="M16.6711 15.4688L17.2031 12H13.875V9.75C13.875 8.80102 14.34 7.875 15.8306 7.875H17.3438V4.92188C17.3438 4.92188 15.9705 4.6875 14.6576 4.6875C11.9166 4.6875 10.125 6.34875 10.125 9.35625V12H7.07812V15.4688H10.125V23.8542C11.3674 24.0486 12.6326 24.0486 13.875 23.8542V15.4688H16.6711Z"
+                                        fill="white"
+                                    ></path>
+                                    <path
+                                        d="M19.6 10.222c0-.822-.067-1.422-.211-2.044H10v3.71h5.511c-.111.923-.711 2.312-2.044 3.245l3.155 2.445c1.89-1.745 2.978-4.311 2.978-7.356z"
+                                        fill="#4285F4"
+                                    ></path>
+                                    <path
+                                        d="M4.311 11.978c-.211-.623-.333-1.29-.333-1.978 0-.689.122-1.356.322-1.978l-3.233-2.51C.389 6.866 0 8.388 0 10c0 1.611.389 3.133 1.067 4.489l3.244-2.511z"
+                                        fill="#FBBC05"
+                                    ></path>
+                                    <path
+                                        d="M10 20c2.7 0 4.967-.889 6.623-2.422l-3.156-2.445c-.844.59-1.978 1-3.467 1-2.644 0-4.889-1.744-5.689-4.155l-3.233 2.51C2.723 17.757 6.09 20 10 20z"
+                                        fill="#34A853"
+                                    ></path>
                                 </svg>
                             </span>
                             Google
                         </button>
-                        <button className="flex items-center gap-2 border border-gray-200 rounded-lg px-8 py-3 font-semibold shadow-md hover:bg-gray-50 transition w-1/2 justify-center bg-white text-[#253887] text-lg"
-                            style={{ boxShadow: "0 2px 8px 0 rgba(60,80,180,0.04)" }}>
+                        <button
+                            className="flex items-center gap-2 border border-gray-200 rounded-lg px-8 py-3 font-semibold shadow-md hover:bg-gray-50 transition w-1/2 justify-center bg-white text-[#253887] text-lg"
+                            style={{ boxShadow: "0 2px 8px 0 rgba(60,80,180,0.04)" }}
+                            type="button"
+                            tabIndex={-1}
+                        >
                             <span>
                                 {/* Facebook SVG */}
                                 <svg viewBox="0 0 24 24" width={24} height={24} aria-hidden="true">
                                     <circle cx="12" cy="12" r="12" fill="#1877F2" />
-                                    <path d="M16.6711 15.4688L17.2031 12H13.875V9.75C13.875 8.80102 14.34 7.875 15.8306 7.875H17.3438V4.92188C17.3438 4.92188 15.9705 4.6875 14.6576 4.6875C11.9166 4.6875 10.125 6.34875 10.125 9.35625V12H7.07812V15.4688H10.125V23.8542C11.3674 24.0486 12.6326 24.0486 13.875 23.8542V15.4688H16.6711Z" fill="white"></path>
+                                    <path
+                                        d="M16.6711 15.4688L17.2031 12H13.875V9.75C13.875 8.80102 14.34 7.875 15.8306 7.875H17.3438V4.92188C17.3438 4.92188 15.9705 4.6875 14.6576 4.6875C11.9166 4.6875 10.125 6.34875 10.125 9.35625V12H7.07812V15.4688H10.125V23.8542C11.3674 24.0486 12.6326 24.0486 13.875 23.8542V15.4688H16.6711Z"
+                                        fill="white"
+                                    ></path>
                                 </svg>
                             </span>
                             Facebook
@@ -64,22 +286,32 @@ export default function Register({ show, onClose, onShowLogin }) {
                     {/* OR divider */}
                     <div className="flex items-center gap-3 mb-6">
                         <div className="flex-1 border-t border-gray-200" />
-                        <span className="text-[#bfc8dc] text-base font-semibold">Or via e-mail</span>
+                        <span className="text-[#bfc8dc] text-base font-semibold">
+                            Or via e-mail
+                        </span>
                         <div className="flex-1 border-t border-gray-200" />
                     </div>
                     {/* Registration form */}
-                    <form onSubmit={handleRegister} autoComplete="off">
+                    <form onSubmit={handleRegister} autoComplete="off" noValidate>
                         <div className="mb-2">
-                            <label className="block text-[#253887] font-bold mb-1 text-sm tracking-wide">LOGIN</label>
+                            <label className="block text-[#253887] font-bold mb-1 text-sm tracking-wide">
+                                LOGIN
+                            </label>
                             <input
                                 id="reg-email"
                                 name="email"
                                 type="email"
                                 maxLength={254}
                                 placeholder="Email"
-                                className="w-full border border-[#bfc8dc] rounded-md px-4 py-2 text-[#253887] placeholder:text-[#bfc8dc] focus:ring-2 focus:ring-[#3452e1] focus:border-[#3452e1] transition text-base font-medium bg-[#f9fbfe] mb-3"
+                                value={form.email}
+                                onChange={handleChange}
+                                className={`w-full border ${errors.email ? "border-red-400" : "border-[#bfc8dc]"
+                                    } rounded-md px-4 py-2 text-[#253887] placeholder:text-[#bfc8dc] focus:ring-2 focus:ring-[#3452e1] focus:border-[#3452e1] transition text-base font-medium bg-[#f9fbfe] mb-1`}
                                 style={{ outline: "none" }}
                             />
+                            {errors.email && (
+                                <div className="text-red-500 text-xs mb-2">{errors.email}</div>
+                            )}
                             <div className="relative">
                                 <input
                                     id="reg-password"
@@ -88,7 +320,10 @@ export default function Register({ show, onClose, onShowLogin }) {
                                     minLength={8}
                                     maxLength={254}
                                     placeholder="Password (min. 8 characters)"
-                                    className="w-full border border-[#bfc8dc] rounded-md px-4 py-2 text-[#253887] placeholder:text-[#bfc8dc] focus:ring-2 focus:ring-[#3452e1] focus:border-[#3452e1] transition text-base font-medium bg-[#f9fbfe] pr-10"
+                                    value={form.password}
+                                    onChange={handleChange}
+                                    className={`w-full border ${errors.password ? "border-red-400" : "border-[#bfc8dc]"
+                                        } rounded-md px-4 py-2 text-[#253887] placeholder:text-[#bfc8dc] focus:ring-2 focus:ring-[#3452e1] focus:border-[#3452e1] transition text-base font-medium bg-[#f9fbfe] pr-10`}
                                     style={{ outline: "none" }}
                                 />
                                 <button
@@ -100,76 +335,117 @@ export default function Register({ show, onClose, onShowLogin }) {
                                 >
                                     {/* Eye icon */}
                                     <svg width={20} height={20} fill="none" viewBox="0 0 16 16">
-                                        <path d="M1.333 8s2.667-4 6.667-4 6.667 4 6.667 4-2.667 4-6.667 4-6.667-4-6.667-4z" stroke="#3452e1" strokeWidth="1.5" />
+                                        <path
+                                            d="M1.333 8s2.667-4 6.667-4 6.667 4 6.667 4-2.667 4-6.667 4-6.667-4-6.667-4z"
+                                            stroke="#3452e1"
+                                            strokeWidth="1.5"
+                                        />
                                         <circle cx="8" cy="8" r="2" stroke="#3452e1" strokeWidth="1.5" />
                                     </svg>
                                 </button>
                             </div>
+                            {errors.password && (
+                                <div className="text-red-500 text-xs mt-1">{errors.password}</div>
+                            )}
                         </div>
                         <div className="mb-2 mt-6">
-                            <label className="block text-[#253887] font-bold mb-1 text-sm tracking-wide">PERSONAL DATA</label>
-                            <div className="flex gap-3 mb-3">
-                                <input
-                                    id="reg-name"
-                                    name="name"
-                                    type="text"
-                                    maxLength={128}
-                                    placeholder="Name"
-                                    className="w-1/2 border border-[#bfc8dc] rounded-md px-4 py-2 text-[#253887] placeholder:text-[#bfc8dc] focus:ring-2 focus:ring-[#3452e1] focus:border-[#3452e1] transition text-base font-medium bg-[#f9fbfe]"
-                                    style={{ outline: "none" }}
-                                />
-                                <input
-                                    id="reg-surname"
-                                    name="surname"
-                                    type="text"
-                                    maxLength={128}
-                                    placeholder="Surname"
-                                    className="w-1/2 border border-[#bfc8dc] rounded-md px-4 py-2 text-[#253887] placeholder:text-[#bfc8dc] focus:ring-2 focus:ring-[#3452e1] focus:border-[#3452e1] transition text-base font-medium bg-[#f9fbfe]"
-                                    style={{ outline: "none" }}
-                                />
+                            <label className="block text-[#253887] font-bold mb-1 text-sm tracking-wide">
+                                PERSONAL DATA
+                            </label>
+                            <div className="flex gap-3 mb-1">
+                                <div className="w-1/2">
+                                    <input
+                                        id="reg-name"
+                                        name="name"
+                                        type="text"
+                                        maxLength={128}
+                                        placeholder="First name"
+                                        value={form.name}
+                                        onChange={handleChange}
+                                        className={`w-full border ${errors.name ? "border-red-400" : "border-[#bfc8dc]"} rounded-md px-4 py-2 text-[#253887] placeholder:text-[#bfc8dc] focus:ring-2 focus:ring-[#3452e1] focus:border-[#3452e1] transition text-base font-medium bg-[#f9fbfe]`}
+                                        style={{ outline: "none" }}
+                                    />
+                                    {errors.name && <div className="text-red-500 text-xs mt-1">{errors.name}</div>}
+                                </div>
+                                <div className="w-1/2">
+                                    <input
+                                        id="reg-surname"
+                                        name="surname"
+                                        type="text"
+                                        maxLength={128}
+                                        placeholder="Last name"
+                                        value={form.surname}
+                                        onChange={handleChange}
+                                        className={`w-full border ${errors.surname ? "border-red-400" : "border-[#bfc8dc]"} rounded-md px-4 py-2 text-[#253887] placeholder:text-[#bfc8dc] focus:ring-2 focus:ring-[#3452e1] focus:border-[#3452e1] transition text-base font-medium bg-[#f9fbfe]`}
+                                        style={{ outline: "none" }}
+                                    />
+                                    {errors.surname && <div className="text-red-500 text-xs mt-1">{errors.surname}</div>}
+                                </div>
                             </div>
-                            <div className="flex gap-3 mb-3">
-                                <select
-                                    className="w-1/4 border border-[#bfc8dc] rounded-md px-2 py-2 text-[#253887] focus:ring-2 focus:ring-[#3452e1] focus:border-[#3452e1] transition text-base bg-[#f9fbfe]"
-                                    defaultValue="+84"
-                                    id="reg-phone-code"
-                                    name="countryCode"
-                                    style={{ outline: "none" }}
-                                >
-                                    <option value="+84">+84</option>
-                                    <option value="+1">+1</option>
-                                    <option value="+61">+61</option>
-                                </select>
-                                <input
-                                    id="reg-phone"
-                                    name="phone"
-                                    type="tel"
-                                    maxLength={20}
-                                    placeholder="Telephone number"
-                                    className="w-3/4 border border-[#bfc8dc] rounded-md px-4 py-2 text-[#253887] placeholder:text-[#bfc8dc] focus:ring-2 focus:ring-[#3452e1] focus:border-[#3452e1] transition text-base font-medium bg-[#f9fbfe]"
-                                    style={{ outline: "none" }}
-                                />
+                            <div className="flex gap-3 mb-1">
+                                <div className="w-1/4">
+                                    <select
+                                        className="w-full border border-[#bfc8dc] rounded-md px-2 py-2 text-[#253887] focus:ring-2 focus:ring-[#3452e1] focus:border-[#3452e1] transition text-base bg-[#f9fbfe]"
+                                        defaultValue={form.countryCode}
+                                        id="reg-phone-code"
+                                        name="countryCode"
+                                        value={form.countryCode}
+                                        onChange={handleChange}
+                                        style={{ outline: "none" }}
+                                    >
+                                        <option value="+84">+84</option>
+                                    </select>
+                                </div>
+                                <div className="w-3/4">
+                                    <input
+                                        id="reg-phone"
+                                        name="phone"
+                                        type="tel"
+                                        maxLength={20}
+                                        placeholder="Phone number"
+                                        value={form.phone}
+                                        onChange={handleChange}
+                                        className={`w-full border ${errors.phone ? "border-red-400" : "border-[#bfc8dc]"} rounded-md px-4 py-2 text-[#253887] placeholder:text-[#bfc8dc] focus:ring-2 focus:ring-[#3452e1] focus:border-[#3452e1] transition text-base font-medium bg-[#f9fbfe]`}
+                                        style={{ outline: "none" }}
+                                    />
+                                    {errors.phone && <div className="text-red-500 text-xs mt-1">{errors.phone}</div>}
+                                </div>
                             </div>
-                            <div className="flex gap-3">
-                                <select
-                                    className="w-1/2 border border-[#bfc8dc] rounded-md px-2 py-2 text-[#253887] focus:ring-2 focus:ring-[#3452e1] focus:border-[#3452e1] transition text-base bg-[#f9fbfe]"
-                                    id="reg-country"
-                                    name="country"
-                                    style={{ outline: "none" }}
-                                >
-                                    <option value="">Select country</option>
-                                    <option value="vn">Vietnam</option>
-                                    <option value="us">United States</option>
-                                </select>
-                                <input
-                                    id="reg-postal"
-                                    name="postal"
-                                    type="text"
-                                    maxLength={16}
-                                    placeholder="Postal code"
-                                    className="w-1/2 border border-[#bfc8dc] rounded-md px-4 py-2 text-[#253887] placeholder:text-[#bfc8dc] focus:ring-2 focus:ring-[#3452e1] focus:border-[#3452e1] transition text-base font-medium bg-[#f9fbfe]"
-                                    style={{ outline: "none" }}
-                                />
+                            <div className="flex gap-3 mb-1">
+                                <div className="w-1/2">
+                                    <select
+                                        className={`w-full border ${errors.province ? "border-red-400" : "border-[#bfc8dc]"} rounded-md px-2 py-2 text-[#253887] focus:ring-2 focus:ring-[#3452e1] focus:border-[#3452e1] transition text-base bg-[#f9fbfe]`}
+                                        id="reg-province"
+                                        name="province"
+                                        value={form.province}
+                                        onChange={handleProvinceChange}
+                                        style={{ outline: "none" }}
+                                    >
+                                        <option value="">Select province/city</option>
+                                        {provincePostalList.map((p) => (
+                                            <option key={p.name} value={p.name}>
+                                                {p.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {errors.province && <div className="text-red-500 text-xs mt-1">{errors.province}</div>}
+                                </div>
+                                <div className="w-1/2">
+                                    <input
+                                        id="reg-postal"
+                                        name="postal"
+                                        type="text"
+                                        maxLength={5}
+                                        placeholder="Postal code"
+                                        value={form.postal}
+                                        onChange={handleChange}
+                                        className={`w-full border ${errors.postal ? "border-red-400" : "border-[#bfc8dc]"} rounded-md px-4 py-2 text-[#253887] placeholder:text-[#bfc8dc] focus:ring-2 focus:ring-[#3452e1] focus:border-[#3452e1] transition text-base font-medium bg-[#f9fbfe]`}
+                                        style={{ outline: "none" }}
+                                        pattern="[0-9]{5}"
+                                        required
+                                    />
+                                    {errors.postal && <div className="text-red-500 text-xs mt-1">{errors.postal}</div>}
+                                </div>
                             </div>
                         </div>
                         <div className="mb-5 mt-5 flex items-center">
@@ -178,13 +454,17 @@ export default function Register({ show, onClose, onShowLogin }) {
                                 name="agree"
                                 type="checkbox"
                                 checked={agree}
-                                onChange={() => setAgree(a => !a)}
+                                onChange={handleCheckbox}
                                 className="mr-2 accent-[#3452e1] w-4 h-4"
                             />
                             <label htmlFor="agree" className="text-[#425187] text-sm select-none">
-                                I agree to the processing of <a href="#" className="text-[#3452e1] underline">personal data</a>.
+                                I agree to the processing of{" "}
+                                    personal data.
                             </label>
                         </div>
+                        {errors.agree && (
+                            <div className="text-red-500 text-xs mb-3">{errors.agree}</div>
+                        )}
                         <button
                             type="submit"
                             className="w-full bg-gradient-to-r from-[#3452e1] to-[#253887] hover:from-[#253887] hover:to-[#3452e1] text-white font-bold rounded-md px-6 py-3 shadow transition text-lg"
@@ -196,7 +476,10 @@ export default function Register({ show, onClose, onShowLogin }) {
                     </form>
                 </div>
                 {/* Right side: Benefits */}
-                <div className="hidden md:flex flex-col items-start justify-start bg-[#f5f8ff] w-[340px] px-10 py-10" style={{ borderTopRightRadius: 22, borderBottomRightRadius: 22 }}>
+                <div
+                    className="hidden md:flex flex-col items-start justify-start bg-[#f5f8ff] w-[340px] px-10 py-10"
+                    style={{ borderTopRightRadius: 22, borderBottomRightRadius: 22 }}
+                >
                     <button
                         onClick={onClose}
                         className="absolute top-6 right-7 rounded-full p-1 hover:bg-gray-100 transition md:hidden block"
@@ -204,7 +487,12 @@ export default function Register({ show, onClose, onShowLogin }) {
                         style={{ zIndex: 2 }}
                     >
                         <svg width={24} height={24} fill="none" viewBox="0 0 16 16">
-                            <path d="M4 4l8 8M12 4l-8 8" stroke="#253887" strokeWidth={2} strokeLinecap="round" />
+                            <path
+                                d="M4 4l8 8M12 4l-8 8"
+                                stroke="#253887"
+                                strokeWidth={2}
+                                strokeLinecap="round"
+                            />
                         </svg>
                     </button>
                     <div className="w-full flex flex-col gap-8 mt-6 mb-4">
@@ -215,7 +503,9 @@ export default function Register({ show, onClose, onShowLogin }) {
                                 <i className="ri-checkbox-circle-fill text-[18px] text-[#34A853] absolute -bottom-1 -right-2 bg-white rounded-full"></i>
                             </span>
                             <span className="text-[#253887] font-medium text-base leading-snug">
-                                Be the first to learn about our new<br />products and discounts
+                                Be the first to learn about our new
+                                <br />
+                                products and discounts
                             </span>
                         </div>
                         <div className="flex items-center gap-3">
@@ -225,7 +515,9 @@ export default function Register({ show, onClose, onShowLogin }) {
                                 <i className="ri-checkbox-circle-fill text-[18px] text-[#34A853] absolute -bottom-1 -right-2 bg-white rounded-full"></i>
                             </span>
                             <span className="text-[#253887] font-medium text-base leading-snug">
-                                Access your saved searches<br />across your devices
+                                Access your saved searches
+                                <br />
+                                across your devices
                             </span>
                         </div>
                         <div className="flex items-center gap-3">
@@ -235,12 +527,18 @@ export default function Register({ show, onClose, onShowLogin }) {
                                 <i className="ri-checkbox-circle-fill text-[18px] text-[#34A853] absolute -bottom-1 -right-2 bg-white rounded-full"></i>
                             </span>
                             <span className="text-[#253887] font-medium text-base leading-snug">
-                                You will get complimentary 10<br />litres of fuel in your new car
+                                Get complimentary 10
+                                <br />
+                                litres of fuel with your new car
                             </span>
                         </div>
                     </div>
                     {/* Illustration */}
-                    <img src="/images/Carvago-CarAudit.webp" alt="Car illustration" className="w-full h-auto max-h-52 object-contain mt-auto" />
+                    <img
+                        src="/images/Carvago-CarAudit.webp"
+                        alt="Car illustration"
+                        className="w-full h-auto max-h-52 object-contain mt-auto"
+                    />
                 </div>
             </div>
         </div>

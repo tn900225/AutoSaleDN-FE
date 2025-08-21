@@ -1,12 +1,103 @@
 import React, { useState } from "react";
 import Register from "./Register";
+import Swal from "sweetalert2";
+import { useUserContext } from "./context/UserContext";
 
 export default function Login({ show, onClose }) {
+  const { setUser } = useUserContext();
   const [showPassword, setShowPassword] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
+  const [form, setForm] = useState({
+    email: "",
+    password: ""
+  });
+  const [errors, setErrors] = useState({});
+
+  const validateForm = () => {
+    const err = {};
+    if (!validateEmail(form.email)) err.email = "Invalid email address.";
+    if (!validatePassword(form.password)) err.password = "Password must be at least 8 characters.";
+    return err;
+  };
+
+  const validateEmail = (email) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const validatePassword = (pw) => {
+    return pw.length >= 8;
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    const err = validateForm();
+    setErrors(err);
+
+    if (Object.keys(err).length === 0) {
+      try {
+        const loginDto = {
+          Email: form.email,
+          Password: form.password
+        };
+        console.log("Login DTO:", loginDto);
+        
+        const resp = await fetch("/api/User/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(loginDto)
+        });
+
+        if (resp.ok) {
+          const { token } = await resp.json();
+          // Store token in localStorage
+          localStorage.setItem('token', token);
+          
+          // Fetch user info and set in context
+          const userInfoResp = await fetch('/api/User/me', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          const userInfo = await userInfoResp.json();
+          setUser(userInfo);
+          
+          // Close modal
+          onClose();
+          
+          // Show success message
+          Swal.fire({
+            icon: "success",
+            title: "Login Successful",
+            text: "Welcome back!"
+          });
+        } else if (resp.status === 401) {
+          Swal.fire({
+            icon: "error",
+            title: "Authentication Failed",
+            text: "Invalid Email or password. Please try again."
+          });
+        } else {
+          throw new Error("Login failed");
+        }
+      } catch (error) {
+        console.error("Login error:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Login Failed",
+          text: "An error occurred. Please try again."
+        });
+      }
+    }
+  };
 
   if (!show) return null;
-
 
   const handleShowRegister = () => {
     setShowRegister(true);
@@ -69,17 +160,22 @@ export default function Login({ show, onClose }) {
             <div className="flex-1 border-t border-gray-200" />
           </div>
           {/* Login form */}
-          <form>
+          <form onSubmit={handleLogin}>
             <div className="mb-4">
               <label htmlFor="username" className="block text-[#253887] font-medium mb-1">Login</label>
               <input
                 id="username"
-                name="username"
+                name="email"
                 type="text"
                 maxLength={254}
                 placeholder="Email"
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 text-[#253887] placeholder:text-gray-400 focus:ring-2 focus:ring-[#3452e1] focus:border-[#3452e1] transition"
+                value={form.email}
+                onChange={handleChange}
               />
+              {errors.email && (
+                <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+              )}
             </div>
             <div className="mb-2 relative">
               <input
@@ -89,7 +185,12 @@ export default function Login({ show, onClose }) {
                 maxLength={254}
                 placeholder="Password"
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 text-[#253887] placeholder:text-gray-400 focus:ring-2 focus:ring-[#3452e1] focus:border-[#3452e1] transition pr-10"
+                value={form.password}
+                onChange={handleChange}
               />
+              {errors.password && (
+                <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+              )}
               <button
                 type="button"
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[#253887] hover:text-[#3452e1]"
