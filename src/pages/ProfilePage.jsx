@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useUserContext } from "../components/context/UserContext";
 
 // Simple SVG icons (replace with your system if you have icon lib)
 const icons = {
@@ -49,17 +50,29 @@ const icons = {
 };
 
 // --- Contact Information Accordion ---
-function ContactInfoAccordion({ user }) {
-  // Mock user data (replace with real user prop or state)
+function ContactInfoAccordion() {
+  const { user } = useUserContext();
   const [form, setForm] = useState({
-    name: user?.name || "Sơn",
-    surname: user?.surname || "Đinh Ngọc",
-    email: user?.email || "son.dinhngoc@example.com",
-    phone: user?.phone || "0987654321",
+    name: "",
+    surname: "",
+    email: "",
+    phone: ""
   });
 
-  // Assume all fields are valid
-  const handleChange = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+  useEffect(() => {
+    if (user) {
+      setForm({
+        name: user.name || "",
+        surname: user.fullName || "",
+        email: user.email || "",
+        phone: user.mobile || ""
+      });
+    }
+  }, [user]);
+
+  const handleChange = e => {
+    setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+  };
 
   return (
     <form className="px-8 pb-8 pt-2">
