@@ -19,6 +19,7 @@ import Assets from "./pages/admin/Assets";
 import Booking from "./pages/admin/Booking";
 import CustomerAdmin from "./pages/admin/CustomerAdmin";
 import CarAdmin from "./pages/admin/CarAdmin";
+import TransactionDetail from "./pages/admin/TransactionDetail";
 
 function UserLayout({ children }) {
   return (
@@ -60,6 +61,7 @@ function App() {
         <Route path="/admin/booking" element={<Booking />} />
         <Route path="/admin/customers" element={<CustomerAdmin />} />
         <Route path="/admin/cars" element={<CarAdmin />} />
+        <Route path="/admin/transactions/:id" element={<TransactionDetail />} />
       </Routes>
     </Router>
   );

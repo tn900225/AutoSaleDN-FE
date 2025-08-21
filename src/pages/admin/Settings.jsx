@@ -9,7 +9,7 @@ export default function Settings() {
       <aside className="w-64 bg-white border-r flex flex-col justify-between py-8">
         <div>
           <div className="flex items-center px-8 mb-12">
-            <div className="text-2xl font-bold text-gray-800">Motiv.</div>
+            <div className="text-2xl font-bold text-gray-800">AutoSaleDN.</div>
           </div>
           <nav className="flex flex-col gap-2">
             {[

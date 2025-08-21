@@ -26,7 +26,7 @@ export default function AdminSidebar() {
     <aside className="w-64 bg-white min-h-screen border-r flex flex-col justify-between">
       <div>
         <div className="flex items-center h-20 px-8 font-bold text-2xl">
-          <span className="text-violet-600 text-3xl mr-2">M</span>otiv.
+          <span className="text-violet-600 text-3xl mr-2">Auto</span>SaleDN.
         </div>
         <nav className="mt-4 flex flex-col gap-1">
           {sidebarItems.map((item) => (

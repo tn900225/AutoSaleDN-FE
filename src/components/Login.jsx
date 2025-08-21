@@ -37,15 +37,14 @@ export default function Login({ show, onClose }) {
     e.preventDefault();
     const err = validateForm();
     setErrors(err);
-
+  
     if (Object.keys(err).length === 0) {
       try {
         const loginDto = {
           Email: form.email,
           Password: form.password
         };
-        console.log("Login DTO:", loginDto);
-        
+  
         const resp = await fetch("/api/User/login", {
           method: "POST",
           headers: {
@@ -53,13 +52,16 @@ export default function Login({ show, onClose }) {
           },
           body: JSON.stringify(loginDto)
         });
-
+  
         if (resp.ok) {
-          const { token } = await resp.json();
-          // Store token in localStorage
+          const { token, role } = await resp.json();
           localStorage.setItem('token', token);
-          
-          // Fetch user info and set in context
+
+          if (role === "Admin") {
+            window.location.href = "/admin/dashboard";
+            return;
+          }
+  
           const userInfoResp = await fetch('/api/User/me', {
             headers: {
               'Authorization': `Bearer ${token}`
@@ -67,11 +69,8 @@ export default function Login({ show, onClose }) {
           });
           const userInfo = await userInfoResp.json();
           setUser(userInfo);
-          
-          // Close modal
+  
           onClose();
-          
-          // Show success message
           Swal.fire({
             icon: "success",
             title: "Login Successful",
