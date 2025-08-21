@@ -20,6 +20,7 @@ import Booking from "./pages/admin/Booking";
 import CustomerAdmin from "./pages/admin/CustomerAdmin";
 import CarAdmin from "./pages/admin/CarAdmin";
 import TransactionDetail from "./pages/admin/TransactionDetail";
+import AddNewCarPage from "./pages/admin/AddNewCarPage";
 
 function UserLayout({ children }) {
   return (
@@ -62,6 +63,9 @@ function App() {
         <Route path="/admin/customers" element={<CustomerAdmin />} />
         <Route path="/admin/cars" element={<CarAdmin />} />
         <Route path="/admin/transactions/:id" element={<TransactionDetail />} />
+        <Route path="/admin/add-new-car" element={<AddNewCarPage />} />
+        
+        
       </Routes>
     </Router>
   );

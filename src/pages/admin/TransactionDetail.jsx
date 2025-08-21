@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import AdminSidebar from "../../components/admin/AdminSidebar";
-import AdminTopbar from "../../components/admin/AdminTopbar";
+import { FaArrowLeft } from "react-icons/fa";
 import { useParams } from 'react-router-dom';
-import { FaArrowLeft } from 'react-icons/fa';
 import { format } from 'date-fns';
+import AdminSidebar from "../../components/admin/AdminSidebar";
 
 const formatDate = (date) => {
   if (!date) return '-';
-  return format(new Date(date), 'dd/MM/yyyy');
+  try {
+    return format(new Date(date), 'dd/MM/yyyy');
+  } catch {
+    return '-';
+  }
 };
 
 export default function TransactionDetail() {
@@ -18,6 +21,7 @@ export default function TransactionDetail() {
 
   useEffect(() => {
     fetchTransactionDetails();
+    // eslint-disable-next-line
   }, [id]);
 
   const fetchTransactionDetails = async () => {
@@ -27,12 +31,10 @@ export default function TransactionDetail() {
           Authorization: `Bearer ${localStorage.getItem('token')}` 
         }
       });
-      
       if (response.status === 401) {
         window.location.href = "/login";
         return;
       }
-
       const data = await response.json();
       setTransaction(data);
       setError(null);
@@ -43,105 +45,236 @@ export default function TransactionDetail() {
     }
   };
 
+  const getVal = (...keys) => {
+    let val = transaction;
+    for (const k of keys) {
+      if (!val) return "-";
+      val = val[k] || val[k.charAt(0).toUpperCase() + k.slice(1)];
+    }
+    return val ?? "-";
+  };
+
+  const getTransactionRole = () => {
+    if (transaction?.role) return transaction.role;
+    if (transaction?.customer?.role) return transaction.customer.role;
+    if (transaction?.Customer?.role) return transaction.Customer.role;
+    return "Customer";
+  };
+
+  const getImages = () => {
+    let imgs = getVal("car", "images") || getVal("Car", "images");
+    if (!imgs && getVal("car", "image") !== "-") imgs = [getVal("car", "image")];
+    if (!Array.isArray(imgs)) imgs = [];
+    return imgs;
+  };
+
+  const getCarInfo = () => {
+    const car = transaction?.car || transaction?.Car || {};
+    return {
+      manufacturer: car.Manufacturer ?? car.manufacturer ?? "-",
+      model: car.Model ?? car.model ?? "-",
+      year: car.Year ?? car.year ?? "-",
+      mileage: car.Mileage ?? car.mileage ?? "-",
+      price: car.Price ?? car.price ?? "-",
+      location: car.Location ?? car.location ?? "-",
+      condition: car.Condition ?? car.condition ?? "-",
+      rentSell: car.RentSell ?? car.rentSell ?? "-",
+      color: car.Color ?? car.color ?? "-",
+      transmission: car.Transmission ?? car.transmission ?? "-",
+      vin: car.Vin ?? car.vin ?? "-",
+      description: car.Description ?? car.description ?? "-",
+      certified: car.Certified ?? car.certified ?? undefined,
+      images: car.Images ?? car.images ?? [],
+    };
+  };
+
   if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
   if (error) return <div className="flex items-center justify-center h-screen text-red-500">{error}</div>;
   if (!transaction) return <div className="flex items-center justify-center h-screen">Transaction not found</div>;
 
+  const carInfo = getCarInfo();
+  const images = getImages().length > 0 ? getImages() : (carInfo.images || []);
+
   return (
     <div className="flex h-screen bg-gray-50">
       <AdminSidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <AdminTopbar />
-        <main className="p-8 bg-gray-50 min-h-screen">
-          <div className="flex items-center gap-4 mb-6">
+      {/* Main area */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="h-20 px-8 flex items-center justify-between bg-white border-b">
+          <div className="flex items-center w-full max-w-md relative">
+            <input
+              type="text"
+              placeholder="Search or type"
+              className="w-full px-12 py-2 border rounded-lg bg-gray-50 outline-none"
+            />
+            <span className="absolute left-4 text-gray-400">
+              <svg width="18" height="18" fill="none" stroke="currentColor"><circle cx="8" cy="8" r="7" strokeWidth="2"/><path d="M16 16l-3.5-3.5" strokeWidth="2" strokeLinecap="round"/></svg>
+            </span>
+          </div>
+          <div className="flex items-center gap-6">
+            <button className="p-2 rounded-full hover:bg-gray-100">
+              <svg width="22" height="22" fill="none" stroke="currentColor">
+                <path d="M11 21c1.1 0 2-.9 2-2h-4a2 2 0 002 2zM18 16v-5c0-3.07-1.63-5.64-5-6.32V4a1 1 0 10-2 0v.68C7.63 5.36 6 7.92 6 11v5l-1 1v1h14v-1l-1-1z" />
+              </svg>
+            </button>
+            <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden border-2 border-white flex items-center justify-center">
+              <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="profile" />
+            </div>
+          </div>
+        </header>
+        {/* Content */}
+        <main className="flex-1 px-8 py-8 overflow-y-auto">
+          <div className="flex items-center gap-4 mb-8">
             <button
               className="text-gray-500 hover:text-gray-700"
               onClick={() => window.history.back()}
+              aria-label="Back"
             >
               <FaArrowLeft size={20} />
             </button>
             <h1 className="text-2xl font-bold text-gray-800">
               Transaction Details
             </h1>
+            <span className="ml-3 px-3 py-1 rounded-full bg-violet-100 text-violet-700 text-sm font-semibold border border-violet-300">
+              {getTransactionRole()}
+            </span>
           </div>
 
-          <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Transaction Info */}
-              <div>
-                <h3 className="text-xl font-semibold mb-4 text-violet-700">Transaction Information</h3>
-                <div className="space-y-4">
-                  <div>
-                    <div className="font-medium text-gray-600">Transaction Date</div>
-                    <div className="text-gray-900">{formatDate(transaction.saleDate || transaction.SaleDate)}</div>
-                  </div>
-                  <div>
-                    <div className="font-medium text-gray-600">Status</div>
-                    <div className="text-gray-900">{transaction.saleStatus || transaction.SaleStatus}</div>
-                  </div>
-                  <div>
-                    <div className="font-medium text-gray-600">Final Price</div>
-                    <div className="text-gray-900">
-                      {Number(transaction.finalPrice || transaction.FinalPrice).toLocaleString(undefined, { 
-                        style: "currency", 
-                        currency: "USD" 
-                      })}
-                    </div>
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            {/* Transaction Info */}
+            <div className="bg-white rounded-xl p-8 shadow-sm">
+              <h3 className="text-lg font-bold mb-4 text-violet-700">Transaction Information</h3>
+              <div className="space-y-3 text-sm">
+                <div>
+                  <span className="font-medium text-gray-600">Transaction Date: </span>
+                  <span className="text-gray-900">{formatDate(transaction.saleDate || transaction.SaleDate)}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Status: </span>
+                  <span className="text-gray-900">{transaction.saleStatus || transaction.SaleStatus}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Final Price: </span>
+                  <span className="text-violet-600 font-semibold">
+                    {Number(transaction.finalPrice || transaction.FinalPrice).toLocaleString(undefined, { style: "currency", currency: "USD" })}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Created At: </span>
+                  <span className="text-gray-900">{formatDate(transaction.createdAt || transaction.CreatedAt)}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Last Updated: </span>
+                  <span className="text-gray-900">{formatDate(transaction.updatedAt || transaction.UpdatedAt)}</span>
                 </div>
               </div>
-
-              {/* Customer Info */}
-              <div>
-                <h3 className="text-xl font-semibold mb-4 text-violet-700">Customer Information</h3>
-                <div className="space-y-4">
-                  <div>
-                    <div className="font-medium text-gray-600">Full Name</div>
-                    <div className="text-gray-900">{transaction.customer?.fullName || transaction.Customer?.fullName}</div>
-                  </div>
-                  <div>
-                    <div className="font-medium text-gray-600">Email</div>
-                    <div className="text-gray-900">{transaction.customer?.email || transaction.Customer?.email}</div>
-                  </div>
-                  <div>
-                    <div className="font-medium text-gray-600">Mobile</div>
-                    <div className="text-gray-900">{transaction.customer?.mobile || transaction.Customer?.mobile || '-'}</div>
-                  </div>
+            </div>
+            {/* Customer Info */}
+            <div className="bg-white rounded-xl p-8 shadow-sm">
+              <h3 className="text-lg font-bold mb-4 text-violet-700">Customer Information</h3>
+              <div className="space-y-3 text-sm">
+                <div>
+                  <span className="font-medium text-gray-600">Full Name: </span>
+                  <span className="text-gray-900">{getVal("customer", "fullName")}</span>
                 </div>
-              </div>
-
-              {/* Car Info */}
-              <div className="col-span-2">
-                <h3 className="text-xl font-semibold mb-4 text-violet-700">Vehicle Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <div className="font-medium text-gray-600">Manufacturer</div>
-                    <div className="text-gray-900">{transaction.car?.Manufacturer || transaction.Car?.Manufacturer}</div>
-                  </div>
-                  <div>
-                    <div className="font-medium text-gray-600">Model</div>
-                    <div className="text-gray-900">{transaction.car?.Model || transaction.Car?.Model}</div>
-                  </div>
-                  <div>
-                    <div className="font-medium text-gray-600">Year</div>
-                    <div className="text-gray-900">{transaction.car?.Year || transaction.Car?.Year}</div>
-                  </div>
-                  <div>
-                    <div className="font-medium text-gray-600">Mileage</div>
-                    <div className="text-gray-900">{transaction.car?.Mileage || transaction.Car?.Mileage || '-'}</div>
-                  </div>
-                  <div>
-                    <div className="font-medium text-gray-600">Color</div>
-                    <div className="text-gray-900">{transaction.car?.Color || transaction.Car?.Color || '-'}</div>
-                  </div>
-                  <div>
-                    <div className="font-medium text-gray-600">Transmission</div>
-                    <div className="text-gray-900">{transaction.car?.Transmission || transaction.Car?.Transmission || '-'}</div>
-                  </div>
+                <div>
+                  <span className="font-medium text-gray-600">Email: </span>
+                  <span className="text-gray-900">{getVal("customer", "email")}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Mobile: </span>
+                  <span className="text-gray-900">{getVal("customer", "mobile")}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Role: </span>
+                  <span className="text-gray-900">{getTransactionRole()}</span>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Car Info Full */}
+          <div className="bg-white rounded-xl p-8 flex flex-col md:flex-row gap-8 mb-10">
+            <div className="flex-shrink-0 w-full md:w-60">
+              <div className="font-bold mb-4 text-violet-700 text-lg">Vehicle Images</div>
+              {images.length > 0 ? (
+                <div className="flex flex-row md:flex-col gap-2 md:gap-2">
+                  {images.map((url, idx) => (
+                    <img
+                      key={idx}
+                      src={url}
+                      alt={`Car image ${idx + 1}`}
+                      className="rounded-xl w-28 h-20 md:w-56 md:h-32 object-cover border border-gray-200 shadow-sm"
+                      style={{objectFit: 'cover'}}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="w-56 h-32 flex items-center justify-center bg-gray-100 text-gray-400 rounded-xl border">
+                  No Images
+                </div>
+              )}
+            </div>
+            <div className="flex-1">
+              <div className="font-bold mb-4 text-violet-700 text-lg">Vehicle Information</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="font-medium text-gray-600">Manufacturer: </span>
+                  <span className="text-gray-900">{carInfo.manufacturer}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Model: </span>
+                  <span className="text-gray-900">{carInfo.model}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Year: </span>
+                  <span className="text-gray-900">{carInfo.year}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Mileage: </span>
+                  <span className="text-gray-900">{carInfo.mileage}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Price (listed): </span>
+                  <span className="text-gray-900">{carInfo.price ? Number(carInfo.price).toLocaleString(undefined, { style: "currency", currency: "USD" }) : '-'}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">VIN: </span>
+                  <span className="text-gray-900">{carInfo.vin}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Location: </span>
+                  <span className="text-gray-900">{carInfo.location}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Condition: </span>
+                  <span className="text-gray-900">{carInfo.condition}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Type: </span>
+                  <span className="text-gray-900">{carInfo.rentSell}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Certified: </span>
+                  <span className="text-gray-900">{carInfo.certified === 1 ? "Yes" : carInfo.certified === 0 ? "No" : "-"}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Color: </span>
+                  <span className="text-gray-900">{carInfo.color}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Transmission: </span>
+                  <span className="text-gray-900">{carInfo.transmission}</span>
+                </div>
+              </div>
+              <div className="mt-4 text-sm">
+                <div className="font-medium text-gray-600">Description</div>
+                <div className="text-gray-900 whitespace-pre-line">{carInfo.description}</div>
+              </div>
+            </div>
+          </div>
+
         </main>
       </div>
     </div>
