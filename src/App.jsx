@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Home from "./pages/Home";
@@ -15,7 +15,7 @@ import Messages from "./pages/admin/Messages";
 import SellCars from "./pages/admin/SellCars";
 import Services from "./pages/admin/Services";
 import Settings from "./pages/admin/Settings";
-import Assets from "./pages/admin/Assets";
+import ShowroomManagement from "./pages/admin/ShowroomManagement";
 import Booking from "./pages/admin/Booking";
 import CustomerAdmin from "./pages/admin/CustomerAdmin";
 import CarAdmin from "./pages/admin/CarAdmin";
@@ -32,11 +32,27 @@ function UserLayout({ children }) {
   );
 }
 
+// Layout chung cho Admin & Seller
+function DashboardLayout({ children }) {
+  return (
+    <div className="dashboard-layout">
+      {children}
+    </div>
+  );
+}
+
+// Component bảo vệ route theo role
+function RequireRole({ allow, children }) {
+  const role = localStorage.getItem("role"); // hoặc lấy từ context
+  if (!allow.includes(role)) return <Navigate to="/" replace />;
+  return children;
+}
+
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Các route của user bọc trong UserLayout */}
+        {/* User routes */}
         <Route
           path="/*"
           element={
@@ -46,26 +62,72 @@ function App() {
                 <Route path="/cars" element={<CarPage />} />
                 <Route path="/how-auto-works" element={<HowAutoSaleWork />} />
                 <Route path="/customer-reviews" element={<CarReview />} />
-                <Route path="/cars/:carId" element={<CarDetailPage />} />
+                <Route path="/cars/:id" element={<CarDetailPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
               </Routes>
             </UserLayout>
           }
         />
-        {/* Route admin dùng layout riêng, không có Header/Footer/UserProvider ở ngoài */}
-        <Route path="/admin/dashboard" element={<Dashboard />} />
-        <Route path="/admin/messages" element={<Messages />} />
-        <Route path="/admin/sell-cars" element={<SellCars />} />
-        <Route path="/admin/services" element={<Services />} />
-        <Route path="/admin/settings" element={<Settings />} />
-        <Route path="/admin/assets" element={<Assets />} />
-        <Route path="/admin/booking" element={<Booking />} />
-        <Route path="/admin/customers" element={<CustomerAdmin />} />
-        <Route path="/admin/cars" element={<CarAdmin />} />
-        <Route path="/admin/transactions/:id" element={<TransactionDetail />} />
-        <Route path="/admin/add-new-car" element={<AddNewCarPage />} />
-        
-        
+
+        {/* Admin routes */}
+        <Route
+          path="/admin/*"
+          element={
+            <RequireRole allow={["Admin", "Seller"]}>
+              <DashboardLayout>
+                <Routes>
+                  <Route path="dashboard" element={<Dashboard />} />
+                  <Route path="messages" element={<Messages />} />
+                  <Route path="sell-cars" element={<SellCars />} />
+                  <Route path="services" element={<Services />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="showroom" element={<ShowroomManagement />} />
+                  <Route path="booking" element={<Booking />} />
+                  
+                  {/* Admin-only routes */}
+                  <Route
+                    path="customers"
+                    element={
+                      <RequireRole allow={["Admin"]}>
+                        <CustomerAdmin />
+                      </RequireRole>
+                    }
+                  />
+                  <Route
+                    path="cars"
+                    element={
+                      <RequireRole allow={["Admin"]}>
+                        <CarAdmin />
+                      </RequireRole>
+                    }
+                  />
+                  <Route
+                    path="transactions/:id"
+                    element={
+                      <RequireRole allow={["Admin"]}>
+                        <TransactionDetail />
+                      </RequireRole>
+                    }
+                  />
+                  <Route
+                    path="add-new-car"
+                    element={
+                      <RequireRole allow={["Admin"]}>
+                        <AddNewCarPage />
+                      </RequireRole>
+                    }
+                  />
+                  
+                  {/* Default route for admin */}
+                  <Route path="" element={<Navigate to="dashboard" replace />} />
+                </Routes>
+              </DashboardLayout>
+            </RequireRole>
+          }
+        />
+
+        {/* Catch-all route */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
