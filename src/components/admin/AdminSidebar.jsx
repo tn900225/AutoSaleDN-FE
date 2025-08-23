@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
 import {
     HiOutlineViewGrid,
-    HiOutlineDocumentText,
+    HiOutlineBriefcase ,
     HiOutlineCalendar,
     HiOutlineChat,
     HiOutlineCog,
@@ -12,7 +12,7 @@ import {
 
   const sidebarItems = [
     { label: "Dashboard", icon: HiOutlineViewGrid, path: "/admin/dashboard" },
-    { label: "Assets", icon: HiOutlineDocumentText, path: "/admin/assets" },
+    { label: "ShowRoom", icon: HiOutlineBriefcase , path: "/admin/showroom" },
     { label: "Customers", icon: HiOutlineUsers, path: "/admin/customers"},
     { label: "Car", icon: FaCar, path: "/admin/cars"},
     { label: "Booking", icon: HiOutlineCalendar, path: "/admin/booking" },

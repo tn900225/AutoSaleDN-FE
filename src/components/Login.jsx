@@ -2,8 +2,10 @@ import React, { useState } from "react";
 import Register from "./Register";
 import Swal from "sweetalert2";
 import { useUserContext } from "./context/UserContext";
+import { useNavigate } from 'react-router-dom';
 
 export default function Login({ show, onClose }) {
+  const navigate = useNavigate();
   const { setUser } = useUserContext();
   const [showPassword, setShowPassword] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
@@ -56,9 +58,10 @@ export default function Login({ show, onClose }) {
         if (resp.ok) {
           const { token, role } = await resp.json();
           localStorage.setItem('token', token);
+          localStorage.setItem('role', role);
 
           if (role === "Admin") {
-            window.location.href = "/admin/dashboard";
+            navigate('/admin/dashboard');
             return;
           }
   

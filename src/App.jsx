@@ -15,7 +15,7 @@ import Messages from "./pages/admin/Messages";
 import SellCars from "./pages/admin/SellCars";
 import Services from "./pages/admin/Services";
 import Settings from "./pages/admin/Settings";
-import Assets from "./pages/admin/Assets";
+import ShowroomManagement from "./pages/admin/ShowroomManagement";
 import Booking from "./pages/admin/Booking";
 import CustomerAdmin from "./pages/admin/CustomerAdmin";
 import CarAdmin from "./pages/admin/CarAdmin";
@@ -69,68 +69,65 @@ function App() {
           }
         />
 
-        {/* Admin & Seller dùng chung layout, phân quyền bằng RequireRole */}
+        {/* Admin routes */}
         <Route
-          path="/dashboard/*"
+          path="/admin/*"
           element={
             <RequireRole allow={["Admin", "Seller"]}>
               <DashboardLayout>
                 <Routes>
-                  <Route path="" element={<Dashboard />} />
+                  <Route path="dashboard" element={<Dashboard />} />
                   <Route path="messages" element={<Messages />} />
                   <Route path="sell-cars" element={<SellCars />} />
                   <Route path="services" element={<Services />} />
                   <Route path="settings" element={<Settings />} />
-                  <Route path="assets" element={<Assets />} />
+                  <Route path="showroom" element={<ShowroomManagement />} />
                   <Route path="booking" element={<Booking />} />
-                  {/* Chỉ Admin mới thấy các route này */}
+                  
+                  {/* Admin-only routes */}
                   <Route
                     path="customers"
                     element={
-                      localStorage.getItem("role") === "Admin" ? (
+                      <RequireRole allow={["Admin"]}>
                         <CustomerAdmin />
-                      ) : (
-                        <Navigate to="/dashboard" replace />
-                      )
+                      </RequireRole>
                     }
                   />
                   <Route
                     path="cars"
                     element={
-                      localStorage.getItem("role") === "Admin" ? (
+                      <RequireRole allow={["Admin"]}>
                         <CarAdmin />
-                      ) : (
-                        <Navigate to="/dashboard" replace />
-                      )
+                      </RequireRole>
                     }
                   />
                   <Route
                     path="transactions/:id"
                     element={
-                      localStorage.getItem("role") === "Admin" ? (
+                      <RequireRole allow={["Admin"]}>
                         <TransactionDetail />
-                      ) : (
-                        <Navigate to="/dashboard" replace />
-                      )
+                      </RequireRole>
                     }
                   />
                   <Route
                     path="add-new-car"
                     element={
-                      localStorage.getItem("role") === "Admin" ? (
+                      <RequireRole allow={["Admin"]}>
                         <AddNewCarPage />
-                      ) : (
-                        <Navigate to="/dashboard" replace />
-                      )
+                      </RequireRole>
                     }
                   />
-                  {/* Seller có thể có route riêng nếu cần */}
-                  {/* <Route path="seller-special" element={<SellerSpecialPage />} /> */}
+                  
+                  {/* Default route for admin */}
+                  <Route path="" element={<Navigate to="dashboard" replace />} />
                 </Routes>
               </DashboardLayout>
             </RequireRole>
           }
         />
+
+        {/* Catch-all route */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
