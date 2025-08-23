@@ -62,7 +62,7 @@ function App() {
                 <Route path="/cars" element={<CarPage />} />
                 <Route path="/how-auto-works" element={<HowAutoSaleWork />} />
                 <Route path="/customer-reviews" element={<CarReview />} />
-                <Route path="/cars/:carId" element={<CarDetailPage />} />
+                <Route path="/cars/:id" element={<CarDetailPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
               </Routes>
             </UserLayout>

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom"; 
 
 const PER_PAGE = 5;
 
@@ -20,6 +21,7 @@ function getPagination(current, total) {
 
 export default function CarPageMain({ cars, loading }) {
   const [page, setPage] = useState(1);
+  const navigate = useNavigate();
 
   const totalPages = Math.ceil((cars?.length || 0) / PER_PAGE);
   const visibleCars = cars?.slice((page - 1) * PER_PAGE, page * PER_PAGE) || [];
@@ -28,6 +30,8 @@ export default function CarPageMain({ cars, loading }) {
     setPage(1);
   }, [cars]);
 
+  // If a car is selected, show the detail page
+  
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center min-h-[300px]">
@@ -101,18 +105,19 @@ export default function CarPageMain({ cars, loading }) {
         {visibleCars.map(car => (
           <div key={car.listingId} data-testid="feature.car.card" className="bg-white rounded-xl shadow hover:shadow-lg transition overflow-hidden border group">
             <div role="group" className="flex">
-              <a
-                href={`/cars/${car.listingId}`}
-                data-testid="feature.car.card_serp"
-                className="flex-shrink-0 w-[277px] relative block"
+              <button
+                type="button"
+                onClick={() => navigate(`/cars/${car.listingId}`)}
+                className="flex-shrink-0 w-[277px] relative block text-left p-0 m-0 border-none bg-none focus:outline-none"
                 data-car-id={car.listingId}
+                style={{ all: "unset", cursor: "pointer" }}
               >
                 <div className="absolute top-2 right-2 z-10">
-                  <button className="bg-white rounded-full p-1 shadow">
+                  <span className="bg-white rounded-full p-1 shadow">
                     <svg viewBox="0 0 24 24" strokeWidth="2px" data-icon-id="heartfilled24" className="w-6 h-6 text-[#3452e1]">
                       <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41 0.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#253887" />
                     </svg>
-                  </button>
+                  </span>
                 </div>
                 <div className="w-[277px] h-[180px] overflow-hidden relative bg-[#e9ecfa]">
                   <img
@@ -127,7 +132,7 @@ export default function CarPageMain({ cars, loading }) {
                     <p>{car.images?.length || 0}</p>
                   </div>
                 </div>
-              </a>
+              </button>
               <div className="flex-1 p-5 flex flex-col justify-between">
                 <div>
                   <div className="mb-3">
