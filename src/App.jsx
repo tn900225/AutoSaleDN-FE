@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Home from "./pages/Home";
@@ -32,11 +32,27 @@ function UserLayout({ children }) {
   );
 }
 
+// Layout chung cho Admin & Seller
+function DashboardLayout({ children }) {
+  return (
+    <div className="dashboard-layout">
+      {children}
+    </div>
+  );
+}
+
+// Component bảo vệ route theo role
+function RequireRole({ allow, children }) {
+  const role = localStorage.getItem("role"); // hoặc lấy từ context
+  if (!allow.includes(role)) return <Navigate to="/" replace />;
+  return children;
+}
+
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Các route của user bọc trong UserLayout */}
+        {/* User routes */}
         <Route
           path="/*"
           element={
@@ -52,20 +68,69 @@ function App() {
             </UserLayout>
           }
         />
-        {/* Route admin dùng layout riêng, không có Header/Footer/UserProvider ở ngoài */}
-        <Route path="/admin/dashboard" element={<Dashboard />} />
-        <Route path="/admin/messages" element={<Messages />} />
-        <Route path="/admin/sell-cars" element={<SellCars />} />
-        <Route path="/admin/services" element={<Services />} />
-        <Route path="/admin/settings" element={<Settings />} />
-        <Route path="/admin/assets" element={<Assets />} />
-        <Route path="/admin/booking" element={<Booking />} />
-        <Route path="/admin/customers" element={<CustomerAdmin />} />
-        <Route path="/admin/cars" element={<CarAdmin />} />
-        <Route path="/admin/transactions/:id" element={<TransactionDetail />} />
-        <Route path="/admin/add-new-car" element={<AddNewCarPage />} />
-        
-        
+
+        {/* Admin & Seller dùng chung layout, phân quyền bằng RequireRole */}
+        <Route
+          path="/dashboard/*"
+          element={
+            <RequireRole allow={["Admin", "Seller"]}>
+              <DashboardLayout>
+                <Routes>
+                  <Route path="" element={<Dashboard />} />
+                  <Route path="messages" element={<Messages />} />
+                  <Route path="sell-cars" element={<SellCars />} />
+                  <Route path="services" element={<Services />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="assets" element={<Assets />} />
+                  <Route path="booking" element={<Booking />} />
+                  {/* Chỉ Admin mới thấy các route này */}
+                  <Route
+                    path="customers"
+                    element={
+                      localStorage.getItem("role") === "Admin" ? (
+                        <CustomerAdmin />
+                      ) : (
+                        <Navigate to="/dashboard" replace />
+                      )
+                    }
+                  />
+                  <Route
+                    path="cars"
+                    element={
+                      localStorage.getItem("role") === "Admin" ? (
+                        <CarAdmin />
+                      ) : (
+                        <Navigate to="/dashboard" replace />
+                      )
+                    }
+                  />
+                  <Route
+                    path="transactions/:id"
+                    element={
+                      localStorage.getItem("role") === "Admin" ? (
+                        <TransactionDetail />
+                      ) : (
+                        <Navigate to="/dashboard" replace />
+                      )
+                    }
+                  />
+                  <Route
+                    path="add-new-car"
+                    element={
+                      localStorage.getItem("role") === "Admin" ? (
+                        <AddNewCarPage />
+                      ) : (
+                        <Navigate to="/dashboard" replace />
+                      )
+                    }
+                  />
+                  {/* Seller có thể có route riêng nếu cần */}
+                  {/* <Route path="seller-special" element={<SellerSpecialPage />} /> */}
+                </Routes>
+              </DashboardLayout>
+            </RequireRole>
+          }
+        />
       </Routes>
     </Router>
   );
