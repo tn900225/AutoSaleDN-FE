@@ -54,7 +54,7 @@ export default function AdminSidebar() {
           Settings
         </NavLink>
         <NavLink
-          to="/logout"
+          to="/"
           className="flex items-center gap-3 py-2 text-gray-500 hover:text-violet-600"
         >
           <HiOutlineLogout className="w-5 h-5" />

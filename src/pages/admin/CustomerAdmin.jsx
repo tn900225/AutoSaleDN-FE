@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminTopbar from "../../components/admin/AdminTopbar";
-import { FaEdit, FaTrash, FaTimes, FaSearch, FaFilter, FaEye } from "react-icons/fa";
+import { FaEdit, FaTrash, FaTimes, FaSearch, FaFilter, FaEye, FaCheckCircle, FaExclamationCircle, FaUserCheck, FaUserSlash } from "react-icons/fa"; // Import new icons
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 
@@ -10,7 +10,8 @@ const inputClass =
 const filterInputClass =
   "px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 w-full text-base focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400 transition placeholder-gray-400";
 
-const formInit = { fullName: "", email: "", mobile: "", password: "" };
+// Cập nhật formInit để bao gồm trường 'province'
+const formInit = { fullName: "", email: "", mobile: "", password: "", province: "" };
 
 // Add date formatting utility
 const formatDate = (date) => {
@@ -18,12 +19,52 @@ const formatDate = (date) => {
   return format(new Date(date), 'dd/MM/yyyy');
 };
 
+// Alert Component - Moved outside to be reusable and not re-rendered
+const Alert = ({ message, type, onClose }) => {
+  const alertClasses = {
+    success: "bg-green-100 border-green-400 text-green-700",
+    error: "bg-red-100 border-red-400 text-red-700",
+    info: "bg-blue-100 border-blue-400 text-blue-700",
+    warning: "bg-yellow-100 border-yellow-400 text-yellow-700", // Added warning for consistency
+  };
+
+  const iconClasses = {
+    success: <FaCheckCircle className="mr-2" />,
+    error: <FaExclamationCircle className="mr-2" />,
+    info: <FaExclamationCircle className="mr-2" />,
+    warning: <FaExclamationCircle className="mr-2" />,
+  };
+
+  return (
+    <div className={`fixed top-4 right-4 z-50 flex items-center p-4 mb-4 text-sm rounded-lg shadow-md border ${alertClasses[type]}`} role="alert">
+      {iconClasses[type]}
+      <div>
+        <span className="font-medium">{type.charAt(0).toUpperCase() + type.slice(1)}:</span> {message}
+      </div>
+      <button
+        type="button"
+        className="ml-auto -mx-1.5 -my-1.5 bg-transparent text-gray-400 hover:text-gray-900 rounded-lg focus:ring-2 focus:ring-gray-300 p-1.5 hover:bg-gray-200 inline-flex items-center justify-center h-8 w-8"
+        onClick={onClose}
+        aria-label="Close"
+      >
+        <FaTimes />
+      </button>
+    </div>
+  );
+};
+
+
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
   const [form, setForm] = useState(formInit);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+
+  // Alert states
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertType, setAlertType] = useState("info");
 
   // View More Modal
   const [showViewModal, setShowViewModal] = useState(false);
@@ -46,10 +87,17 @@ export default function Customers() {
       { value: "emailAsc", label: "Email A → Z" },
       { value: "emailDesc", label: "Email Z → A" }
     ];
+    // Add Status filters
+    const statusOptions = [
+        { value: "statusActive", label: "Status: Active" },
+        { value: "statusDeactivated", label: "Status: Deactivated" },
+    ];
     const combinedOptions = [
       { value: "All", label: "All" },
       ...sortingOptions,
-      { value: "separator", label: "---" },
+      { value: "separator1", label: "---" }, // Separator for sorting
+      ...statusOptions, // Add status options
+      { value: "separator2", label: "---" }, // Separator for roles
       ...roles.map(role => ({ value: role, label: role }))
     ];
     return combinedOptions;
@@ -59,7 +107,7 @@ export default function Customers() {
   const filteredCustomers = useMemo(() => {
     let result = [...customers];
     // Apply filters
-    if (roleFilter && roleFilter !== "All" && roleFilter !== "separator") {
+    if (roleFilter && roleFilter !== "All" && !roleFilter.startsWith("separator")) {
       if (roleFilter.startsWith("name") || roleFilter.startsWith("email")) {
         // Apply sorting
         switch (roleFilter) {
@@ -67,7 +115,7 @@ export default function Customers() {
             result.sort((a, b) => a.fullName.localeCompare(b.fullName));
             break;
           case "nameDesc":
-            result.sort((a, b) => b.fullName.localeCompare(a.fullName));
+            result.sort((a, b) => b.fullName.localeCompare(a.fullName)); // Fixed b.fullName.localeCompare(b.fullName)
             break;
           case "emailAsc":
             result.sort((a, b) => a.email.localeCompare(b.email));
@@ -78,7 +126,15 @@ export default function Customers() {
           default:
             break;
         }
-      } else {
+      } else if (roleFilter.startsWith("status")) {
+          // Apply status filter
+          if (roleFilter === "statusActive") {
+              result = result.filter(c => c.status === true);
+          } else if (roleFilter === "statusDeactivated") {
+              result = result.filter(c => c.status === false);
+          }
+      }
+      else {
         // Apply role filter
         result = result.filter(c => c.role === roleFilter);
       }
@@ -89,7 +145,8 @@ export default function Customers() {
         c =>
           (c.fullName && c.fullName.toLowerCase().includes(term)) ||
           (c.email && c.email.toLowerCase().includes(term)) ||
-          (c.mobile && c.mobile.toLowerCase().includes(term))
+          (c.mobile && c.mobile.toLowerCase().includes(term)) ||
+          (c.province && c.province.toLowerCase().includes(term))
       );
     }
 
@@ -127,22 +184,46 @@ export default function Customers() {
 
   const getToken = () => localStorage.getItem('token');
 
+  // Effect to auto-hide alert
+  useEffect(() => {
+    let timer;
+    if (showAlert) {
+      timer = setTimeout(() => {
+        setShowAlert(false);
+        setAlertMessage("");
+        setAlertType("info");
+      }, 5000); // Hide after 5 seconds
+    }
+    return () => clearTimeout(timer);
+  }, [showAlert]);
+
+
   useEffect(() => {
     fetchCustomers();
   }, []);
 
-  const fetchCustomers = () => {
-    fetch("/api/Admin/customers", {
-      headers: { Authorization: `Bearer ${getToken()}` }
-    })
-      .then((r) => {
-        if (r.status === 401) {
-          window.location.href = "/login";
-          return [];
-        }
-        return r.json();
-      })
-      .then(setCustomers);
+  const fetchCustomers = async () => {
+    try {
+      const r = await fetch("/api/Admin/customers", {
+        headers: { Authorization: `Bearer ${getToken()}` }
+      });
+
+      if (r.status === 401) {
+        window.location.href = "/login";
+        return [];
+      }
+
+      if (!r.ok) {
+        throw new Error(`Failed to fetch customers: ${r.statusText}`);
+      }
+      const data = await r.json();
+      setCustomers(data);
+    } catch (error) {
+      setAlertMessage(`Error fetching customers: ${error.message}`);
+      setAlertType("error");
+      setShowAlert(true);
+      setCustomers([]);
+    }
   };
 
   const handleChange = (e) =>
@@ -159,7 +240,8 @@ export default function Customers() {
       fullName: cus.fullName,
       email: cus.email,
       mobile: cus.mobile || "",
-      password: "",
+      password: "", // Mật khẩu không bao giờ được điền vào form chỉnh sửa vì lý do bảo mật
+      province: cus.province || "",
     });
     setEditingId(cus.userId || cus.user_id);
     setShowModal(true);
@@ -186,10 +268,16 @@ export default function Customers() {
         setViewUser(data.user || data);
         setViewHistory(data.salesHistory || []);
       } else {
+        setAlertMessage("Failed to fetch customer details.");
+        setAlertType("error");
+        setShowAlert(true);
         setViewUser(null);
         setViewHistory([]);
       }
-    } catch {
+    } catch (error) {
+      setAlertMessage(`Error fetching customer details: ${error.message}`);
+      setAlertType("error");
+      setShowAlert(true);
       setViewUser(null);
       setViewHistory([]);
     }
@@ -209,33 +297,80 @@ export default function Customers() {
     const url = editingId
       ? `/api/Admin/customers/${editingId}`
       : "/api/Admin/customers";
-    const body = { ...form };
-    if (!editingId) delete body.role;
-    if (editingId && !form.password) delete body.password;
 
-    await fetch(url, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${getToken()}`
-      },
-      body: JSON.stringify(body),
-    });
+    const body = {
+      fullName: form.fullName,
+      email: form.email,
+      mobile: form.mobile,
+      province: form.province,
+    };
 
-    fetchCustomers();
-    handleCloseModal();
-    setLoading(false);
+    if (!editingId || (editingId && form.password)) {
+      body.newPassword = form.password;
+    }
+
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (response.ok) {
+        setAlertMessage(`Customer ${editingId ? "updated" : "added"} successfully!`);
+        setAlertType("success");
+        setShowAlert(true);
+        fetchCustomers();
+        handleCloseModal();
+      } else {
+        const errorData = await response.json();
+        setAlertMessage(`Failed to ${editingId ? "update" : "add"} customer: ${errorData.message || response.statusText}`);
+        setAlertType("error");
+        setShowAlert(true);
+      }
+    } catch (error) {
+      setAlertMessage(`An error occurred: ${error.message}`);
+      setAlertType("error");
+      setShowAlert(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this customer?")) return;
-    await fetch(`/api/Admin/customers/${id}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${getToken()}`
+  const handleToggleStatus = async (user) => {
+    const newStatus = !user.status;
+    const action = newStatus ? "activate" : "deactivate";
+    if (!window.confirm(`Are you sure you want to ${action} this customer's account?`)) return;
+
+    try {
+      const response = await fetch(`/api/Admin/toggle-status/${user.userId || user.user_id}`, {
+        method: "PUT", // Assuming a PUT endpoint for toggling status
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`
+        },
+        body: JSON.stringify({ status: newStatus }) // Send the new status
+      });
+
+      if (response.ok) {
+        setAlertMessage(`Customer account ${action}d successfully!`);
+        setAlertType("success");
+        setShowAlert(true);
+        fetchCustomers(); // Re-fetch customers to update the UI
+      } else {
+        const errorData = await response.json();
+        setAlertMessage(`Failed to ${action} customer: ${errorData.message || response.statusText}`);
+        setAlertType("error");
+        setShowAlert(true);
       }
-    });
-    setCustomers(customers.filter((c) => (c.userId || c.user_id) !== id));
+    } catch (error) {
+      setAlertMessage(`An error occurred during status toggle: ${error.message}`);
+      setAlertType("error");
+      setShowAlert(true);
+    }
   };
 
   return (
@@ -244,6 +379,9 @@ export default function Customers() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <AdminTopbar />
         <main className="p-8 bg-gray-50 min-h-screen">
+          {showAlert && (
+            <Alert message={alertMessage} type={alertType} onClose={() => setShowAlert(false)} />
+          )}
           <div className="text-3xl font-bold tracking-tight text-gray-800 mb-6">
             Customer Management
           </div>
@@ -255,7 +393,7 @@ export default function Customers() {
                 <input
                   className={filterInputClass + " pr-10"}
                   type="text"
-                  placeholder="Search by name, email, or mobile..."
+                  placeholder="Search by name, email, mobile, or province..."
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                 />
@@ -269,7 +407,7 @@ export default function Customers() {
                   onChange={e => setRoleFilter(e.target.value)}
                 >
                   {allRoles.map(option => (
-                    <option key={option.value} value={option.value} disabled={option.value === "separator"}>
+                    <option key={option.value} value={option.value} disabled={option.value.startsWith("separator")}>
                       {option.label}
                     </option>
                   ))}
@@ -298,7 +436,9 @@ export default function Customers() {
                     <th className="py-3 px-4 font-bold text-left rounded-tl-xl">Full Name</th>
                     <th className="py-3 px-4 font-bold text-left">Email</th>
                     <th className="py-3 px-4 font-bold text-left">Mobile</th>
+                    <th className="py-3 px-4 font-bold text-left">Province</th>
                     <th className="py-3 px-4 font-bold text-left">Role</th>
+                    <th className="py-3 px-4 font-bold text-center">Status</th> {/* New Status Column */}
                     <th className="py-3 px-4 font-bold text-center rounded-tr-xl w-40">Actions</th>
                   </tr>
                 </thead>
@@ -311,7 +451,20 @@ export default function Customers() {
                       <td className="py-3 px-4">{c.fullName}</td>
                       <td className="py-3 px-4">{c.email}</td>
                       <td className="py-3 px-4">{c.mobile}</td>
+                      <td className="py-3 px-4">{c.province || "-"}</td>
                       <td className="py-3 px-4">{c.role}</td>
+                      {/* Status Column */}
+                      <td className="py-3 px-4 text-center">
+                        {c.status ? (
+                          <span className="inline-flex items-center text-green-500 font-medium">
+                            <FaCheckCircle className="mr-1" /> Active
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center text-red-500 font-medium">
+                            <FaTimes className="mr-1" /> Deactivated
+                          </span>
+                        )}
+                      </td>
                       <td className="py-3 px-4 text-center flex justify-center items-center gap-2">
                         <button
                           className="inline-block text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 p-2 rounded-full transition"
@@ -327,21 +480,24 @@ export default function Customers() {
                         >
                           <FaEdit size={18} />
                         </button>
+                        {/* Toggle Status Button */}
                         <button
-                          className="inline-block text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-2 rounded-full transition"
-                          title="Delete"
-                          onClick={() =>
-                            handleDelete(c.userId || c.user_id)
-                          }
+                          className={`inline-block p-2 rounded-full transition 
+                            ${c.status 
+                               ? "text-orange-500 hover:text-orange-700 bg-orange-50 hover:bg-orange-100" 
+                               : "text-green-500 hover:text-green-700 bg-green-50 hover:bg-green-100"
+                            }`}
+                          title={c.status ? "Deactivate Account" : "Activate Account"}
+                          onClick={() => handleToggleStatus(c)}
                         >
-                          <FaTrash size={18} />
+                          {c.status ? <FaUserSlash size={18} /> : <FaUserCheck size={18} />}
                         </button>
                       </td>
                     </tr>
                   ))}
                   {filteredCustomers.data.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="text-center py-8 text-gray-400 text-lg">
+                      <td colSpan={7} className="text-center py-8 text-gray-400 text-lg"> {/* colSpan changed to 7 */}
                         No customers found.
                       </td>
                     </tr>
@@ -376,7 +532,7 @@ export default function Customers() {
               </div>
             </div>
           </div>
-          {/* Modal giữ nguyên */}
+          {/* Modal */}
           {showModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm">
               <div className="bg-white rounded-2xl shadow-lg border border-gray-200 w-full max-w-lg p-8 relative">
@@ -424,6 +580,17 @@ export default function Customers() {
                       onChange={handleChange}
                       className={inputClass + " placeholder:font-light"}
                       placeholder="Enter mobile number"
+                    />
+                  </div>
+                  {/* Thêm trường Province vào form */}
+                  <div>
+                    <label className="block mb-1 font-medium text-gray-700">Province</label>
+                    <input
+                      name="province"
+                      value={form.province}
+                      onChange={handleChange}
+                      className={inputClass + " placeholder:font-light"}
+                      placeholder="Enter province (e.g., Ho Chi Minh)"
                     />
                   </div>
                   <div>
@@ -486,9 +653,24 @@ export default function Customers() {
                         <div className="font-medium text-gray-700">Mobile:</div>
                         <div className="text-gray-900">{viewUser.mobile || viewUser.Mobile || "-"}</div>
                       </div>
+                      {/* Hiển thị Province trong View Modal */}
                       <div>
-                        <div className="font-medium text-gray-700">Address:</div>
-                        <div className="text-gray-900">{viewUser.province || viewUser.Province}</div>
+                        <div className="font-medium text-gray-700">Province:</div>
+                        <div className="text-gray-900">{viewUser.province || viewUser.Province || "-"}</div>
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-700">Status:</div>
+                        <div className="text-gray-900">
+                            {viewUser.status ? (
+                                <span className="inline-flex items-center text-green-500 font-medium">
+                                    <FaCheckCircle className="mr-1" /> Active
+                                </span>
+                            ) : (
+                                <span className="inline-flex items-center text-red-500 font-medium">
+                                    <FaTimes className="mr-1" /> Deactivated
+                                </span>
+                            )}
+                        </div>
                       </div>
                       <div>
                         <div className="font-medium text-gray-700">Created At:</div>
@@ -510,7 +692,6 @@ export default function Customers() {
                             <th className="py-2 px-3 font-bold text-left w-64">Car</th>
                             <th className="py-2 px-3 font-bold text-right">Price</th>
                             <th className="py-2 px-3 font-bold text-left">Status</th>
-                            
                             <th className="py-2 px-3 font-bold text-left">Date</th>
                             <th className="py-2 px-3 font-bold text-center">Details</th>
                           </tr>
@@ -529,14 +710,12 @@ export default function Customers() {
                               <td className="py-2 px-3">
                                 {h.car?.manufacturer || h.Car?.manufacturer} {h.car?.model || h.Car?.model} {h.car?.year || h.Car?.year}
                               </td>
-                              
-                              
                               <td className="py-2 px-3 text-left">
                                 {h.finalPrice || h.FinalPrice
-                                  ? Number(h.finalPrice || h.FinalPrice).toLocaleString('vi-VN', { 
-                                    style: "currency", 
-                                    currency: "VND" 
-                                  })
+                                  ? Number(h.finalPrice || h.FinalPrice).toLocaleString('vi-VN', {
+                                      style: "currency",
+                                      currency: "VND"
+                                    })
                                   : "-"}
                               </td>
                               <td className="py-2 px-3">

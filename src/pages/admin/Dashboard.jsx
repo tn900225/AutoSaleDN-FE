@@ -607,7 +607,7 @@ export default function AdminDashboard() {
                               </div>
                               <div className="text-right">
                                 <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                                  {model.quantity} units
+                                  {model.availableQuantity} units
                                 </span>
                               </div>
                             </div>
