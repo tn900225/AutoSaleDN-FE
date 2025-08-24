@@ -73,28 +73,23 @@ const formInit = {
 
 export default function AddNewCarPage() {
   const [formData, setFormData] = useState(formInit);
-  const [imageFiles, setImageFiles] = useState([]); // Keep if you still need to track original File objects
-  const [imagePreviews, setImagePreviews] = useState([]); // This state will now contain {url, type, name}
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
   const [uploading, setUploading] = useState(false);
 
   const [carModels, setCarModels] = useState([]);
   const [carColors, setCarColors] = useState([]);
   const [features, setFeatures] = useState([]);
 
-  // videoFiles and videoUrls are now derived from imagePreviews
-  // const [videoFiles, setVideoFiles] = useState([]); // Removed
-  // const [videoUrls, setVideoUrls] = useState([]); // Removed
 
-  // Derived state to display file names
   const selectedFileNames = imagePreviews.map(item => item.name).join(", ");
 
 
-  // Fetch initial form data (models, colors, features) from API
   useEffect(() => {
     const fetchFormData = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch("/api/admin/cars/add-form-data", { // Updated API endpoint
+        const response = await fetch("/api/admin/cars/add-form-data", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -136,7 +131,6 @@ export default function AddNewCarPage() {
     });
   };
 
-  // handleImageUpload and handleVideoUpload have been removed as VehiclePhotosUpload handles them
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -161,7 +155,6 @@ export default function AddNewCarPage() {
         taxRate: parseFloat(Number(formData.taxRate).toFixed(2)),
         seatingCapacity: parseInt(formData.seatingCapacity),
         videoUrls: videoUrls,
-        // modelId, userId, and color will now come directly from select inputs
       };
 
       console.log("Sending data:", dataToSend);

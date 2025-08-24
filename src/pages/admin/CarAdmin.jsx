@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom"; // Import useParams
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminTopbar from "../../components/admin/AdminTopbar";
-import { FaSearch, FaChevronLeft, FaChevronRight, FaEdit, FaTrash, FaPlus, FaTimes } from "react-icons/fa";
+import { FaSearch, FaChevronLeft, FaChevronRight, FaEdit, FaTrash, FaPlus, FaTimes, FaEye } from "react-icons/fa"; // Added FaEye
 import { X, Plus, Trash2, Car, MapPin, Check } from 'lucide-react';
-import { FaEye } from "react-icons/fa";
+import { HiUserGroup } from "react-icons/hi";
 import Swal from "sweetalert2";
 
 const PAGE_SIZE_OPTIONS = [4, 8, 12];
@@ -25,9 +25,9 @@ function getStatusBadge(status, availableUnits) {
   return (
     <span className="inline-block px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-600 font-semibold">
       Available
-      {availableUnits !== undefined && (
+      {/* {availableUnits !== undefined && (
         <span className="ml-1 font-normal">{availableUnits} Unit</span>
-      )}
+      )} */}
     </span>
   );
 }
@@ -624,7 +624,7 @@ export default function Cars() {
               </div>
               <button
                 className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 flex items-center gap-2"
-                onClick={() => navigate("/admin/cars/add")}
+                onClick={() => navigate("/admin/add-new-car")}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -678,7 +678,7 @@ export default function Cars() {
                 <p className="text-gray-500 mb-6">Try adjusting your search criteria or add a new vehicle to get started.</p>
                 <button
                   className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 inline-flex items-center gap-2"
-                  onClick={() => navigate("/admin/cars/add")}
+                  onClick={() => navigate("/admin/add-new-car")}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -700,7 +700,7 @@ export default function Cars() {
                       </div>
                       <button
                         className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg font-semibold shadow-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 flex items-center gap-2"
-                        onClick={() => navigate("/admin/cars/add")}
+                        onClick={() => navigate("/admin/add-new-car")}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -807,6 +807,7 @@ export default function Cars() {
                                     ? 'bg-gradient-to-r from-gray-500 to-gray-600 text-white hover:from-gray-600 hover:to-gray-700'
                                     : 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600'
                                   }`}
+                                // onClick={() => toggleHideCar(car)} // This function is not defined in the provided code snippet
                                 title={car.status === 'Hidden' ? 'Show Vehicle' : 'Hide Vehicle'}
                               >
                                 {car.status === 'Hidden' ? (
@@ -915,12 +916,6 @@ function Modal({ children, onClose }) {
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-30 transition-opacity duration-300">
       <div className="bg-white rounded-xl overflow-hidden shadow-lg relative min-w-[320px] transform transition-transform duration-300 scale-100">
-        <button
-          className="absolute top-2 right-3 text-xl text-gray-400 hover:text-gray-600"
-          onClick={onClose}
-        >
-          ×
-        </button>
         {children}
       </div>
     </div>
@@ -933,8 +928,10 @@ function ViewCarDetailsModal({ car, onClose }) {
 
   if (!car) return null;
 
-  const images = Array.isArray(car.imageUrl) ? car.imageUrl : [];
-  const videos = Array.isArray(car.videoUrl) ? car.videoUrl : [];
+  // Ensure imageUrl and videoUrl are always arrays
+  const images = Array.isArray(car.imageUrl) ? car.imageUrl : (typeof car.imageUrl === 'string' && car.imageUrl !== '' ? [car.imageUrl] : []);
+  const videos = Array.isArray(car.videoUrl) ? car.videoUrl : (typeof car.videoUrl === 'string' && car.videoUrl !== '' ? [car.videoUrl] : []);
+
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % images.length);
@@ -946,7 +943,7 @@ function ViewCarDetailsModal({ car, onClose }) {
 
   return (
     <Modal onClose={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden"> {/* Changed max-w-4xl to max-w-5xl */}
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white">
           <div className="flex items-center justify-between">
@@ -1116,6 +1113,8 @@ function ViewCarDetailsModal({ car, onClose }) {
   );
 }
 
+
+// Modal phân bổ showroom (Existing component)
 function ShowroomModal({ open, car, setSelectedShowroomId, showroomList, onSave, onClose }) {
   const availableShowrooms = showroomList.filter(
     sr => !(car?.showrooms || []).some(s => s.showroomId === sr.showroomId)

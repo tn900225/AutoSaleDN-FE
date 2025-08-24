@@ -13,23 +13,28 @@ import {
   Clock,
   Users,
   Filter,
-  Download
+  Download,
+  Upload
 } from 'lucide-react';
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminTopbar from "../../components/admin/AdminTopbar";
 import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, Tooltip } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
+import Swal from 'sweetalert2';
 
-// Đăng ký các thành phần cần thiết cho Chart.js
+// Register Chart.js components
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
 
 export default function ShowroomManagement() {
   const [selectedShowroom, setSelectedShowroom] = useState(null);
-  const [viewMode, setViewMode] = useState('overview'); // 'overview', 'detail'
+  const [viewMode, setViewMode] = useState('overview');
   const [dateFilter, setDateFilter] = useState('thisMonth');
   const [showrooms, setShowrooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importData, setImportData] = useState([{ listingId: '', quantity: '' }]);
+  const [carListings, setCarListings] = useState([]);
   const token = localStorage.getItem('token');
 
   const fetchShowrooms = async () => {
@@ -50,6 +55,23 @@ export default function ShowroomManagement() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCarListings = async (showroomId) => {
+    try {
+      const response = await fetch(`/api/Admin/showrooms/${showroomId}/car-listings`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch car listings');
+      }
+      const data = await response.json();
+      setCarListings(data);
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -82,9 +104,8 @@ export default function ShowroomManagement() {
         brandsRes.json(),
       ]);
 
-      // Calculate total cars in inventory and popular models
       let totalCarsInInventory = 0;
-      const modelCounts = {}; // { modelName: { count: N, sold: M, revenue: R, imageUrl: '' } }
+      const modelCounts = {};
 
       inventory.forEach(item => {
         totalCarsInInventory += item.quantity;
@@ -124,6 +145,9 @@ export default function ShowroomManagement() {
         models: popularModels,
       });
       setError(null);
+
+      // Fetch car listings for the import modal
+      await fetchCarListings(showroomId);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -160,6 +184,54 @@ export default function ShowroomManagement() {
     }
   };
 
+  const handleImportStock = async () => {
+    try {
+      const response = await fetch(`/api/Admin/showrooms/${selectedShowroom.id}/inventory/import`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ items: importData }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to import inventory');
+      }
+      await Swal.fire({
+        icon: 'success',
+        title: 'Success',
+        text: 'Inventory imported successfully!',
+        confirmButtonText: 'OK'
+      });
+      setShowImportModal(false);
+      setImportData([{ listingId: '', quantity: '' }]);
+      await fetchShowroomDetail(selectedShowroom.id); // Refresh showroom details
+    } catch (err) {
+      setError(err.message);
+      await Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: `Error importing inventory: ${err.message}`,
+        confirmButtonText: 'OK'
+      });
+    }
+};
+
+  const handleAddImportRow = () => {
+    setImportData([...importData, { listingId: '', quantity: '' }]);
+  };
+
+  const handleImportChange = (index, field, value) => {
+    const newImportData = [...importData];
+    newImportData[index][field] = value;
+    setImportData(newImportData);
+  };
+
+  const handleRemoveImportRow = (index) => {
+    setImportData(importData.filter((_, i) => i !== index));
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -168,13 +240,12 @@ export default function ShowroomManagement() {
     }).format(amount);
   };
 
-  // Updated formatDate to handle ISO date strings
   const formatDate = (dateString, index, totalDays) => {
     if (!dateString || typeof dateString !== 'string') return '';
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return ''; // Invalid date
+    if (isNaN(date.getTime())) return '';
     const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+    const month = String(date.getMonth() + 1).padStart(2, '0');
 
     if (totalDays <= 15) {
       return `${day}/${month}`;
@@ -187,8 +258,18 @@ export default function ShowroomManagement() {
   };
 
   const formatDateTime = (dateString) => {
-    const options = { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-    return new Date(dateString).toLocaleDateString('en-US', options);
+    const date = new Date(dateString);
+    const vietnamDate = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+    const options = {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false, 
+      timeZone: 'Asia/Ho_Chi_Minh',
+    };
+    return vietnamDate.toLocaleString('vi-VN', options);
   };
 
   const getTransactionTypeLabel = (type) => {
@@ -221,6 +302,7 @@ export default function ShowroomManagement() {
   const handleBackToOverview = () => {
     setSelectedShowroom(null);
     setViewMode('overview');
+    setCarListings([]); // Clear car listings when returning to overview
   };
 
   const getTotalRevenue = () => {
@@ -267,17 +349,15 @@ export default function ShowroomManagement() {
   }
 
   if (viewMode === 'detail' && selectedShowroom) {
-    const maxSold = Math.max(...selectedShowroom.salesData.map(s => s.sold || 0)); // Default to 0 if sold is undefined
+    const maxSold = Math.max(...selectedShowroom.salesData.map(s => s.sold || 0));
     const safeMaxSold = maxSold === 0 ? 1 : maxSold;
     const totalSalesDays = selectedShowroom.salesData.length;
-    console.log('Sales Data:', selectedShowroom.salesData); // Debug sales data
 
-    // Dữ liệu và tùy chọn cho biểu đồ Chart.js
     const chartData = {
       labels: selectedShowroom.salesData.map((day, index) => formatDate(day.saleDate, index, totalSalesDays)),
       datasets: [{
         label: 'Sales',
-        data: selectedShowroom.salesData.map(day => day.sold || 0), // Default to 0 if sold is missing
+        data: selectedShowroom.salesData.map(day => day.sold || 0),
         backgroundColor: '#3B82F6',
         hoverBackgroundColor: '#2563EB',
         borderRadius: 8,
@@ -318,7 +398,7 @@ export default function ShowroomManagement() {
             font: { size: 12 },
             color: '#4B5563',
             beginAtZero: true,
-            max: safeMaxSold * 1.2 // Add padding to max value
+            max: safeMaxSold * 1.2
           }
         }
       }
@@ -346,6 +426,13 @@ export default function ShowroomManagement() {
               </div>
               <div className="flex items-center space-x-3">
                 <button
+                  onClick={() => setShowImportModal(true)}
+                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import Inventory
+                </button>
+                <button
                   onClick={() => handleExportReport(selectedShowroom.id)}
                   className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                 >
@@ -354,6 +441,73 @@ export default function ShowroomManagement() {
                 </button>
               </div>
             </div>
+
+            {/* Import Modal */}
+            {showImportModal && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <h2 className="text-xl font-semibold mb-4">Import Inventory</h2>
+                  <div className="space-y-4">
+                    {importData.map((item, index) => (
+                      <div key={index} className="flex items-center space-x-4">
+                        <select
+                          value={item.listingId}
+                          onChange={(e) => handleImportChange(index, 'listingId', e.target.value)}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Select Car Model</option>
+                          {carListings.map((listing) => (
+                            <option key={listing.listingId} value={listing.listingId}>
+                              {listing.modelName} ({listing.manufacturerName})
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => handleImportChange(index, 'quantity', e.target.value)}
+                          placeholder="Quantity"
+                          className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                          min="1"
+                        />
+                        {importData.length > 1 && (
+                          <button
+                            onClick={() => handleRemoveImportRow(index)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      onClick={handleAddImportRow}
+                      className="text-blue-600 hover:text-blue-800 text-sm"
+                    >
+                      + Add Another Item
+                    </button>
+                  </div>
+                  <div className="flex justify-end space-x-3 mt-6">
+                    <button
+                      onClick={() => {
+                        setShowImportModal(false);
+                        setImportData([{ listingId: '', quantity: '' }]);
+                      }}
+                      className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleImportStock}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                      disabled={importData.some(item => !item.listingId || !item.quantity || item.quantity <= 0)}
+                    >
+                      Import
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -421,7 +575,6 @@ export default function ShowroomManagement() {
 
             {/* Charts and Details */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-              {/* Sales Chart */}
               <div className="bg-white rounded-xl p-6 border border-gray-200">
                 <h3 className="text-lg font-semibold mb-4">Sales Performance</h3>
                 <div className="relative h-64">
@@ -429,7 +582,6 @@ export default function ShowroomManagement() {
                 </div>
               </div>
 
-              {/* Brand Performance */}
               <div className="bg-white rounded-xl p-6 border border-gray-200">
                 <h3 className="text-lg font-semibold mb-4">Brand Performance</h3>
                 <div className="space-y-4">
@@ -454,9 +606,7 @@ export default function ShowroomManagement() {
               </div>
             </div>
 
-            {/* Inventory and Models */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Recent Inventory */}
               <div className="bg-white rounded-xl p-6 border border-gray-200">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold">Inventory Transaction History</h3>
@@ -485,7 +635,6 @@ export default function ShowroomManagement() {
                 </div>
               </div>
 
-              {/* Popular Models */}
               <div className="bg-white rounded-xl p-6 border border-gray-200">
                 <h3 className="text-lg font-semibold mb-4">Popular Car Models</h3>
                 <div className="space-y-4">
@@ -532,7 +681,6 @@ export default function ShowroomManagement() {
       <div className="flex-1 flex flex-col overflow-y-auto">
         <AdminTopbar />
         <main className="p-8">
-          {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-semibold text-gray-900">Showroom Management</h1>
@@ -555,7 +703,6 @@ export default function ShowroomManagement() {
             </div>
           </div>
 
-          {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div className="bg-white rounded-xl p-6 border border-gray-200">
               <div className="flex items-center justify-between">
@@ -606,7 +753,6 @@ export default function ShowroomManagement() {
             </div>
           </div>
 
-          {/* Showroom Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {showrooms.map((showroom) => (
               <div key={showroom.id} className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-shadow">
@@ -677,7 +823,7 @@ export default function ShowroomManagement() {
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <Users className="h-4 w-4 mr-2 text-gray-500" />
-                      <span>Managed by: {showroom.sellerName || 'Unknown'}</span>
+                      <span>Managed by: {showroom.mainSeller.fullName || 'Unknown'}</span>
                     </div>
                   </div>
                 </div>
