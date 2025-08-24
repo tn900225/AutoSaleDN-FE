@@ -20,7 +20,7 @@ export default function AdminTopbar() {
         </button>
         <div>
           <img
-            src="/admin-avatar.png"
+            src="https://randomuser.me/api/portraits/men/32.jpg"
             alt="Admin"
             className="w-10 h-10 rounded-full object-cover border-2 border-violet-200"
           />

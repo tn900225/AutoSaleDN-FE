@@ -1,4 +1,5 @@
-import { NavLink } from "react-router-dom";
+import { NavLink ,useNavigate } from "react-router-dom";
+import React, {useEffect } from "react";
 import {
     HiOutlineViewGrid,
     HiOutlineBriefcase ,
@@ -7,21 +8,30 @@ import {
     HiOutlineCog,
     HiOutlineLogout,
     HiOutlineUsers,
+    HiUserGroup
   } from "react-icons/hi";
   import { FaWrench , FaCar} from "react-icons/fa";
 
   const sidebarItems = [
     { label: "Dashboard", icon: HiOutlineViewGrid, path: "/admin/dashboard" },
     { label: "ShowRoom", icon: HiOutlineBriefcase , path: "/admin/showroom" },
+    { label: "Employee", icon: HiUserGroup, path: "/admin/employee" },
     { label: "Customers", icon: HiOutlineUsers, path: "/admin/customers"},
     { label: "Car", icon: FaCar, path: "/admin/cars"},
-    { label: "Booking", icon: HiOutlineCalendar, path: "/admin/booking" },
     { label: "Services", icon: FaWrench, path: "/admin/services" },
     { label: "Calender", icon: HiOutlineCalendar, path: "/admin/calender" },
     { label: "Messages", icon: HiOutlineChat, path: "/admin/messages" }
   ];
 
+
 export default function AdminSidebar() {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/', { replace: true });
+  };
+
   return (
     <aside className="w-64 bg-white min-h-screen border-r flex flex-col justify-between">
       <div>
@@ -53,13 +63,13 @@ export default function AdminSidebar() {
           <HiOutlineCog className="w-5 h-5" />
           Settings
         </NavLink>
-        <NavLink
-          to="/"
-          className="flex items-center gap-3 py-2 text-gray-500 hover:text-violet-600"
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 py-2 text-gray-500 hover:text-violet-600 cursor-pointer"
         >
           <HiOutlineLogout className="w-5 h-5" />
           Log out
-        </NavLink>
+        </button>
       </div>
     </aside>
   );

@@ -240,7 +240,7 @@ export default function Customers() {
       fullName: cus.fullName,
       email: cus.email,
       mobile: cus.mobile || "",
-      password: "", // Mật khẩu không bao giờ được điền vào form chỉnh sửa vì lý do bảo mật
+      password: "",
       province: cus.province || "",
     });
     setEditingId(cus.userId || cus.user_id);

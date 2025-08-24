@@ -677,7 +677,7 @@ export default function ShowroomManagement() {
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <Users className="h-4 w-4 mr-2 text-gray-500" />
-                      <span>Managed by: {showroom.managerName || 'Unknown'}</span>
+                      <span>Managed by: {showroom.sellerName || 'Unknown'}</span>
                     </div>
                   </div>
                 </div>

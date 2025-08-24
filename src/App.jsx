@@ -16,7 +16,7 @@ import SellCars from "./pages/admin/SellCars";
 import Services from "./pages/admin/Services";
 import Settings from "./pages/admin/Settings";
 import ShowroomManagement from "./pages/admin/ShowroomManagement";
-import Booking from "./pages/admin/Booking";
+import EmployeeAdmin from "./pages/admin/EmployeeAdmin";
 import CustomerAdmin from "./pages/admin/CustomerAdmin";
 import CarAdmin from "./pages/admin/CarAdmin";
 import TransactionDetail from "./pages/admin/TransactionDetail";
@@ -82,7 +82,7 @@ function App() {
                   <Route path="services" element={<Services />} />
                   <Route path="settings" element={<Settings />} />
                   <Route path="showroom" element={<ShowroomManagement />} />
-                  <Route path="booking" element={<Booking />} />
+                  <Route path="employee" element={<EmployeeAdmin />} />
                   
                   {/* Admin-only routes */}
                   <Route
