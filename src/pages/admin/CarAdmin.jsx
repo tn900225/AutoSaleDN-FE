@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminTopbar from "../../components/admin/AdminTopbar";
 import { FaSearch, FaChevronLeft, FaChevronRight, FaEdit, FaTrash, FaPlus, FaTimes } from "react-icons/fa";
 import { X, Plus, Trash2, Car, MapPin, Check } from 'lucide-react';
-import { HiUserGroup } from "react-icons/hi";
+import { FaEye } from "react-icons/fa";
 import Swal from "sweetalert2";
 
 const PAGE_SIZE_OPTIONS = [4, 8, 12];
@@ -34,7 +34,7 @@ function getStatusBadge(status, availableUnits) {
 
 const formInit = {
   model_id: "",
-  model_name:"",
+  model_name: "",
   user_id: "",
   year: "",
   mileage: "",
@@ -46,15 +46,17 @@ const formInit = {
 };
 
 export default function Cars() {
-  // State cho modal phân bổ showroom
+  // State for showroom allocation modal
   const [showroomModal, setShowroomModal] = useState({ open: false, car: null, selectedShowroomId: null });
+  // State for viewing car details modal
+  const [viewCarDetailsModal, setViewCarDetailsModal] = useState({ open: false, car: null });
   const [viewAllocationModal, setViewAllocationModal] = useState({ open: false, car: null });
   // State for showroom list
   const [showroomList, setShowroomList] = useState([]);
   const [loadingShowrooms, setLoadingShowrooms] = useState(false);
 
-  // Add the form state here
-  const [form, setForm] = useState(formInit); //
+  // Add the form state here (for edit modal, though we are moving edit to a new page)
+  const [form, setForm] = useState(formInit);
 
   // Fetch showrooms from API
   const fetchShowrooms = async () => {
@@ -62,49 +64,48 @@ export default function Cars() {
     try {
       const token = localStorage.getItem('token');
       console.log('Fetching showrooms with token:', token ? 'Token exists' : 'No token');
-      
+
       const response = await fetch('/api/Admin/showrooms', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       console.log('Showrooms API response status:', response.status);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Failed to fetch showrooms:', errorText);
         throw new Error('Failed to fetch showrooms');
       }
-      
+
       const data = await response.json();
       console.log('Showrooms API response data:', data);
-      
+
       // The API might be returning the array directly or nested under a 'data' property
       const showroomsData = Array.isArray(data) ? data : (data.data || []);
-      
+
       // Map the API response to match the expected format
       const formattedShowrooms = showroomsData.map(showroom => {
-        // Make sure we're using the correct property names from the API response
         const showroomId = showroom.showroomId || showroom.id;
-        const showroomName = showroom.showroomName || showroom.name || 'Unnamed Showroom';
-        
+        const showroomName = showroom.showroomId || showroom.name || 'Unnamed Showroom';
+
         if (!showroomId) {
           console.warn('Showroom missing ID:', showroom);
         }
-        
+
         return {
           showroomId,
           showroomName
         };
       });
-      
+
       console.log('Formatted showrooms:', formattedShowrooms);
       setShowroomList(formattedShowrooms);
     } catch (error) {
       console.error('Error fetching showrooms:', error);
-      Swal.fire({ 
-        icon: 'error', 
+      Swal.fire({
+        icon: 'error',
         title: 'Error',
         text: 'Failed to load showrooms. Please try again later.'
       });
@@ -162,11 +163,10 @@ export default function Cars() {
 
       Swal.fire({ icon: 'success', title: 'Car allocated successfully!' });
       closeShowroomModal();
-      // Also close the view modal if it's open for the same car
       if (viewAllocationModal.open && viewAllocationModal.car.listingId === car.listingId) {
         setViewAllocationModal({ open: false, car: null });
       }
-      fetchCars(); // Refresh the car list
+      fetchCars();
     } catch (error) {
       console.error('Error saving allocation:', error);
       Swal.fire({ icon: 'error', title: 'Oops...', text: error.message || 'Something went wrong!' });
@@ -185,7 +185,6 @@ export default function Cars() {
       if (result.isConfirmed) {
         try {
           const token = localStorage.getItem('token');
-          // The backend expects the storeListingId, which is passed as 'inventoryId' in our DTO.
           const response = await fetch(`/api/admin/allocations/${showroom.inventoryId}`, {
             method: 'DELETE',
             headers: {
@@ -199,8 +198,8 @@ export default function Cars() {
           }
 
           Swal.fire({ icon: 'success', title: 'Deleted!', text: 'Allocation has been deleted.' });
-          setViewAllocationModal({ open: false, car: null }); // Close the main allocation view modal
-          fetchCars(); // Refresh the data
+          setViewAllocationModal({ open: false, car: null });
+          fetchCars();
         } catch (error) {
           console.error('Error deleting allocation:', error);
           Swal.fire({ icon: 'error', title: 'Oops...', text: error.message || 'Something went wrong!' });
@@ -215,9 +214,8 @@ export default function Cars() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Modal state
   const [openModal, setOpenModal] = useState(false);
-  const [modalType, setModalType] = useState("add"); // add, edit, delete
+  const [modalType, setModalType] = useState("delete");
   const [modalCar, setModalCar] = useState(null);
 
   const token = localStorage.getItem("token");
@@ -233,36 +231,33 @@ export default function Cars() {
           'Accept': 'application/json'
         }
       });
-      
+
       console.log('Cars API response status:', response.status);
-      
+
       if (response.status === 401) {
         console.warn('Unauthorized - redirecting to login');
         navigate('/login');
         return;
       }
-      
+
       const data = await response.json().catch(e => {
         console.error('Error parsing cars response:', e);
         return { data: [] };
       });
-      
+
       console.log('Cars API response data:', data);
-      
-      // Process the cars data to ensure showrooms are properly formatted
+
       const processedCars = (data.data || []).map(car => ({
         ...car,
-        // Ensure showrooms is always an array with the correct structure
         showrooms: (car.showrooms || []).map(s => ({
           showroomId: s.showroomId || s.id,
           showroomName: s.showroomName || s.name || 'Unknown Showroom',
-          // Include any other necessary fields
           ...s
         }))
       }));
-      
+
       console.log('Processed cars with showrooms:', processedCars);
-      
+
       setCars(processedCars);
       setTotalPages(data.pagination?.totalPages || 1);
     } catch (error) {
@@ -277,27 +272,10 @@ export default function Cars() {
     fetchCars();
   }, [page, search]);
 
-  // Derived: filtered + paginated
   const displayedCars = cars;
 
-  // Modal handlers
-  const openEditModal = (car) => {
-    setModalType("edit");
-    setModalCar(car);
-    console.log("model ",car)
-    setForm({
-      model_id: car.modelName_id || car.ModelId || car.modelNameId || "",
-      model_name:  car.modelName,
-      user_id: car.user_id || car.UserId || car.userId || "",
-      year: car.year || "",
-      mileage: car.mileage || "",
-      price: car.price || "",
-      location: car.location || "",
-      condition: car.condition || "Good",
-      RentSell: car.RentSell || "",
-      color: car.color || car.color || "",
-    });
-    setOpenModal(true);
+  const openEditPage = (car) => {
+    navigate(`/admin/cars/edit/${car.listingId}`);
   };
 
   const openDeleteModal = (car) => {
@@ -306,27 +284,20 @@ export default function Cars() {
     setOpenModal(true);
   };
 
-  // Modal submit
+  const openViewCarDetailsModal = (car) => {
+    setViewCarDetailsModal({ open: true, car: car });
+  };
+
   const handleModalSubmit = async (e) => {
     if (e) e.preventDefault();
     setLoading(true);
     try {
-      let url = "/api/admin/cars";
-      let method = "POST";
-      if (modalType === "edit") {
-        url = `/api/admin/cars/${modalCar.listing_id || modalCar.ListingId}`;
-        method = "PUT";
-      }
-      let fetchOptions = {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(form),
-      };
+      let url = "";
+      let method = "";
+      let fetchOptions = {};
+
       if (modalType === "delete") {
-        url = `/api/admin/cars/${modalCar.listing_id || modalCar.ListingId}`;
+        url = `/api/admin/cars/${modalCar.listingId}`;
         method = "DELETE";
         fetchOptions = {
           method,
@@ -334,6 +305,11 @@ export default function Cars() {
             Authorization: `Bearer ${token}`,
           },
         };
+      } else {
+        console.warn("handleModalSubmit called with unexpected modalType:", modalType);
+        setLoading(false);
+        setOpenModal(false);
+        return;
       }
 
       const res = await fetch(url, fetchOptions);
@@ -345,11 +321,7 @@ export default function Cars() {
       Swal.fire({
         icon: data.success ? "success" : "error",
         title: data.success
-          ? modalType === "add"
-            ? "Add car successfully!"
-            : modalType === "edit"
-            ? "Update car successfully!"
-            : "Delete successfully!"
+          ? "Delete successfully!"
           : "Operation failed!",
         text: data.message || "",
         timer: 1800,
@@ -371,27 +343,29 @@ export default function Cars() {
     }
   };
 
-  // Page navigation
   const goToPage = (p) => {
     setPage(Math.max(1, Math.min(p, totalPages)));
   };
 
-  // Card layout for each car
   const renderCarCard = (car) => (
     <div
-      key={car.id}
+      key={car.listingId}
       className="bg-white rounded-3xl shadow-xl mb-8 border border-gray-100 hover:shadow-2xl transition-all duration-200"
     >
       <div className="flex flex-col md:flex-row gap-0 md:gap-8 p-6 md:p-8">
-        {/* Ảnh xe */}
         <div className="flex-shrink-0 flex items-center justify-center w-full md:w-64 bg-gray-50 rounded-2xl overflow-hidden">
           <img
-            src={car.images && car.images.length > 0 ? car.images[0] : "https://cdn.pixabay.com/photo/2012/05/29/00/43/car-49278_1280.jpg"}
-            alt="Car"
+            src={
+              Array.isArray(car.imageUrl) && car.imageUrl.length > 0
+                ? car.imageUrl[0]
+                : typeof car.imageUrl === 'string' && car.imageUrl !== ''
+                  ? car.imageUrl
+                  : "https://cdn.pixabay.com/photo/2012/05/29/00/43/car-49278_1280.jpg"
+            }
+            alt={car.modelName}
             className="object-contain w-full h-36 md:h-40"
           />
         </div>
-        {/* Thông tin xe */}
         <div className="flex-1 flex flex-col gap-2 justify-between py-3">
           <div className="flex flex-col gap-1">
             <div className="text-2xl font-bold text-gray-800 mb-1 flex items-center gap-2">
@@ -404,28 +378,27 @@ export default function Cars() {
           <div className="flex gap-3 mt-2">
             <button
               className="px-3 py-1 rounded-lg border border-blue-500 text-blue-600 hover:bg-blue-50 flex items-center gap-1 font-medium"
-              onClick={() => openEditModal(car)}
+              onClick={() => openEditPage(car)}
             >
-              <FaEdit className="text-lg" /> Sửa xe
+              <FaEdit className="text-lg" /> Edit Car
             </button>
             <button
               className="px-3 py-1 rounded-lg border border-red-500 text-red-600 hover:bg-red-50 flex items-center gap-1 font-medium"
               onClick={() => openDeleteModal(car)}
             >
-              <FaTrash className="text-lg" /> Xóa xe
+              <FaTrash className="text-lg" /> Delete Car
             </button>
           </div>
         </div>
       </div>
-      {/* Phân bổ showroom */}
       <div className="px-6 pb-6">
         <div className="flex justify-between items-center mb-3">
-          <span className="font-semibold text-gray-700 text-base">Phân bổ Showroom</span>
+          <span className="font-semibold text-gray-700 text-base">Showroom Allocation</span>
           <button
             className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1.5 rounded-lg flex items-center gap-1 font-semibold shadow"
             onClick={() => openShowroomModal(car)}
           >
-            <FaPlus /> Thêm phân bổ
+            <FaPlus /> Add Allocation
           </button>
         </div>
         <div className="overflow-x-auto rounded-xl border border-gray-200">
@@ -433,8 +406,8 @@ export default function Cars() {
             <thead>
               <tr className="bg-gray-50 text-gray-700">
                 <th className="py-2 px-4 text-left">Showroom</th>
-                <th className="py-2 px-4 text-left">Số lượng</th>
-                <th className="py-2 px-4 text-left">Thao tác</th>
+                <th className="py-2 px-4 text-left">Quantity</th>
+                <th className="py-2 px-4 text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -448,23 +421,17 @@ export default function Cars() {
                   </td>
                   <td className="py-2 px-4 flex gap-2">
                     <button
-                      className="bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 rounded font-semibold shadow"
-                      onClick={() => openShowroomModal(car, sr)}
-                    >
-                      Sửa
-                    </button>
-                    <button
                       className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded font-semibold shadow"
                       onClick={() => handleDeleteShowroom(car, sr)}
                     >
-                      Xóa
+                      Delete
                     </button>
                   </td>
                 </tr>
               ))}
               {(car.showrooms || []).length === 0 && (
                 <tr key="no-showrooms">
-                  <td colSpan={3} className="text-center text-gray-400 py-4">Chưa có phân bổ showroom nào cho xe này.</td>
+                  <td colSpan={3} className="text-center text-gray-400 py-4">No showroom allocations for this vehicle.</td>
                 </tr>
               )}
             </tbody>
@@ -474,7 +441,6 @@ export default function Cars() {
     </div>
   );
 
-  // Modal UI
   const renderModal = () => {
     if (!openModal) return null;
     if (modalType === "delete") {
@@ -488,15 +454,12 @@ export default function Cars() {
                 </svg>
               </div>
             </div>
-            
             <h2 className="text-2xl font-bold mb-3 text-gray-800">
               Delete Vehicle
             </h2>
-            
             <p className="text-gray-600 mb-2">
               Are you sure you want to delete this vehicle?
             </p>
-            
             <div className="bg-gray-50 rounded-xl p-4 mb-6">
               <p className="text-lg font-semibold text-gray-800">
                 {modalCar?.manufacturer} {modalCar?.modelName}
@@ -505,7 +468,6 @@ export default function Cars() {
                 This action cannot be undone
               </p>
             </div>
-            
             <div className="flex gap-3 justify-center">
               <button
                 className="px-6 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-all duration-200 flex items-center gap-2"
@@ -540,175 +502,9 @@ export default function Cars() {
         </Modal>
       );
     }
-    // Add/Edit form (not shown anymore, Add moved to separate page)
-    if (modalType === "edit") {
-      return (
-        <Modal onClose={() => setOpenModal(false)}>
-          <form 
-            className="p-8 bg-white rounded-2xl shadow-2xl w-[500px] max-w-full" 
-            onSubmit={handleModalSubmit}
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </div>
-                Edit Vehicle
-              </h2>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Model ID</label>
-                <input
-                  name="modelId"
-                  value={form.modelId}
-                  onChange={e => setForm(f => ({ ...f, modelId: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                  placeholder="Enter model ID"
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">User ID</label>
-                <input
-                  name="userId"
-                  value={form.userId}
-                  onChange={e => setForm(f => ({ ...f, userId: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                  placeholder="Enter user ID"
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Year</label>
-                <input
-                  name="year"
-                  value={form.year}
-                  onChange={e => setForm(f => ({ ...f, year: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                  placeholder="2024"
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Mileage</label>
-                <input
-                  name="mileage"
-                  value={form.mileage}
-                  onChange={e => setForm(f => ({ ...f, mileage: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                  placeholder="10,000 km"
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Price</label>
-                <input
-                  name="price"
-                  value={form.price}
-                  onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                  placeholder="$25,000"
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Location</label>
-                <input
-                  name="location"
-                  value={form.location}
-                  onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                  placeholder="City, State"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Condition</label>
-                <select
-                  name="condition"
-                  value={form.condition}
-                  onChange={e => setForm(f => ({ ...f, condition: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white appearance-none cursor-pointer"
-                >
-                  <option value="Excellent">Excellent</option>
-                  <option value="Good">Good</option>
-                  <option value="Fair">Fair</option>
-                </select>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Listing Type</label>
-                <select
-                  name="rentSell"
-                  value={form.rentSell}
-                  onChange={e => setForm(f => ({ ...f, rentSell: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white appearance-none cursor-pointer"
-                >
-                  <option value="Rent">For Rent</option>
-                  <option value="Sell">For Sale</option>
-                </select>
-              </div>
-              
-              <div className="space-y-2 col-span-2">
-                <label className="block text-sm font-medium text-gray-700">Color</label>
-                <input
-                  name="color"
-                  value={form.color}
-                  onChange={e => setForm(f => ({ ...f, color: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                  placeholder="Pearl White, Midnight Black, etc."
-                />
-              </div>
-            </div>
-            
-            <div className="flex gap-3 justify-end pt-4 border-t border-gray-100">
-              <button
-                type="button"
-                onClick={() => setOpenModal(false)}
-                className="px-6 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-all duration-200 flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg"
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Updating...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Update Vehicle
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        </Modal>
-      );
-    }
     return null;
   };
 
-  // Handle showroom selection
   const handleSelectShowroom = (showroomId) => {
     setShowroomModal(prev => ({
       ...prev,
@@ -716,12 +512,11 @@ export default function Cars() {
     }));
   };
 
-  // Handle save showroom allocation
   const handleSaveAllocation = async () => {
     const { car, selectedShowroomId } = showroomModal;
-    
+
     console.log('Saving allocation with:', { car, selectedShowroomId });
-    
+
     if (!selectedShowroomId) {
       Swal.fire('Error', 'Please select a showroom', 'error');
       return;
@@ -734,11 +529,11 @@ export default function Cars() {
       const requestBody = {
         listingId: car.listingId,
         showroomId: selectedShowroomId,
-        quantity: 1 // Default quantity to 1
+        quantity: 1
       };
-      
+
       console.log('Request body:', requestBody);
-      
+
       const response = await fetch('/api/Admin/allocations', {
         method: 'POST',
         headers: {
@@ -749,7 +544,7 @@ export default function Cars() {
       });
 
       console.log('Allocation response status:', response.status);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Allocation error response:', errorText);
@@ -765,10 +560,10 @@ export default function Cars() {
 
       const responseData = await response.json().catch(() => ({}));
       console.log('Allocation successful:', responseData);
-      
+
       Swal.fire('Success', 'Car allocated to showroom successfully', 'success');
       setShowroomModal({ open: false, car: null, selectedShowroomId: null });
-      fetchCars(); // Refresh the car list
+      fetchCars();
     } catch (error) {
       console.error('Error allocating car to showroom:', error);
       Swal.fire('Error', error.message || 'Failed to allocate car to showroom', 'error');
@@ -781,7 +576,6 @@ export default function Cars() {
       <div className="flex-1 flex flex-col">
         <AdminTopbar />
         <main className="flex-1 flex flex-col px-8 py-6 overflow-y-auto">
-          {/* Header Section */}
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
@@ -796,11 +590,8 @@ export default function Cars() {
               </div>
             </div>
           </div>
-  
-          {/* Top controls */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-              {/* Search & filters */}
               <div className="flex flex-1 gap-4">
                 <div className="relative flex-1 max-w-md">
                   <input
@@ -816,7 +607,6 @@ export default function Cars() {
                     <FaSearch className="w-4 h-4" />
                   </div>
                 </div>
-                
                 <div className="flex gap-3">
                   <button className="flex items-center gap-2 px-4 py-3 border border-gray-200 rounded-xl bg-white text-gray-600 text-sm font-medium hover:bg-gray-50 transition-all duration-200">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -832,11 +622,9 @@ export default function Cars() {
                   </button>
                 </div>
               </div>
-              
-              {/* Add Vehicle Button */}
               <button
                 className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 flex items-center gap-2"
-                onClick={() => navigate("/admin/add-new-car")}
+                onClick={() => navigate("/admin/cars/add")}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -845,11 +633,13 @@ export default function Cars() {
               </button>
             </div>
           </div>
-  
-          {/* Modals */}
           {renderModal()}
-  
-          {/* View Allocation Modal */}
+          {viewCarDetailsModal.open && (
+            <ViewCarDetailsModal
+              car={viewCarDetailsModal.car}
+              onClose={() => setViewCarDetailsModal({ open: false, car: null })}
+            />
+          )}
           {viewAllocationModal.open && (
             <ViewAllocationModal
               car={viewAllocationModal.car}
@@ -865,8 +655,6 @@ export default function Cars() {
               }}
             />
           )}
-  
-          {/* Showroom Modal */}
           {showroomModal.open && (
             <ShowroomModal
               open={showroomModal.open}
@@ -877,8 +665,6 @@ export default function Cars() {
               onClose={closeShowroomModal}
             />
           )}
-  
-          {/* Car List */}
           <div className="flex-1">
             {displayedCars.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-gray-100">
@@ -892,7 +678,7 @@ export default function Cars() {
                 <p className="text-gray-500 mb-6">Try adjusting your search criteria or add a new vehicle to get started.</p>
                 <button
                   className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 inline-flex items-center gap-2"
-                  onClick={() => navigate("/admin/add-new-car")}
+                  onClick={() => navigate("/admin/cars/add")}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -914,7 +700,7 @@ export default function Cars() {
                       </div>
                       <button
                         className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg font-semibold shadow-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 flex items-center gap-2"
-                        onClick={() => navigate("/admin/add-new-car")}
+                        onClick={() => navigate("/admin/cars/add")}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -924,7 +710,6 @@ export default function Cars() {
                     </div>
                   </div>
                 </div>
-                
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -938,17 +723,22 @@ export default function Cars() {
                     </thead>
                     <tbody>
                       {displayedCars.map((car, index) => (
-                        <tr 
-                          key={car.id} 
-                          className={`border-b border-gray-100 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all duration-200 ${
-                            index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'
-                          }`}
+                        <tr
+                          key={car.listingId}
+                          className={`border-b border-gray-100 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all duration-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'
+                            }`}
                         >
                           <td className="py-4 px-6">
                             <div className="flex items-center gap-4">
                               <div className="relative">
                                 <img
-                                  src={car.images && car.images.length > 0 ? car.images[0] : "https://cdn.pixabay.com/photo/2012/05/29/00/43/car-49278_1280.jpg"}
+                                  src={
+                                    Array.isArray(car.imageUrl) && car.imageUrl.length > 0
+                                      ? car.imageUrl[0]
+                                      : typeof car.imageUrl === 'string' && car.imageUrl !== ''
+                                        ? car.imageUrl
+                                        : "https://cdn.pixabay.com/photo/2012/05/29/00/43/car-49278_1280.jpg"
+                                  }
                                   alt={car.modelName}
                                   className="w-16 h-12 object-cover rounded-lg shadow-sm border border-gray-200"
                                 />
@@ -964,7 +754,6 @@ export default function Cars() {
                               </div>
                             </div>
                           </td>
-                          
                           <td className="py-4 px-6">
                             <div className="space-y-1">
                               <div className="flex items-center gap-2">
@@ -974,19 +763,17 @@ export default function Cars() {
                               <div className="flex items-center gap-2">
                                 <span className="text-xs text-gray-500">Color:</span>
                                 <div className="flex items-center gap-2">
-                                  <div className="w-3 h-3 rounded-full border border-gray-300" style={{backgroundColor: car.color?.toLowerCase()}}></div>
+                                  <div className="w-3 h-3 rounded-full border border-gray-300" style={{ backgroundColor: car.color?.toLowerCase() }}></div>
                                   <span className="font-medium text-gray-800">{car.color}</span>
                                 </div>
                               </div>
                             </div>
                           </td>
-                          
                           <td className="py-4 px-6">
                             <div className="flex items-center gap-2">
                               {getStatusBadge(car.status, car.availableUnits)}
                             </div>
                           </td>
-                          
                           <td className="py-4 px-6">
                             <button
                               className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-2 rounded-lg font-semibold shadow-sm hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 flex items-center gap-2"
@@ -999,23 +786,27 @@ export default function Cars() {
                               View
                             </button>
                           </td>
-                          
                           <td className="py-4 px-6">
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-2 rounded-lg shadow-sm hover:from-blue-600 hover:to-blue-700 transition-all duration-200 group"
-                                onClick={() => openEditModal(car)}
+                                onClick={() => openEditPage(car)}
                                 title="Edit Vehicle"
                               >
                                 <FaEdit className="w-4 h-4 group-hover:scale-110 transition-transform" />
                               </button>
                               <button
-                                className={`p-2 rounded-lg shadow-sm transition-all duration-200 group ${
-                                  car.status === 'Hidden' 
-                                    ? 'bg-gradient-to-r from-gray-500 to-gray-600 text-white hover:from-gray-600 hover:to-gray-700' 
+                                className="bg-gradient-to-r from-green-500 to-green-600 text-white p-2 rounded-lg shadow-sm hover:from-green-600 hover:to-green-700 transition-all duration-200 group"
+                                onClick={() => openViewCarDetailsModal(car)}
+                                title="View All Details"
+                              >
+                                <FaEye className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                              </button>
+                              <button
+                                className={`p-2 rounded-lg shadow-sm transition-all duration-200 group ${car.status === 'Hidden'
+                                    ? 'bg-gradient-to-r from-gray-500 to-gray-600 text-white hover:from-gray-600 hover:to-gray-700'
                                     : 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600'
-                                }`}
-                                // onClick={() => toggleHideCar(car)} // This function is not defined in the provided code snippet
+                                  }`}
                                 title={car.status === 'Hidden' ? 'Show Vehicle' : 'Hide Vehicle'}
                               >
                                 {car.status === 'Hidden' ? (
@@ -1039,8 +830,6 @@ export default function Cars() {
               </div>
             )}
           </div>
-  
-          {/* Pagination */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mt-8 gap-4">
             <div className="flex items-center gap-3">
               <span className="text-gray-600 text-sm font-medium">Results per page</span>
@@ -1062,7 +851,6 @@ export default function Cars() {
                 Showing {((page - 1) * 10) + 1} to {Math.min(page * 10, displayedCars.length)} of {displayedCars.length} results
               </span>
             </div>
-            
             <div className="flex items-center gap-2">
               <button
                 className="px-3 py-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
@@ -1071,23 +859,20 @@ export default function Cars() {
               >
                 <FaChevronLeft className="w-4 h-4" />
               </button>
-              
               <div className="flex items-center gap-1">
                 {Array.from({ length: totalPages }, (_, i) => (
                   <button
                     key={i}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                      page === i + 1
+                    className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${page === i + 1
                         ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg"
                         : "border border-gray-200 text-gray-700 bg-white hover:bg-gray-50"
-                    }`}
+                      }`}
                     onClick={() => setPage(i + 1)}
                   >
                     {i + 1}
                   </button>
                 ))}
               </div>
-              
               <button
                 className="px-3 py-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                 disabled={page === totalPages}
@@ -1097,8 +882,6 @@ export default function Cars() {
               </button>
             </div>
           </div>
-  
-          {/* Footer */}
           <footer className="mt-8 pt-6 border-t border-gray-200 text-sm text-gray-500">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div className="flex items-center gap-2">
@@ -1130,8 +913,8 @@ export default function Cars() {
 
 function Modal({ children, onClose }) {
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-30">
-      <div className="bg-white rounded-xl overflow-hidden shadow-lg relative min-w-[320px]">
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-30 transition-opacity duration-300">
+      <div className="bg-white rounded-xl overflow-hidden shadow-lg relative min-w-[320px] transform transition-transform duration-300 scale-100">
         <button
           className="absolute top-2 right-3 text-xl text-gray-400 hover:text-gray-600"
           onClick={onClose}
@@ -1144,15 +927,286 @@ function Modal({ children, onClose }) {
   );
 }
 
-// Modal phân bổ showroom
-// Modal xem phân bổ showroom
+function ViewCarDetailsModal({ car, onClose }) {
+  const [activeTab, setActiveTab] = useState('images');
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  if (!car) return null;
+
+  const images = Array.isArray(car.imageUrl) ? car.imageUrl : [];
+  const videos = Array.isArray(car.videoUrl) ? car.videoUrl : [];
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                <Car className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">{car.manufacturer} {car.modelName}</h2>
+                <p className="text-blue-100 text-sm">Year: {car.year} | Listing ID: {car.listingId}</p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors duration-300"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 max-h-[80vh] overflow-y-auto">
+          {/* Media Section */}
+          <div className="mb-8">
+            <div className="flex border-b border-gray-200 mb-4">
+              <button
+                className={`px-4 py-2 font-semibold ${activeTab === 'images' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600 hover:text-blue-600'}`}
+                onClick={() => setActiveTab('images')}
+              >
+                Photos
+              </button>
+              <button
+                className={`px-4 py-2 font-semibold ${activeTab === 'videos' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600 hover:text-blue-600'}`}
+                onClick={() => setActiveTab('videos')}
+              >
+                Videos
+              </button>
+            </div>
+
+            {activeTab === 'images' && (
+              <div className="relative">
+                {images.length > 0 ? (
+                  <>
+                    <div className="relative rounded-xl overflow-hidden shadow-md border border-gray-200">
+                      <img
+                        src={images[currentImageIndex]}
+                        alt={`Car image ${currentImageIndex + 1}`}
+                        className="w-full h-64 object-cover transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                      <div className="absolute bottom-4 left-4 text-white text-sm font-semibold">
+                        {currentImageIndex + 1} / {images.length}
+                      </div>
+                    </div>
+                    {images.length > 1 && (
+                      <div className="flex justify-between mt-4">
+                        <button
+                          onClick={prevImage}
+                          className="p-2 bg-gray-800/80 text-white rounded-full hover:bg-gray-900 transition-colors duration-200"
+                        >
+                          <FaChevronLeft className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={nextImage}
+                          className="p-2 bg-gray-800/80 text-white rounded-full hover:bg-gray-900 transition-colors duration-200"
+                        >
+                          <FaChevronRight className="w-5 h-5" />
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-gray-500 text-center py-8">No images available.</p>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'videos' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {videos.length > 0 ? (
+                  videos.map((url, idx) => (
+                    <div key={`video-${idx}`} className="rounded-xl overflow-hidden shadow-md border border-gray-200">
+                      <video controls className="w-full h-48 object-cover">
+                        <source src={url} type="video/mp4" />
+                        Your browser does not support the video tag.
+                      </video>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500 text-center py-8 col-span-full">No videos available.</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Details Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Basic Details */}
+            <div className="bg-gray-50 rounded-xl p-6 shadow-sm">
+              <h3 className="text-xl font-bold text-gray-800 mb-4">Basic Details</h3>
+              <div className="space-y-3 text-gray-700">
+                <p><span className="font-semibold">Model:</span> {car.modelName || 'N/A'}</p>
+                <p><span className="font-semibold">Manufacturer:</span> {car.manufacturer || 'N/A'}</p>
+                <p><span className="font-semibold">Year:</span> {car.year || 'N/A'}</p>
+                <p><span className="font-semibold">Mileage:</span> {car.mileage ? `${car.mileage} km` : 'N/A'}</p>
+                <p><span className="font-semibold">Price:</span> {car.price ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(car.price) : 'N/A'}</p>
+                <p><span className="font-semibold">Condition:</span> {car.condition || 'N/A'}</p>
+                <p><span className="font-semibold">Listing Type:</span> {car.rentSell || 'N/A'}</p>
+                <p><span className="font-semibold">Certified:</span> {car.certified ? 'Yes' : 'No'}</p>
+                <p><span className="font-semibold">Status:</span> {getStatusBadge(car.status, car.availableUnits)}</p>
+              </div>
+            </div>
+
+            {/* Specifications */}
+            <div className="bg-gray-50 rounded-xl p-6 shadow-sm">
+              <h3 className="text-xl font-bold text-gray-800 mb-4">Specifications</h3>
+              <div className="space-y-3 text-gray-700">
+                <p><span className="font-semibold">VIN:</span> {car.vin || 'N/A'}</p>
+                <p><span className="font-semibold">Exterior Color:</span> {car.color || 'N/A'}</p>
+                <p><span className="font-semibold">Interior Color:</span> {car.interiorColor || 'N/A'}</p>
+                <p><span className="font-semibold">Transmission:</span> {car.transmission || 'N/A'}</p>
+                <p><span className="font-semibold">Engine:</span> {car.engine || 'N/A'}</p>
+                <p><span className="font-semibold">Fuel Type:</span> {car.fuelType || 'N/A'}</p>
+                <p><span className="font-semibold">Car Type:</span> {car.carType || 'N/A'}</p>
+                <p><span className="font-semibold">Seating Capacity:</span> {car.seatingCapacity || 'N/A'}</p>
+              </div>
+            </div>
+
+            {/* Other Details */}
+            <div className="lg:col-span-2 bg-gray-50 rounded-xl p-6 shadow-sm">
+              <h3 className="text-xl font-bold text-gray-800 mb-4">Other Details</h3>
+              <div className="space-y-3 text-gray-700">
+                <p><span className="font-semibold">Registration Fee:</span> {car.registrationFee ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(car.registrationFee) : 'N/A'}</p>
+                <p><span className="font-semibold">Tax Rate:</span> {car.taxRate ? `${car.taxRate}%` : 'N/A'}</p>
+                <p><span className="font-semibold">Description:</span> {car.description || 'No description provided.'}</p>
+              </div>
+            </div>
+
+            {/* Features */}
+            {(car.features && car.features.length > 0) && (
+              <div className="lg:col-span-2 bg-gray-50 rounded-xl p-6 shadow-sm">
+                <h3 className="text-xl font-bold text-gray-800 mb-4">Features</h3>
+                <div className="flex flex-wrap gap-2">
+                  {car.features.map((feature, idx) => (
+                    <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium hover:bg-blue-200 transition-colors duration-200">
+                      {feature.name || feature}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end gap-4">
+          <button
+            onClick={onClose}
+            className="px-6 py-3 rounded-xl font-semibold text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-gray-200"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function ShowroomModal({ open, car, setSelectedShowroomId, showroomList, onSave, onClose }) {
+  const availableShowrooms = showroomList.filter(
+    sr => !(car?.showrooms || []).some(s => s.showroomId === sr.showroomId)
+  );
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div className="bg-gradient-to-r from-emerald-600 to-blue-600 p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                <MapPin className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">Allocate Vehicle</h2>
+                <p className="text-emerald-100 text-sm">Select showroom for {car?.modelName || ''}</p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          <div className="mb-6">
+            <label className="block text-sm font-semibold text-slate-700 mb-3">
+              Choose Showroom
+              <span className="text-red-500 ml-1">*</span>
+            </label>
+            <div className="relative">
+              <select
+                className="w-full px-4 py-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-200 focus:bg-white transition-all duration-300 appearance-none cursor-pointer hover:border-slate-300"
+                onChange={e => setSelectedShowroomId(Number(e.target.value))}
+                defaultValue=""
+              >
+                <option value="" disabled>-- Select a showroom --</option>
+                {availableShowrooms.length > 0 ? (
+                  availableShowrooms.map(sr => (
+                    <option key={sr.showroomId} value={sr.showroomId}>
+                      {sr.showroomName}
+                    </option>
+                  ))
+                ) : (
+                  <option disabled>No showrooms available</option>
+                )}
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+            {availableShowrooms.length === 0 && (
+              <p className="mt-2 text-sm text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                All showrooms have been allocated to this vehicle.
+              </p>
+            )}
+          </div>
+          <div className="flex gap-3 pt-4 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-3 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl font-semibold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-slate-200"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={onSave}
+              className="flex-1 bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-600 hover:to-blue-600 text-white px-4 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-emerald-200 flex items-center justify-center gap-2"
+            >
+              <Check className="w-4 h-4" />
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function ViewAllocationModal({ car, onClose, onAdd, onDelete }) {
   if (!car) return null;
 
   return (
     <Modal onClose={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
-        {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -1164,7 +1218,7 @@ function ViewAllocationModal({ car, onClose, onAdd, onDelete }) {
                 <p className="text-blue-100">{car.modelName}</p>
               </div>
             </div>
-            <button 
+            <button
               onClick={onClose}
               className="p-2 hover:bg-white/10 rounded-lg transition-colors"
             >
@@ -1172,8 +1226,6 @@ function ViewAllocationModal({ car, onClose, onAdd, onDelete }) {
             </button>
           </div>
         </div>
-
-        {/* Content */}
         <div className="p-6">
           <div className="max-h-80 overflow-y-auto mb-6">
             {car.showrooms && car.showrooms.length > 0 ? (
@@ -1210,8 +1262,6 @@ function ViewAllocationModal({ car, onClose, onAdd, onDelete }) {
               </div>
             )}
           </div>
-
-          {/* Actions */}
           <div className="flex gap-3 pt-4 border-t border-slate-200">
             <button
               onClick={() => onAdd(car)}
@@ -1225,98 +1275,6 @@ function ViewAllocationModal({ car, onClose, onAdd, onDelete }) {
               className="px-6 py-3 rounded-xl font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-slate-200"
             >
               Close
-            </button>
-          </div>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-
-// Modal phân bổ showroom
-function ShowroomModal({ open, car, setSelectedShowroomId, showroomList, onSave, onClose }) {
-  const availableShowrooms = showroomList.filter(
-    sr => !(car?.showrooms || []).some(s => s.showroomId === sr.showroomId)
-  );
-
-  return (
-    <Modal onClose={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-600 to-blue-600 p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                <MapPin className="w-6 h-6" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold">Allocate Vehicle</h2>
-                <p className="text-emerald-100 text-sm">Select showroom for {car?.modelName || ''}</p>
-              </div>
-            </div>
-            <button 
-              onClick={onClose}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-        
-        {/* Form Content */}
-        <div className="p-6">
-          <div className="mb-6">
-            <label className="block text-sm font-semibold text-slate-700 mb-3">
-              Choose Showroom
-              <span className="text-red-500 ml-1">*</span>
-            </label>
-            <div className="relative">
-              <select
-                className="w-full px-4 py-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-200 focus:bg-white transition-all duration-300 appearance-none cursor-pointer hover:border-slate-300"
-                onChange={e => setSelectedShowroomId(Number(e.target.value))}
-                defaultValue=""
-              >
-                <option value="" disabled>-- Select a showroom --</option>
-                {availableShowrooms.length > 0 ? (
-                  availableShowrooms.map(sr => (
-                    <option key={sr.showroomId} value={sr.showroomId}>
-                      {sr.showroomName}
-                    </option>
-                  ))
-                ) : (
-                  <option disabled>No showrooms available</option>
-                )}
-              </select>
-              <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-                <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-            {availableShowrooms.length === 0 && (
-              <p className="mt-2 text-sm text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-200">
-                All showrooms have been allocated to this vehicle.
-              </p>
-            )}
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-4 border-t border-slate-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-3 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl font-semibold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-slate-200"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={onSave}
-              className="flex-1 bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-600 hover:to-blue-600 text-white px-4 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-emerald-200 flex items-center justify-center gap-2"
-            >
-              <Check className="w-4 h-4" />
-              Confirm
             </button>
           </div>
         </div>

@@ -24,6 +24,8 @@ import AddNewCarPage from "./pages/admin/AddNewCarPage";
 import CarFeatures from "./pages/admin/CarFeatures";
 import CarColor from "./pages/admin/CarColor";
 import CarManufacturers from "./pages/admin/CarManufacturers";
+import UpdateCar from "./pages/admin/UpdateCar";
+
 function UserLayout({ children }) {
   return (
     <UserProvider>
@@ -88,7 +90,7 @@ function App() {
                   <Route path="car-features" element={<CarFeatures />} />
                   <Route path="car-colors" element={<CarColor />} />
                   <Route path="car-manufacturers-models" element={<CarManufacturers />} />
-                  
+                  <Route path="cars/edit/:listingId" element={<UpdateCar />} />
                   
                   {/* Admin-only routes */}
                   <Route

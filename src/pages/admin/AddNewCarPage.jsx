@@ -73,14 +73,21 @@ const formInit = {
 
 export default function AddNewCarPage() {
   const [formData, setFormData] = useState(formInit);
-  const [imageFiles, setImageFiles] = useState([]);
-  const [imagePreviews, setImagePreviews] = useState([]);
+  const [imageFiles, setImageFiles] = useState([]); // Keep if you still need to track original File objects
+  const [imagePreviews, setImagePreviews] = useState([]); // This state will now contain {url, type, name}
   const [uploading, setUploading] = useState(false);
-  
-  // New states for models, colors, and features from the API
+
   const [carModels, setCarModels] = useState([]);
   const [carColors, setCarColors] = useState([]);
   const [features, setFeatures] = useState([]);
+
+  // videoFiles and videoUrls are now derived from imagePreviews
+  // const [videoFiles, setVideoFiles] = useState([]); // Removed
+  // const [videoUrls, setVideoUrls] = useState([]); // Removed
+
+  // Derived state to display file names
+  const selectedFileNames = imagePreviews.map(item => item.name).join(", ");
+
 
   // Fetch initial form data (models, colors, features) from API
   useEffect(() => {
@@ -129,12 +136,20 @@ export default function AddNewCarPage() {
     });
   };
 
+  // handleImageUpload and handleVideoUpload have been removed as VehiclePhotosUpload handles them
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setUploading(true);
 
     try {
-      const imageUrls = imagePreviews.map(p => p.url); // Extract URLs from preview objects
+      // Derive imageUrls and videoUrls from imagePreviews
+      const imageUrls = imagePreviews
+        .filter((item) => item.type === "image")
+        .map((item) => item.url);
+      const videoUrls = imagePreviews
+        .filter((item) => item.type === "video")
+        .map((item) => item.url);
 
       const dataToSend = {
         ...formData,
@@ -142,9 +157,10 @@ export default function AddNewCarPage() {
         year: parseInt(formData.year),
         mileage: parseFloat(formData.mileage),
         price: parseFloat(formData.price),
-        registrationFee: parseFloat(formData.registrationFee),
-        taxRate: parseFloat(formData.taxRate),
+        registrationFee: parseFloat(Number(formData.registrationFee).toFixed(2)),
+        taxRate: parseFloat(Number(formData.taxRate).toFixed(2)),
         seatingCapacity: parseInt(formData.seatingCapacity),
+        videoUrls: videoUrls,
         // modelId, userId, and color will now come directly from select inputs
       };
 
@@ -172,8 +188,8 @@ export default function AddNewCarPage() {
         });
         // Reset form
         setFormData(formInit);
-        setImageFiles([]);
-        setImagePreviews([]);
+        setImageFiles([]); // Keep if you still need to track original File objects
+        setImagePreviews([]); // Reset image previews
       } else {
         throw new Error(result.message || "Failed to add car.");
       }
@@ -562,7 +578,7 @@ export default function AddNewCarPage() {
                         className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
                       />
                       <label htmlFor={`feature-${feature.featureId}`} className="ml-3 text-gray-700">
-                        {feature.featureName}
+                        {feature.name}
                       </label>
                     </div>
                   ))}
@@ -578,11 +594,53 @@ export default function AddNewCarPage() {
                   Vehicle Photos/Videos
                 </h2>
                 <VehiclePhotosUpload
-                  imageFiles={imageFiles}
-                  setImageFiles={setImageFiles}
-                  imagePreviews={imagePreviews}
-                  setImagePreviews={setImagePreviews}
+                  setImagePreviews={setImagePreviews} // Only pass the setter for imagePreviews
                 />
+
+                {/* Display selected file names (derived from imagePreviews) */}
+                {selectedFileNames.length > 0 && (
+                  <div className="text-sm text-gray-700 mb-2 whitespace-normal break-words mt-2">
+                   {selectedFileNames}
+                  </div>
+                )}
+
+                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {imagePreviews.map((item, idx) => (
+                    <div key={item.url || idx} className="relative group"> {/* Use item.url as key if unique, otherwise use idx */}
+                      {item.type === "image" ? (
+                        <img
+                          src={item.url}
+                          alt={`preview-${idx}`}
+                          className="w-full h-40 object-cover rounded-xl shadow"
+                        />
+                      ) : (
+                        <video
+                          controls
+                          className="w-full h-40 rounded-xl shadow object-cover"
+                        >
+                          <source src={item.url} type="video/mp4" />
+                          Your browser does not support the video tag.
+                        </video>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Update imagePreviews to remove the deleted item
+                          setImagePreviews((prev) => {
+                            const updated = prev.filter((_, i) => i !== idx);
+                            return updated;
+                          });
+                          // selectedFileNames is now derived, so no need to update here
+                        }}
+                        className="absolute top-2 right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold shadow hover:bg-red-700"
+                        title="Remove"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
               </section>
 
               {/* Action Buttons */}
@@ -591,8 +649,8 @@ export default function AddNewCarPage() {
                   type="button"
                   onClick={() => {
                     setFormData(formInit);
-                    setImageFiles([]);
-                    setImagePreviews([]);
+                    setImageFiles([]); // Keep if you still need to track original File objects
+                    setImagePreviews([]); // Reset image previews (and thus file names)
                   }}
                   className="px-6 py-3 bg-gray-200 rounded-xl text-gray-700 hover:bg-gray-300 transition-colors"
                 >
