@@ -1,5 +1,5 @@
 import { NavLink ,useNavigate } from "react-router-dom";
-import React, {useEffect } from "react";
+import React from "react"; // Removed useEffect as it's not used directly here
 import {
     HiOutlineViewGrid,
     HiOutlineBriefcase ,
@@ -10,7 +10,7 @@ import {
     HiOutlineUsers,
     HiUserGroup
   } from "react-icons/hi";
-  import { FaWrench , FaCar} from "react-icons/fa";
+  import { FaWrench , FaCar, FaTools} from "react-icons/fa"; // Added FaTools icon
 
   const sidebarItems = [
     { label: "Dashboard", icon: HiOutlineViewGrid, path: "/admin/dashboard" },
@@ -18,8 +18,9 @@ import {
     { label: "Employee", icon: HiUserGroup, path: "/admin/employee" },
     { label: "Customers", icon: HiOutlineUsers, path: "/admin/customers"},
     { label: "Car", icon: FaCar, path: "/admin/cars"},
+    { label: "Car Features", icon: FaTools, path: "/admin/car-features"}, // New item for Car Features
     { label: "Services", icon: FaWrench, path: "/admin/services" },
-    { label: "Calender", icon: HiOutlineCalendar, path: "/admin/calender" },
+    { label: "Calendar", icon: HiOutlineCalendar, path: "/admin/calendar" }, // Corrected spelling
     { label: "Messages", icon: HiOutlineChat, path: "/admin/messages" }
   ];
 

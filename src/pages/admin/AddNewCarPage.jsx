@@ -18,573 +18,579 @@ const FUEL_TYPE_OPTIONS = [
   { value: "biodiesel", label: "Biodiesel" },
   { value: "synthetic_fuel", label: "Synthetic Fuel" },
   { value: "ethanol", label: "Ethanol" },
-  { value: "other", label: "Other" }
+  { value: "other", label: "Other" },
 ];
 const CONDITION_OPTIONS = [
   { value: "Excellent", label: "Excellent" },
   { value: "Good", label: "Good" },
-  { value: "Fair", label: "Fair" }
+  { value: "Fair", label: "Fair" },
 ];
 const RENTSELL_OPTIONS = [
-  { value: "Sell", label: "Sell" },
-  { value: "Rent", label: "Rent" }
+  { value: "Rent", label: "For Rent" },
+  { value: "Sell", label: "For Sale" },
 ];
+const TRANSMISSION_OPTIONS = [
+  { value: "Automatic", label: "Automatic" },
+  { value: "Manual", label: "Manual" },
+];
+const CAR_TYPE_OPTIONS = [
+  { value: "Sedan", label: "Sedan" },
+  { value: "SUV", label: "SUV" },
+  { value: "Coupe", label: "Coupe" },
+  { value: "Hatchback", label: "Hatchback" },
+  { value: "Truck", label: "Truck" },
+  { value: "Minivan", label: "Minivan" },
+  { value: "Convertible", label: "Convertible" },
+  { value: "Wagon", label: "Wagon" },
+];
+const SEATING_CAPACITY_OPTIONS = Array.from({ length: 8 }, (_, i) => ({
+  value: (i + 1).toString(),
+  label: (i + 1).toString(),
+}));
+
+const formInit = {
+  modelId: "",
+  userId: "",
+  year: "",
+  mileage: "",
+  price: "",
+  condition: "Good",
+  rentSell: "Sell",
+  description: "",
+  certified: false,
+  vin: "",
+  color: "", // This will now store the color name/value from the selected option
+  interiorColor: "",
+  transmission: "",
+  engine: "",
+  fuelType: "",
+  carType: "",
+  seatingCapacity: "",
+  registrationFee: "",
+  taxRate: "",
+  featureIds: [],
+};
 
 export default function AddNewCarPage() {
-  // Main car form state
-  const [form, setForm] = useState({
-    model_id: "",
-    user_id: "",
-    year: "",
-    mileage: "",
-    price: "",
-    location: "",
-    condition: "Good",
-    rent_sell: "Sell",
-    description: "",
-    certified: false,
-    vin: "",
-    exterior_color: "",
-    interior_color: "",
-    transmission: "",
-    engine: "",
-    fuel_type: "",
-    car_type: "",
-    seating_capacity: "",
-    registration_fee: "",
-    tax_rate: "",
-    color_id: "",
-    quantity_imported: "",
-    import_date: "",
-    import_price: "",
-    notes: "",
-    feature_ids: []
-  });
-
-  // Vehicle photo state (for delayed upload)
+  const [formData, setFormData] = useState(formInit);
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [uploading, setUploading] = useState(false);
-
-  // Form data
-  const [models, setModels] = useState([]);
-  const [colors, setColors] = useState([]);
+  
+  // New states for models, colors, and features from the API
+  const [carModels, setCarModels] = useState([]);
+  const [carColors, setCarColors] = useState([]);
   const [features, setFeatures] = useState([]);
 
+  // Fetch initial form data (models, colors, features) from API
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    fetch("/api/Admin/cars/add-form-data", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        setModels(data.models);
-        setColors(data.colors);
-        setFeatures(data.features);
-      });
+    const fetchFormData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch("/api/admin/cars/add-form-data", { // Updated API endpoint
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) {
+          throw new Error("Failed to load form data");
+        }
+        const data = await response.json();
+        setCarModels(data.models || []);
+        setCarColors(data.colors || []);
+        setFeatures(data.features || []);
+      } catch (error) {
+        console.error("Error fetching form data:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error!",
+          text: "Failed to load form data. Please try again.",
+        });
+      }
+    };
+    fetchFormData();
   }, []);
 
-  const handleChange = (e) => {
+  const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm((f) => ({
-      ...f,
+    setFormData((prev) => ({
+      ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
   };
 
-  const handleFeatureChange = (fid) => {
-    setForm((f) => {
-      let list = f.feature_ids.includes(fid)
-        ? f.feature_ids.filter((id) => id !== fid)
-        : [...f.feature_ids, fid];
-      return { ...f, feature_ids: list };
+  const handleFeatureChange = (e) => {
+    const featureId = Number(e.target.value);
+    setFormData((prev) => {
+      const newFeatureIds = prev.featureIds.includes(featureId)
+        ? prev.featureIds.filter((id) => id !== featureId)
+        : [...prev.featureIds, featureId];
+      return { ...prev, featureIds: newFeatureIds };
     });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setUploading(true);
-    const uploadedUrls = [];
-    
-    // Upload all images to Cloudinary
-    for (let file of imageFiles) {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", "YOUR_UNSIGNED_UPLOAD_PRESET");
-      const res = await fetch("https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/image/upload", {
+
+    try {
+      const imageUrls = imagePreviews.map(p => p.url); // Extract URLs from preview objects
+
+      const dataToSend = {
+        ...formData,
+        imageUrls: imageUrls,
+        year: parseInt(formData.year),
+        mileage: parseFloat(formData.mileage),
+        price: parseFloat(formData.price),
+        registrationFee: parseFloat(formData.registrationFee),
+        taxRate: parseFloat(formData.taxRate),
+        seatingCapacity: parseInt(formData.seatingCapacity),
+        // modelId, userId, and color will now come directly from select inputs
+      };
+
+      console.log("Sending data:", dataToSend);
+
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/admin/cars/add", {
         method: "POST",
-        body: formData,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(dataToSend),
       });
-      const data = await res.json();
-      uploadedUrls.push(data.secure_url);
-    }
 
-    // Prepare payload with only supported fields
-    const payload = {
-      ModelId: form.model_id,
-      UserId: form.user_id,
-      Year: Number(form.year),
-      Mileage: Number(form.mileage),
-      Price: Number(form.price),
-      Location: form.location,
-      Condition: form.condition,
-      RentSell: form.rent_sell,
-      Description: form.description,
-      Certified: form.certified,
-      Vin: form.vin,
-      ExteriorColor: form.exterior_color,
-      InteriorColor: form.interior_color,
-      Transmission: form.transmission,
-      Engine: form.engine,
-      FuelType: form.fuel_type,
-      CarType: form.car_type,
-      SeatingCapacity: Number(form.seating_capacity),
-      RegistrationFee: Number(form.registration_fee),
-      TaxRate: Number(form.tax_rate),
-      ColorId: form.color_id ? Number(form.color_id) : null,
-      QuantityImported: Number(form.quantity_imported),
-      ImportDate: form.import_date,
-      ImportPrice: Number(form.import_price),
-      Notes: form.notes,
-      FeatureIds: form.feature_ids,
-      ImageUrls: uploadedUrls
-    };
+      const result = await response.json();
 
-    const token = localStorage.getItem("token");
-    const res = await fetch("/api/Admin/cars/add", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    
-    Swal.fire({
-      icon: data.success ? "success" : "error",
-      title: data.success ? "Add car successfully!" : "Operation failed!",
-      text: data.message || "",
-    });
-    setUploading(false);
-    
-    if (data.success) {
-      setForm({
-        model_id: "",
-        user_id: "",
-        year: "",
-        mileage: "",
-        price: "",
-        location: "",
-        condition: "Good",
-        rent_sell: "Sell",
-        description: "",
-        certified: false,
-        vin: "",
-        exterior_color: "",
-        interior_color: "",
-        transmission: "",
-        engine: "",
-        fuel_type: "",
-        car_type: "",
-        seating_capacity: "",
-        registration_fee: "",
-        tax_rate: "",
-        color_id: "",
-        quantity_imported: "",
-        import_date: "",
-        import_price: "",
-        notes: "",
-        feature_ids: []
+      if (response.ok) {
+        Swal.fire({
+          icon: "success",
+          title: "Success!",
+          text: result.message || "Car added successfully!",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+        // Reset form
+        setFormData(formInit);
+        setImageFiles([]);
+        setImagePreviews([]);
+      } else {
+        throw new Error(result.message || "Failed to add car.");
+      }
+    } catch (error) {
+      console.error("Error adding new car:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error!",
+        text: error.message || "Something went wrong while adding the car.",
       });
-      setImageFiles([]);
-      setImagePreviews([]);
+    } finally {
+      setUploading(false);
     }
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-gray-50 via-violet-50 to-blue-50">
+    <div className="flex h-screen bg-gray-100">
       <AdminSidebar />
       <div className="flex-1 flex flex-col">
         <AdminTopbar />
-        <main className="flex-1 flex flex-col px-4 py-8 md:px-12 md:py-10 overflow-y-auto bg-gradient-to-br from-[#f5f6ff] via-[#eaeaff] to-[#f7f8fa]">
-          <div className="max-w-6xl mx-auto w-full">
-            <div className="text-4xl font-bold text-gray-800 mb-3 tracking-tight">Add New Car</div>
-            <p className="text-gray-600 mb-10">Fill in all the information to add a new car to your inventory.</p>
+        <main className="flex-1 overflow-y-auto p-8 bg-gray-50">
+          <div className="bg-white rounded-2xl shadow-xl p-8 max-w-4xl mx-auto">
+            <h1 className="text-4xl font-extrabold text-gray-900 mb-8 text-center leading-tight">
+              Add New Vehicle to Inventory
+            </h1>
 
-            <form onSubmit={handleSubmit} className="bg-white/95 backdrop-blur-md shadow-xl rounded-3xl border border-gray-100 p-8 grid gap-8 grid-cols-1">
-              {/* Section: Vehicle Basic */}
-              <section className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border border-gray-100 mb-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-6">Vehicle Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Model */}
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Basic Information */}
+              <section className="p-6 border border-gray-200 rounded-xl bg-gray-50">
+                <h2 className="text-2xl font-bold text-gray-800 mb-5">
+                  Basic Vehicle Details
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Model <span className="text-red-500">*</span></label>
+                    <label htmlFor="modelId" className="block text-gray-700 font-medium mb-2">
+                      Model <span className="text-red-500">*</span>
+                    </label>
                     <select
-                      name="model_id"
-                      value={form.model_id}
-                      onChange={handleChange}
+                      id="modelId"
+                      name="modelId"
+                      value={formData.modelId}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 bg-white"
                       required
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50"
                     >
-                      <option value="">Choose Model</option>
-                      {models.map((m) => (
-                        <option key={m.modelId} value={m.modelId}>{m.manufacturerName} - {m.name}</option>
+                      <option value="">Select Model</option>
+                      {carModels.map((model) => (
+                        <option key={model.modelId} value={model.modelId}>
+                          {model.manufacturerName} - {model.name}
+                        </option>
                       ))}
                     </select>
                   </div>
-                  {/* Year */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Year <span className="text-red-500">*</span></label>
+                    <label htmlFor="userId" className="block text-gray-700 font-medium mb-2">
+                      User ID (Seller) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      id="userId"
+                      name="userId"
+                      value={formData.userId}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                      placeholder="e.g., U001"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="year" className="block text-gray-700 font-medium mb-2">
+                      Year <span className="text-red-500">*</span>
+                    </label>
                     <select
+                      id="year"
                       name="year"
-                      value={form.year}
-                      onChange={handleChange}
+                      value={formData.year}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 bg-white"
                       required
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50"
                     >
-                      <option value="">Choose Year</option>
-                      {YEAR_OPTIONS.map((y) => (
-                        <option key={y} value={y}>{y}</option>
+                      <option value="">Select Year</option>
+                      {YEAR_OPTIONS.map((year) => (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
                       ))}
                     </select>
                   </div>
-                  {/* Mileage */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Mileage <span className="text-red-500">*</span></label>
+                    <label htmlFor="mileage" className="block text-gray-700 font-medium mb-2">
+                      Mileage (km) <span className="text-red-500">*</span>
+                    </label>
                     <input
+                      type="number"
+                      id="mileage"
                       name="mileage"
-                      type="number"
-                      value={form.mileage}
-                      onChange={handleChange}
+                      value={formData.mileage}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                      placeholder="e.g., 50000"
                       required
-                      placeholder="Vehicle mileage"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50"
                     />
                   </div>
-                  {/* Price */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Price <span className="text-red-500">*</span></label>
+                    <label htmlFor="price" className="block text-gray-700 font-medium mb-2">
+                      Price (VND) <span className="text-red-500">*</span>
+                    </label>
                     <input
+                      type="number"
+                      id="price"
                       name="price"
-                      type="number"
-                      value={form.price}
-                      onChange={handleChange}
+                      value={formData.price}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                      placeholder="e.g., 750000000"
                       required
-                      placeholder="Vehicle price"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50"
                     />
                   </div>
-                  {/* Location */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Location <span className="text-red-500">*</span></label>
-                    <input
-                      name="location"
-                      value={form.location}
-                      onChange={handleChange}
-                      required
-                      placeholder="Vehicle location"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50"
-                    />
-                  </div>
-                  {/* Condition */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Condition <span className="text-red-500">*</span></label>
+                    <label htmlFor="condition" className="block text-gray-700 font-medium mb-2">
+                      Condition <span className="text-red-500">*</span>
+                    </label>
                     <select
+                      id="condition"
                       name="condition"
-                      value={form.condition}
-                      onChange={handleChange}
+                      value={formData.condition}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 bg-white"
                       required
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50"
                     >
-                      <option value="">Choose Condition</option>
-                      {CONDITION_OPTIONS.map((c) => (
-                        <option key={c.value} value={c.value}>{c.label}</option>
+                      {CONDITION_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
                       ))}
                     </select>
                   </div>
-                  {/* Rent/Sell */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Rent/Sell <span className="text-red-500">*</span></label>
+                    <label htmlFor="rentSell" className="block text-gray-700 font-medium mb-2">
+                      Listing Type <span className="text-red-500">*</span>
+                    </label>
                     <select
-                      name="rent_sell"
-                      value={form.rent_sell}
-                      onChange={handleChange}
+                      id="rentSell"
+                      name="rentSell"
+                      value={formData.rentSell}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 bg-white"
                       required
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50"
                     >
-                      <option value="">Choose Type</option>
-                      {RENTSELL_OPTIONS.map((r) => (
-                        <option key={r.value} value={r.value}>{r.label}</option>
+                      {RENTSELL_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
                       ))}
                     </select>
                   </div>
-                  {/* Description */}
-                  <div className="col-span-3">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                  <div className="md:col-span-2">
+                    <label htmlFor="description" className="block text-gray-700 font-medium mb-2">
+                      Description
+                    </label>
                     <textarea
+                      id="description"
                       name="description"
-                      value={form.description}
-                      onChange={handleChange}
-                      rows={4}
-                      placeholder="Enter vehicle description"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50"
+                      value={formData.description}
+                      onChange={handleInputChange}
+                      rows="4"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                      placeholder="Provide a detailed description of the car..."
+                    ></textarea>
+                  </div>
+                  <div className="flex items-center col-span-2">
+                    <input
+                      type="checkbox"
+                      id="certified"
+                      name="certified"
+                      checked={formData.certified}
+                      onChange={handleInputChange}
+                      className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
                     />
+                    <label htmlFor="certified" className="ml-3 text-gray-700 font-medium">
+                      Certified Pre-Owned
+                    </label>
                   </div>
                 </div>
               </section>
 
-              {/* Section: Vehicle Specifications */}
-              <section className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border border-gray-100 mb-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-6">Vehicle Specifications</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Exterior Color */}
+              {/* Specification Details */}
+              <section className="p-6 border border-gray-200 rounded-xl bg-gray-50">
+                <h2 className="text-2xl font-bold text-gray-800 mb-5">
+                  Vehicle Specifications
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Exterior Color</label>
+                    <label htmlFor="vin" className="block text-gray-700 font-medium mb-2">
+                      VIN (Vehicle Identification Number)
+                    </label>
                     <input
-                      name="exterior_color"
-                      value={form.exterior_color}
-                      onChange={handleChange}
-                      placeholder="Exterior color"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50"
+                      type="text"
+                      id="vin"
+                      name="vin"
+                      value={formData.vin}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                      placeholder="e.g., 123ABC456DEF789GH"
                     />
                   </div>
-                  {/* Interior Color */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Interior Color</label>
+                    <label htmlFor="color" className="block text-gray-700 font-medium mb-2">
+                      Exterior Color
+                    </label>
+                    <select
+                      id="color"
+                      name="color"
+                      value={formData.color}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 bg-white"
+                    >
+                      <option value="">Select Color</option>
+                      {carColors.map((color) => (
+                        <option key={color.colorId} value={color.name}>
+                          {color.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="interiorColor" className="block text-gray-700 font-medium mb-2">
+                      Interior Color
+                    </label>
                     <input
-                      name="interior_color"
-                      value={form.interior_color}
-                      onChange={handleChange}
-                      placeholder="Interior color"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50"
+                      type="text"
+                      id="interiorColor"
+                      name="interiorColor"
+                      value={formData.interiorColor}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                      placeholder="e.g., Black Leather, Beige Fabric"
                     />
                   </div>
-                  {/* Transmission */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Transmission</label>
-                    <input
+                    <label htmlFor="transmission" className="block text-gray-700 font-medium mb-2">
+                      Transmission
+                    </label>
+                    <select
+                      id="transmission"
                       name="transmission"
-                      value={form.transmission}
-                      onChange={handleChange}
-                      placeholder="Transmission type"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50"
-                    />
+                      value={formData.transmission}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 bg-white"
+                    >
+                      <option value="">Select Transmission</option>
+                      {TRANSMISSION_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  {/* Engine */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Engine</label>
+                    <label htmlFor="engine" className="block text-gray-700 font-medium mb-2">
+                      Engine
+                    </label>
                     <input
+                      type="text"
+                      id="engine"
                       name="engine"
-                      value={form.engine}
-                      onChange={handleChange}
-                      placeholder="Engine specification"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50"
+                      value={formData.engine}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                      placeholder="e.g., 2.0L Turbo, V6"
                     />
                   </div>
-                  {/* Fuel Type */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Fuel Type</label>
+                    <label htmlFor="fuelType" className="block text-gray-700 font-medium mb-2">
+                      Fuel Type
+                    </label>
                     <select
-                      name="fuel_type"
-                      value={form.fuel_type}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50"
+                      id="fuelType"
+                      name="fuelType"
+                      value={formData.fuelType}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 bg-white"
                     >
-                      <option value="">Choose Fuel Type</option>
-                      {FUEL_TYPE_OPTIONS.map((f) => (
-                        <option key={f.value} value={f.value}>{f.label}</option>
+                      <option value="">Select Fuel Type</option>
+                      {FUEL_TYPE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
                       ))}
                     </select>
                   </div>
-                  {/* Car Type */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Car Type</label>
-                    <input
-                      name="car_type"
-                      value={form.car_type}
-                      onChange={handleChange}
-                      placeholder="Car type"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50"
-                    />
-                  </div>
-                  {/* Seating Capacity */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Seating Capacity</label>
-                    <input
-                      name="seating_capacity"
-                      type="number"
-                      value={form.seating_capacity}
-                      onChange={handleChange}
-                      placeholder="Number of seats"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50"
-                    />
-                  </div>
-                </div>
-              </section>
-
-              {/* Section: Pricing */}
-              <section className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border border-gray-100 mb-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-6">Pricing Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Registration Fee */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Registration Fee</label>
-                    <input
-                      name="registration_fee"
-                      type="number"
-                      value={form.registration_fee}
-                      onChange={handleChange}
-                      placeholder="Registration fee"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50"
-                    />
-                  </div>
-                  {/* Tax Rate */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tax Rate (%)</label>
-                    <input
-                      name="tax_rate"
-                      type="number"
-                      value={form.tax_rate}
-                      onChange={handleChange}
-                      placeholder="Tax rate"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50"
-                    />
-                  </div>
-                </div>
-              </section>
-
-              {/* Section: Inventory */}
-              <section className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border border-gray-100 mb-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-6">Inventory Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Color ID */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Color ID</label>
+                    <label htmlFor="carType" className="block text-gray-700 font-medium mb-2">
+                      Car Type
+                    </label>
                     <select
-                      name="color_id"
-                      value={form.color_id}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50"
+                      id="carType"
+                      name="carType"
+                      value={formData.carType}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 bg-white"
                     >
-                      <option value="">Choose Color</option>
-                      {colors.map((c) => (
-                        <option key={c.colorId} value={c.colorId}>{c.name}</option>
+                      <option value="">Select Car Type</option>
+                      {CAR_TYPE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
                       ))}
                     </select>
                   </div>
-                  {/* Quantity Imported */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Quantity Imported</label>
+                    <label htmlFor="seatingCapacity" className="block text-gray-700 font-medium mb-2">
+                      Seating Capacity
+                    </label>
+                    <select
+                      id="seatingCapacity"
+                      name="seatingCapacity"
+                      value={formData.seatingCapacity}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 bg-white"
+                    >
+                      <option value="">Select Capacity</option>
+                      {SEATING_CAPACITY_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </section>
+
+              {/* Pricing Details */}
+              <section className="p-6 border border-gray-200 rounded-xl bg-gray-50">
+                <h2 className="text-2xl font-bold text-gray-800 mb-5">
+                  Pricing Information
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="registrationFee" className="block text-gray-700 font-medium mb-2">
+                      Registration Fee (VND)
+                    </label>
                     <input
-                      name="quantity_imported"
                       type="number"
-                      value={form.quantity_imported}
-                      onChange={handleChange}
-                      placeholder="Quantity imported"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50"
+                      id="registrationFee"
+                      name="registrationFee"
+                      value={formData.registrationFee}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                      placeholder="e.g., 2000000"
                     />
                   </div>
-                  {/* Import Date */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Import Date</label>
+                    <label htmlFor="taxRate" className="block text-gray-700 font-medium mb-2">
+                      Tax Rate (%)
+                    </label>
                     <input
-                      type="date"
-                      name="import_date"
-                      value={form.import_date}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50"
-                    />
-                  </div>
-                  {/* Import Price */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Import Price</label>
-                    <input
-                      name="import_price"
                       type="number"
-                      value={form.import_price}
-                      onChange={handleChange}
-                      placeholder="Import price"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50"
-                    />
-                  </div>
-                  {/* Notes */}
-                  <div className="col-span-3">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-                    <textarea
-                      name="notes"
-                      value={form.notes}
-                      onChange={handleChange}
-                      rows={4}
-                      placeholder="Additional notes"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50"
+                      id="taxRate"
+                      name="taxRate"
+                      value={formData.taxRate}
+                      onChange={handleInputChange}
+                      step="0.01"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                      placeholder="e.g., 10"
                     />
                   </div>
                 </div>
               </section>
 
-              {/* Section: Features */}
-              <section className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border border-gray-100 mb-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-6">Features</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {features.map((f) => (
-                    <div key={f.featureId} className="flex items-center">
+              {/* Features */}
+              <section className="p-6 border border-gray-200 rounded-xl bg-gray-50">
+                <h2 className="text-2xl font-bold text-gray-800 mb-5">
+                  Features
+                </h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {features.map((feature) => (
+                    <div key={feature.featureId} className="flex items-center">
                       <input
                         type="checkbox"
-                        name={`feature_${f.featureId}`}
-                        checked={form.feature_ids.includes(f.featureId)}
-                        onChange={() => handleFeatureChange(f.featureId)}
-                        className="mr-2"
+                        id={`feature-${feature.featureId}`}
+                        name="featureIds"
+                        value={feature.featureId}
+                        checked={formData.featureIds.includes(feature.featureId)}
+                        onChange={handleFeatureChange}
+                        className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
                       />
-                      <label className="block text-sm font-medium text-gray-700">{f.name}</label>
+                      <label htmlFor={`feature-${feature.featureId}`} className="ml-3 text-gray-700">
+                        {feature.featureName}
+                      </label>
                     </div>
                   ))}
+                  {features.length === 0 && (
+                    <p className="text-gray-500 col-span-full">No features available.</p>
+                  )}
                 </div>
               </section>
 
-              {/* Section: Images */}
-              <section className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border border-gray-100 mb-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-6">Vehicle Images</h3>
+              {/* Vehicle Photos Upload */}
+              <section className="p-6 border border-gray-200 rounded-xl bg-gray-50">
+                <h2 className="text-2xl font-bold text-gray-800 mb-5">
+                  Vehicle Photos/Videos
+                </h2>
                 <VehiclePhotosUpload
-                  files={imageFiles}
-                  setFiles={setImageFiles}
-                  previews={imagePreviews}
-                  setPreviews={setImagePreviews}
+                  imageFiles={imageFiles}
+                  setImageFiles={setImageFiles}
+                  imagePreviews={imagePreviews}
+                  setImagePreviews={setImagePreviews}
                 />
               </section>
 
-              <div className="flex justify-end space-x-4">
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-4 mt-8">
                 <button
                   type="button"
                   onClick={() => {
-                    setForm({
-                      model_id: "",
-                      user_id: "",
-                      year: "",
-                      mileage: "",
-                      price: "",
-                      location: "",
-                      condition: "Good",
-                      rent_sell: "Sell",
-                      description: "",
-                      certified: false,
-                      vin: "",
-                      exterior_color: "",
-                      interior_color: "",
-                      transmission: "",
-                      engine: "",
-                      fuel_type: "",
-                      car_type: "",
-                      seating_capacity: "",
-                      registration_fee: "",
-                      tax_rate: "",
-                      color_id: "",
-                      quantity_imported: "",
-                      import_date: "",
-                      import_price: "",
-                      notes: "",
-                      feature_ids: []
-                    });
+                    setFormData(formInit);
                     setImageFiles([]);
                     setImagePreviews([]);
                   }}
@@ -597,7 +603,7 @@ export default function AddNewCarPage() {
                   disabled={uploading}
                   className="px-6 py-3 bg-blue-600 rounded-xl text-white hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                  {uploading ? "Uploading..." : "Add Car"}
+                  {uploading ? "Adding Car..." : "Add Car"}
                 </button>
               </div>
             </form>

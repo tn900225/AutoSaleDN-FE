@@ -21,6 +21,7 @@ import CustomerAdmin from "./pages/admin/CustomerAdmin";
 import CarAdmin from "./pages/admin/CarAdmin";
 import TransactionDetail from "./pages/admin/TransactionDetail";
 import AddNewCarPage from "./pages/admin/AddNewCarPage";
+import CarFeatures from "./pages/admin/CarFeatures";
 
 function UserLayout({ children }) {
   return (
@@ -83,6 +84,7 @@ function App() {
                   <Route path="settings" element={<Settings />} />
                   <Route path="showroom" element={<ShowroomManagement />} />
                   <Route path="employee" element={<EmployeeAdmin />} />
+                  <Route path="car-features" element={<CarFeatures />} />
                   
                   {/* Admin-only routes */}
                   <Route
