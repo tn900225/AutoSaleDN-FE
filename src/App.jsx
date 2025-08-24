@@ -22,7 +22,8 @@ import CarAdmin from "./pages/admin/CarAdmin";
 import TransactionDetail from "./pages/admin/TransactionDetail";
 import AddNewCarPage from "./pages/admin/AddNewCarPage";
 import CarFeatures from "./pages/admin/CarFeatures";
-
+import CarColor from "./pages/admin/CarColor";
+import CarManufacturers from "./pages/admin/CarManufacturers";
 function UserLayout({ children }) {
   return (
     <UserProvider>
@@ -85,6 +86,9 @@ function App() {
                   <Route path="showroom" element={<ShowroomManagement />} />
                   <Route path="employee" element={<EmployeeAdmin />} />
                   <Route path="car-features" element={<CarFeatures />} />
+                  <Route path="car-colors" element={<CarColor />} />
+                  <Route path="car-manufacturers-models" element={<CarManufacturers />} />
+                  
                   
                   {/* Admin-only routes */}
                   <Route
