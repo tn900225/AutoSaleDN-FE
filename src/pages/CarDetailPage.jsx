@@ -1,8 +1,11 @@
+// src/pages/CarDetailPage.jsx
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import Swal from "sweetalert2";
 import Login from "../components/Login";
+// import PrePurchaseFormModal from "../components/PrePurchaseFormModal"; // Không cần import ở đây nữa
+
 const formatCurrency = (num) =>
   new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -102,9 +105,8 @@ export default function CarDetailPage({ carId: propCarId }) {
   const [paybackPeriod, setPaybackPeriod] = useState(48);
   const [featureSearch, setFeatureSearch] = useState("");
   const heroRef = useRef(null);
-
-    const [showSignInModal, setShowSignInModal] = useState(false);
-
+  const [showSignInModal, setShowSignInModal] = useState(false);
+  // const [showPrePurchaseModal, setShowPrePurchaseModal] = useState(false); // Không cần state này ở đây nữa
 
   useEffect(() => {
     const fetchCarData = async () => {
@@ -118,6 +120,17 @@ export default function CarDetailPage({ carId: propCarId }) {
         }
         const carData = await carResponse.json();
         console.log("carData", carData); // Debug the response
+
+        let taxRateValue = 0.085; // Default value
+
+        if (carData.pricing && carData.pricing[0] && typeof carData.pricing[0].taxRate === 'number') {
+            taxRateValue = carData.pricing[0].taxRate;
+            // Normalize taxRate: If it's a value like 8.5 (for 8.5%), divide by 100
+            // Assuming tax rates are typically below 100% (e.g., 0.085 or 8.5, not 850)
+            if (taxRateValue > 1) {
+                taxRateValue = taxRateValue / 100;
+            }
+        }
 
         // Map API data to match the component's expected structure
         const mappedCar = {
@@ -151,8 +164,6 @@ export default function CarDetailPage({ carId: propCarId }) {
             url: img.url,
             filename: img.filename,
           })) || [],
-          // Assuming VideoURL in carData is an array of video objects with a 'url' field
-          // Apply getEmbedUrlAndType to each video URL
           videoURLs: carData.carVideo?.map((video) => {
             const { url, type } = getEmbedUrlAndType(video.url);
             return {
@@ -167,11 +178,11 @@ export default function CarDetailPage({ carId: propCarId }) {
             ? {
                 registrationFee: carData.pricing[0].registrationFee || 0,
                 dealerFee: 500, // Static dealer fee as in original
-                taxRate: carData.pricing[0].taxRate || 0.085,
+                taxRate: taxRateValue
               }
             : { registrationFee: 0, dealerFee: 500, taxRate: 0.085 },
           showrooms: carData.showrooms?.map((s) => ({
-            showroomId: s.storeLocationId,
+            id: s.storeLocationId, // Đảm bảo ID này khớp với ID bạn mong đợi trong PrePurchaseFormModal
             name: s.name,
             address: s.address,
             phone: s.Phone || "+1 (555) 123-4567", // Fallback phone
@@ -265,7 +276,7 @@ export default function CarDetailPage({ carId: propCarId }) {
     }
   };
 
- const handlePurchase = async () => { // Keep async here
+  const handlePurchase = async () => {
     if (!car || !car.id) {
       Swal.fire({
         icon: "error",
@@ -282,23 +293,22 @@ export default function CarDetailPage({ carId: propCarId }) {
         'Content-Type': 'application/json',
       };
       if (token) {
-        headers['Authorization'] = `Bearer ${token}`; // <--- Thêm Authorization header nếu có token
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
       // Fetch user data to check if logged in
       const userResponse = await fetch("/api/User/me", {
-        method: 'GET', // Method is GET by default for fetch, but explicitly setting is good practice
-        headers: headers, // <--- Truyền headers vào đây
+        method: 'GET',
+        headers: headers,
       });
 
       if (userResponse.ok) {
-        // User is logged in, proceed to purchase terms page
+        // Nếu đã đăng nhập, chuyển hướng thẳng đến trang điều khoản
         navigate(`/cars/${car.id}/purchase-terms`);
       } else if (userResponse.status === 401) {
-        // User is not authorized/logged in, show login modal
+        // Nếu chưa đăng nhập, hiển thị modal đăng nhập
         setShowSignInModal(true);
       } else {
-        // Handle other potential API errors
         const errorData = await userResponse.json();
         Swal.fire({
           icon: "error",
@@ -317,6 +327,10 @@ export default function CarDetailPage({ carId: propCarId }) {
       });
     }
   };
+
+  // Các hàm PrePurchaseModal không còn cần ở đây nữa
+  // const handlePrePurchaseConfirm = ({ showroom, userConfirmedData, sellerData }) => { ... };
+  // const handleClosePrePurchaseModal = () => { ... };
 
 
   if (loading) {
@@ -347,7 +361,7 @@ export default function CarDetailPage({ carId: propCarId }) {
     model,
     specification = {},
     images = [],
-    videoURLs = [], // Destructure videoURLs
+    videoURLs = [],
     features = [],
     pricing = {},
     showrooms = [],
@@ -370,19 +384,14 @@ export default function CarDetailPage({ carId: propCarId }) {
   // Determine grid classes for video gallery
   let videoGridClasses = "grid grid-cols-1 gap-6 mb-6";
   if (videoURLs.length === 1) {
-    // For 1 video, it takes full width
     videoGridClasses += " md:grid-cols-1";
   } else if (videoURLs.length === 2) {
-    // For 2 videos, 2 columns on medium screens
     videoGridClasses += " md:grid-cols-2";
   } else if (videoURLs.length === 3) {
-    // For 3 videos, 3 columns on medium screens
     videoGridClasses += " md:grid-cols-3";
   } else if (videoURLs.length >= 4) {
-    // For 4 or more videos, 4 columns on medium/large screens (and wraps)
     videoGridClasses += " md:grid-cols-2 lg:grid-cols-4";
   }
-
 
   return (
     <div className="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">

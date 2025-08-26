@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+// import PrePurchaseFormModal from "../components/PrePurchaseFormModal"; // Không cần import modal nữa
 
 const formatCurrency = (num) =>
   new Intl.NumberFormat("en-US", {
@@ -17,6 +18,7 @@ export default function PurchaseTermsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false); // New state for checkbox
+  // const [showPrePurchaseModal, setShowPrePurchaseModal] = useState(false); // Không cần state này nữa
 
   useEffect(() => {
     const fetchCarDetails = async () => {
@@ -27,7 +29,15 @@ export default function PurchaseTermsPage() {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
         const carData = await response.json();
-        // Map data to ensure consistent structure for pricing and car name
+        let taxRateValue = 0.085; // Default value
+
+        if (carData.pricing && carData.pricing[0] && typeof carData.pricing[0].taxRate === 'number') {
+            taxRateValue = carData.pricing[0].taxRate;
+            // Normalize taxRate: If it's a value like 8.5 (for 8.5%), divide by 100
+            if (taxRateValue > 1) {
+                taxRateValue = taxRateValue / 100;
+            }
+        }
         const mappedCar = {
             id: carData.listingId,
             model: {
@@ -40,10 +50,17 @@ export default function PurchaseTermsPage() {
             pricing: carData.pricing?.[0]
                 ? {
                     registrationFee: carData.pricing[0].registrationFee || 0,
-                    dealerFee: 500, // Static dealer fee
-                    taxRate: carData.pricing[0].taxRate || 0.085,
+                    dealerFee: 500,
+                    taxRate: taxRateValue
                 }
                 : { registrationFee: 0, dealerFee: 500, taxRate: 0.085 },
+            showrooms: carData.showrooms?.map(s => ({
+              id: s.storeLocationId,
+              name: s.name,
+              address: s.address,
+              phone: s.Phone || "+1 (555) 123-4567"
+            })) || [],
+            sellerInfo: carData.sellerInfo || { name: "Auto Sales Inc.", contact: "sales@autosales.com" },
         };
         setCar(mappedCar);
       } catch (err) {
@@ -59,7 +76,7 @@ export default function PurchaseTermsPage() {
     }
   }, [carId]);
 
-  // Function to handle user agreeing to terms
+  // Hàm xử lý khi người dùng đồng ý và muốn tiến hành thanh toán
   const handleAcceptAndProceed = async () => {
     if (!agreedToTerms) {
         Swal.fire({
@@ -80,83 +97,12 @@ export default function PurchaseTermsPage() {
         });
         return;
     }
-
-    const price = car.price;
-    const regFee = car.pricing.registrationFee || 0;
-    const dealerFee = car.pricing.dealerFee || 0;
-    const tax = Math.round(price * (car.pricing.taxRate || 0.085));
-    const totalPrice = price + regFee + dealerFee + tax;
-
-    try {
-        const { value } = await Swal.fire({
-            title: "Complete Your Purchase",
-            html: `
-              <div class="text-left space-y-4">
-                <div class="bg-gray-50 p-4 rounded-lg">
-                  <h3 class="font-semibold text-lg mb-2">Purchase Summary</h3>
-                  <div class="space-y-2 text-sm">
-                    <div class="flex justify-between"><span>Vehicle Price:</span><span class="font-semibold">${formatCurrency(price)}</span></div>
-                    <div class="flex justify-between"><span>Registration Fee:</span><span>${formatCurrency(regFee)}</span></div>
-                    <div class="flex justify-between"><span>Documentation Fee:</span><span>${formatCurrency(dealerFee)}</span></div>
-                    <div class="flex justify-between"><span>Tax (${(car.pricing.taxRate * 100).toFixed(1)}%):</span><span>${formatCurrency(tax)}</span></div>
-                    <hr class="my-2">
-                    <div class="flex justify-between font-bold text-lg"><span>Total:</span><span>${formatCurrency(totalPrice)}</span></div>
-                  </div>
-                </div>
-                <input id="buyer-name" class="swal2-input" placeholder="Full Name">
-                <input id="buyer-phone" class="swal2-input" placeholder="Phone Number">
-                <input id="buyer-email" class="swal2-input" placeholder="Email Address">
-                <select id="payment-method" class="swal2-input">
-                  <option value="">Select Payment Method</option>
-                  <option value="cash">Cash Payment</option>
-                  <option value="financing">Financing</option>
-                  <option value="lease">Lease</option>
-                </select>
-              </div>
-            `,
-            width: 600,
-            focusConfirm: false,
-            showCancelButton: true,
-            confirmButtonText: "Proceed to Payment",
-            confirmButtonColor: "#10B981",
-            cancelButtonColor: "#6B7280",
-            preConfirm: () => {
-              const name = document.getElementById("buyer-name").value;
-              const phone = document.getElementById("buyer-phone").value;
-              const email = document.getElementById("buyer-email").value;
-              const paymentMethod = document.getElementById("payment-method").value;
-              if (!name || !phone || !email || !paymentMethod) {
-                Swal.showValidationMessage("Please fill in all fields");
-                return false;
-              }
-              return { name, phone, email, paymentMethod };
-            },
-        });
-
-        if (value) {
-            await Swal.fire({
-                icon: "success",
-                title: "Purchase Initiated!",
-                text: "Thank you for your purchase! Our sales team will contact you within 24 hours to complete the transaction.",
-                confirmButtonText: "Excellent!",
-                confirmButtonColor: "#10B981",
-            });
-            navigate(`/cars/${carId}`); // Redirect back to car details page or a confirmation page
-        }
-    } catch (err) {
-        await Swal.fire({
-            icon: "error",
-            title: "Purchase Failed",
-            text: `Unable to process purchase: ${err.message}`,
-            confirmButtonText: "Try Again",
-            confirmButtonColor: "#EF4444",
-        });
-    }
+    
+    navigate(`/cars/${car.id}/confirm-orders`, { state: { car: car, showrooms: car.showrooms } });
   };
 
-  // Function to handle user declining terms
   const handleDecline = () => {
-    navigate(`/cars/${carId}`); // Go back to car details page
+    navigate(`/cars/${carId}`);
   };
 
   if (loading) {

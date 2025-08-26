@@ -30,7 +30,7 @@ import CarColor from "./pages/admin/CarColor";
 import CarManufacturers from "./pages/admin/CarManufacturers";
 import UpdateCar from "./pages/admin/UpdateCar";
 import PurchaseTermsPage from "./pages/PurchaseTermsPage";
-
+import OrderPage from "./pages/OrderPage";
 
 const useTalkJS = (customerInfor, isCustomerInfoLoaded, hasCustomerInfoError, targetStaff = null) => {
   const [talkjsPopup, setTalkjsPopup] = useState(null);
@@ -390,7 +390,8 @@ function App() {
                 <Route path="/cars/:id" element={<CarDetailPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="cars/:carId/purchase-terms" element={<PurchaseTermsPage />} />
-
+                <Route path="cars/:carId/confirm-orders" element={<OrderPage />} />
+                
               </Routes>
             </UserLayout>
           }

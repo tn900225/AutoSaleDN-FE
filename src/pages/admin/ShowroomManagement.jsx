@@ -425,13 +425,13 @@ export default function ShowroomManagement() {
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <button
+                {/* <button
                   onClick={() => setShowImportModal(true)}
                   className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   <Upload className="h-4 w-4 mr-2" />
                   Import Inventory
-                </button>
+                </button> */}
                 <button
                   onClick={() => handleExportReport(selectedShowroom.id)}
                   className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -823,7 +823,8 @@ export default function ShowroomManagement() {
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <Users className="h-4 w-4 mr-2 text-gray-500" />
-                      <span>Managed by: {showroom.mainSeller.fullName || 'Unknown'}</span>
+                      <span>Managed by: {showroom.mainSeller ? showroom.mainSeller.fullName : 'Not yet managed'}</span>
+
                     </div>
                   </div>
                 </div>

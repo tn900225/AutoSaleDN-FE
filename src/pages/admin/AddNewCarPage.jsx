@@ -4,7 +4,7 @@ import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminTopbar from "../../components/admin/AdminTopbar";
 import VehiclePhotosUpload from "../../components/admin/VehiclePhotosUpload";
 
-// Helper constants for select options
+// Helper constants for select options (Giữ nguyên)
 const YEAR_OPTIONS = Array.from({ length: 76 }, (_, i) => 2025 - i);
 const FUEL_TYPE_OPTIONS = [
   { value: "petrol", label: "Petrol" },
@@ -25,10 +25,7 @@ const CONDITION_OPTIONS = [
   { value: "Good", label: "Good" },
   { value: "Fair", label: "Fair" },
 ];
-const RENTSELL_OPTIONS = [
-  { value: "Rent", label: "For Rent" },
-  { value: "Sell", label: "For Sale" },
-];
+
 const TRANSMISSION_OPTIONS = [
   { value: "Automatic", label: "Automatic" },
   { value: "Manual", label: "Manual" },
@@ -55,11 +52,10 @@ const formInit = {
   mileage: "",
   price: "",
   condition: "Good",
-  rentSell: "Sell",
   description: "",
   certified: false,
   vin: "",
-  color: "", // This will now store the color name/value from the selected option
+  color: "",
   interiorColor: "",
   transmission: "",
   engine: "",
@@ -69,17 +65,21 @@ const formInit = {
   registrationFee: "",
   taxRate: "",
   featureIds: [],
+  storeLocationId: "",
 };
 
 export default function AddNewCarPage() {
   const [formData, setFormData] = useState(formInit);
-  const [imageFiles, setImageFiles] = useState([]);
+  const [imageFiles, setImageFiles] = useState([]); // Có thể không cần nếu VehiclePhotosUpload quản lý trực tiếp previews
   const [imagePreviews, setImagePreviews] = useState([]);
   const [uploading, setUploading] = useState(false);
 
   const [carModels, setCarModels] = useState([]);
   const [carColors, setCarColors] = useState([]);
   const [features, setFeatures] = useState([]);
+  // --- BẮT ĐẦU THAY ĐỔI: Thêm state cho storeLocations ---
+  const [storeLocations, setStoreLocations] = useState([]);
+  // --- KẾT THÚC THAY ĐỔI ---
 
 
   const selectedFileNames = imagePreviews.map(item => item.name).join(", ");
@@ -110,8 +110,47 @@ export default function AddNewCarPage() {
         });
       }
     };
+
+    // --- BẮT ĐẦU THAY ĐỔI: Thêm fetch Store Locations ---
+    const fetchStoreLocations = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch("/api/admin/storelocations", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) {
+          throw new Error("Failed to fetch store locations.");
+        }
+        const result = await response.json();
+         if (result.success && Array.isArray(result.data)) {
+            setStoreLocations(result.data); // Set state with the actual array
+        } else {
+            // Handle cases where API returns success: false or data is not an array
+            console.error("API returned an error or unexpected data format:", result.message);
+            Swal.fire({
+                icon: "error",
+                title: "Error!",
+                text: result.message || "Failed to load store locations due to data format. Please try again.",
+            });
+        }
+      } catch (error) {
+        console.error("Error fetching store locations:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error!",
+          text: "Failed to load store locations. Please try again.",
+        });
+      }
+    };
+    // --- KẾT THÚC THAY ĐỔI ---
+
     fetchFormData();
-  }, []);
+    // --- BẮT ĐẦU THAY ĐỔI: Gọi hàm fetch StoreLocations ---
+    fetchStoreLocations();
+    // --- KẾT THÚC THAY ĐỔI ---
+  }, []); // Dependency array rỗng để chỉ chạy một lần khi component mount
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -155,6 +194,9 @@ export default function AddNewCarPage() {
         taxRate: parseFloat(Number(formData.taxRate).toFixed(2)),
         seatingCapacity: parseInt(formData.seatingCapacity),
         videoUrls: videoUrls,
+        // --- BẮT ĐẦU THAY ĐỔI: Gửi storeLocationId trong payload ---
+        storeLocationId: parseInt(formData.storeLocationId),
+        // --- KẾT THÚC THAY ĐỔI ---
       };
 
       console.log("Sending data:", dataToSend);
@@ -175,7 +217,7 @@ export default function AddNewCarPage() {
         Swal.fire({
           icon: "success",
           title: "Success!",
-          text: result.message || "Car added successfully!",
+          text: result.message || "Car and showroom allocation added successfully!", // Cập nhật thông báo
           timer: 2000,
           showConfirmButton: false,
         });
@@ -320,25 +362,29 @@ export default function AddNewCarPage() {
                       ))}
                     </select>
                   </div>
+
                   <div>
-                    <label htmlFor="rentSell" className="block text-gray-700 font-medium mb-2">
-                      Listing Type <span className="text-red-500">*</span>
+                    <label htmlFor="storeLocationId" className="block text-gray-700 font-medium mb-2">
+                      Assign to Showroom <span className="text-red-500">*</span>
                     </label>
                     <select
-                      id="rentSell"
-                      name="rentSell"
-                      value={formData.rentSell}
+                      id="storeLocationId"
+                      name="storeLocationId"
+                      value={formData.storeLocationId}
                       onChange={handleInputChange}
+                      required // Bắt buộc phải chọn showroom
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 bg-white"
-                      required
                     >
-                      {RENTSELL_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
+                      <option value="">Select Showroom</option>
+                      {storeLocations.map((location) => (
+                        <option key={location.storeLocationId} value={location.storeLocationId}>
+                          {location.name}
                         </option>
                       ))}
                     </select>
                   </div>
+                  {/* --- KẾT THÚC THAY ĐỔI --- */}
+
                   <div className="md:col-span-2">
                     <label htmlFor="description" className="block text-gray-700 font-medium mb-2">
                       Description
@@ -593,7 +639,7 @@ export default function AddNewCarPage() {
                 {/* Display selected file names (derived from imagePreviews) */}
                 {selectedFileNames.length > 0 && (
                   <div className="text-sm text-gray-700 mb-2 whitespace-normal break-words mt-2">
-                   {selectedFileNames}
+                    {selectedFileNames}
                   </div>
                 )}
 
