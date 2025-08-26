@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { FaArrowLeft, FaEdit, FaTrash, FaEye, FaCheck, FaTimes, FaUser, FaCar } from "react-icons/fa";
+import React, { useState, useEffect, useRef } from 'react'; // Import useRef
+import { FaArrowLeft, FaDownload } from "react-icons/fa"; // Changed FaPrint to FaDownload
 import { useParams } from 'react-router-dom';
 import { format } from 'date-fns';
+import html2pdf from 'html2pdf.js'; // Import html2pdf
 import AdminSidebar from "../../components/admin/AdminSidebar";
 
 const formatDate = (date) => {
@@ -18,28 +19,48 @@ export default function TransactionDetail() {
   const [transaction, setTransaction] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const contractRef = useRef(null); // Create a ref for the contract content
 
   useEffect(() => {
+    console.log('Component mounted, transaction ID:', id);
     fetchTransactionDetails();
     // eslint-disable-next-line
   }, [id]);
 
   const fetchTransactionDetails = async () => {
     try {
+      console.log('Fetching transaction details for ID:', id);
+      const token = localStorage.getItem('token');
+      console.log('Token exists:', !!token);
+      
       const response = await fetch(`/api/Admin/transactions/${id}`, {
         headers: { 
-          Authorization: `Bearer ${localStorage.getItem('token')}` 
+          Authorization: `Bearer ${token}` 
         }
       });
+      
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+      
       if (response.status === 401) {
+        console.log('Unauthorized, redirecting to login');
         window.location.href = "/login";
         return;
       }
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
+      console.log('Transaction data received:', data);
+      console.log('Transaction keys:', Object.keys(data));
+      
       setTransaction(data);
       setError(null);
     } catch (err) {
-      setError('Failed to load transaction details');
+      console.error('Error fetching transaction details:', err);
+      setError('Failed to load transaction details: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -48,279 +69,295 @@ export default function TransactionDetail() {
   const getVal = (...keys) => {
     let val = transaction;
     for (const k of keys) {
-      if (!val) return "-";
+      if (!val) return null; 
       val = val[k] || val[k.charAt(0).toUpperCase() + k.slice(1)];
     }
-    return val ?? "-";
+    if (typeof val === 'string' && val.trim() === '') return null;
+    return val ?? null; 
   };
 
-  const getTransactionRole = () => {
-    if (transaction?.role) return transaction.role;
-    if (transaction?.customer?.role) return transaction.customer.role;
-    if (transaction?.Customer?.role) return transaction.Customer.role;
-    return "Customer";
+  // Function to handle PDF download
+  const handleDownloadPdf = () => {
+    if (contractRef.current) {
+      const element = contractRef.current;
+      const opt = {
+        margin:       0.5, // Adjusted margin to be smaller
+        filename:     `PurchaseAgreement_${transaction.saleId}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, logging: true, dpi: 192, letterRendering: true },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } // Helps control page breaks
+      };
+      // Use html2pdf to generate and download the PDF
+      html2pdf().set(opt).from(element).save();
+    }
   };
 
-  const getImages = () => {
-    let imgs = getVal("car", "images") || getVal("Car", "images");
-    if (!imgs && getVal("car", "image") !== "-") imgs = [getVal("car", "image")];
-    if (!Array.isArray(imgs)) imgs = [];
-    return imgs;
-  };
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen text-lg text-gray-700">Loading data...</div>;
+  }
+  
+  if (error) {
+    return <div className="flex items-center justify-center h-screen text-red-600 text-lg">{error}</div>;
+  }
+  
+  if (!transaction) {
+    return <div className="flex items-center justify-center h-screen text-gray-700 text-lg">Transaction not found.</div>;
+  }
 
-  const getCarInfo = () => {
-    const car = transaction?.car || transaction?.Car || {};
-    return {
-      manufacturer: car.Manufacturer ?? car.manufacturer ?? "-",
-      model: car.Model ?? car.model ?? "-",
-      year: car.Year ?? car.year ?? "-",
-      mileage: car.Mileage ?? car.mileage ?? "-",
-      price: car.Price ?? car.price ?? "-",
-      location: car.Location ?? car.location ?? "-",
-      condition: car.Condition ?? car.condition ?? "-",
-      rentSell: car.RentSell ?? car.rentSell ?? "-",
-      color: car.Color ?? car.color ?? "-",
-      transmission: car.Transmission ?? car.transmission ?? "-",
-      vin: car.Vin ?? car.vin ?? "-",
-      description: car.Description ?? car.description ?? "-",
-      certified: car.Certified ?? car.certified ?? undefined,
-      images: car.Images ?? car.images ?? [],
-    };
-  };
-
-  if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
-  if (error) return <div className="flex items-center justify-center h-screen text-red-500">{error}</div>;
-  if (!transaction) return <div className="flex items-center justify-center h-screen">Transaction not found</div>;
-
-  const carInfo = getCarInfo();
-  const images = getImages().length > 0 ? getImages() : (carInfo.images || []);
+  // Helper component for detail items - kept for other sections, but main contract will use direct JSX
+  const DetailItem = ({ label, value, largeText = false, highlight = false, className = '' }) => (
+    <div className={`pb-4 ${className}`}>
+      <p className="font-medium text-gray-600 text-sm uppercase tracking-wide">{label}:</p>
+      <p className={`mt-1 ${largeText ? 'text-xl' : 'text-lg'} ${highlight ? 'text-violet-700 font-bold' : 'text-gray-900 font-semibold'}`}>
+        {value}
+      </p>
+    </div>
+  );
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex flex-col md:flex-row h-screen bg-gray-50">
       <AdminSidebar />
-      {/* Main area */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="h-20 px-8 flex items-center justify-between bg-white border-b">
-          <div className="flex items-center w-full max-w-md relative">
-            <input
-              type="text"
-              placeholder="Search or type"
-              className="w-full px-12 py-2 border rounded-lg bg-gray-50 outline-none"
-            />
-            <span className="absolute left-4 text-gray-400">
-              <svg width="18" height="18" fill="none" stroke="currentColor"><circle cx="8" cy="8" r="7" strokeWidth="2"/><path d="M16 16l-3.5-3.5" strokeWidth="2" strokeLinecap="round"/></svg>
-            </span>
-          </div>
-          <div className="flex items-center gap-6">
-            <button className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700">
-              <FaArrowLeft size={20} />
-            </button>
-            <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden border-2 border-white flex items-center justify-center">
-              <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="profile" />
-            </div>
-          </div>
-        </header>
-        {/* Content */}
-        <main className="flex-1 px-8 py-8 overflow-y-auto">
-          <div className="flex items-center gap-4 mb-8">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <header className="h-20 px-4 sm:px-8 flex items-center justify-between bg-white border-b border-gray-200 shadow-sm print:hidden">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button
-              className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700"
+              className="p-2 sm:p-3 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition duration-200"
               onClick={() => window.history.back()}
               aria-label="Back"
             >
-              <FaArrowLeft size={20} />
+              <FaArrowLeft size={18} sm:size={20} />
             </button>
-            <h1 className="text-2xl font-bold text-gray-800">
-              Transaction Details
-            </h1>
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 rounded-full bg-violet-100 text-violet-700 text-sm font-semibold border border-violet-300">
-                {getTransactionRole()}
-              </span>
-              <button className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700">
-                <FaEye size={18} title="View Details" />
-              </button>
-              <button className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700">
-                <FaEdit size={18} title="Edit Transaction" />
-              </button>
-              <button className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700">
-                <FaTrash size={18} title="Delete Transaction" />
-              </button>
-            </div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-800 truncate">Vehicle Purchase Agreement Details</h1>
           </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-            {/* Transaction Info */}
-            <div className="bg-white rounded-xl p-8 shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
-                <FaCheck className="text-green-500" size={20} />
-                <h3 className="text-lg font-bold text-gray-800">Transaction Information</h3>
-              </div>
-              <div className="space-y-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-600">Date:</span>
-                  <span className="text-gray-900">{formatDate(transaction.saleDate || transaction.SaleDate)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-600">Status:</span>
-                  <span className="text-gray-900">{transaction.saleStatus || transaction.SaleStatus}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-600">Price:</span>
-                  <span className="text-violet-600 font-semibold">
-                    {Number(transaction.finalPrice || transaction.FinalPrice).toLocaleString(undefined, { style: "currency", currency: "USD" })}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-600">Created:</span>
-                  <span className="text-gray-900">{formatDate(transaction.createdAt || transaction.CreatedAt)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-600">Updated:</span>
-                  <span className="text-gray-900">{formatDate(transaction.updatedAt || transaction.UpdatedAt)}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Customer Info */}
-            <div className="bg-white rounded-xl p-8 shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
-                <FaUser className="text-blue-500" size={20} />
-                <h3 className="text-lg font-bold text-gray-800">Customer Information</h3>
-              </div>
-              <div className="space-y-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-600">Name:</span>
-                  <span className="text-gray-900">{getVal("customer", "fullName")}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-600">Email:</span>
-                  <span className="text-gray-900">{getVal("customer", "email")}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-600">Phone:</span>
-                  <span className="text-gray-900">{getVal("customer", "mobile")}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-600">Role:</span>
-                  <span className="text-gray-900">{getTransactionRole()}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Car Info */}
-            <div className="bg-white rounded-xl p-8 shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
-                <FaCar className="text-orange-500" size={20} />
-                <h3 className="text-lg font-bold text-gray-800">Vehicle Information</h3>
-              </div>
-              <div className="space-y-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-600">Make:</span>
-                  <span className="text-gray-900">{carInfo.manufacturer}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-600">Model:</span>
-                  <span className="text-gray-900">{carInfo.model}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-600">Year:</span>
-                  <span className="text-gray-900">{carInfo.year}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-600">Mileage:</span>
-                  <span className="text-gray-900">{carInfo.mileage}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-600">Price:</span>
-                  <span className="text-violet-600 font-semibold">{carInfo.price}</span>
-                </div>
-              </div>
-            </div>
+          <div className="flex items-center gap-2 sm:gap-4">
+            <button
+              className="flex items-center gap-1 sm:gap-2 px-3 py-1 sm:px-4 sm:py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200 text-sm sm:text-base"
+              onClick={handleDownloadPdf} // Call the new download function
+            >
+              <FaDownload /> <span className="hidden sm:inline">Download PDF</span> {/* Changed text and icon */}
+            </button>
           </div>
+        </header>
 
-          {/* Car Info Full */}
-          <div className="bg-white rounded-xl p-8 flex flex-col md:flex-row gap-8 mb-10">
-            <div className="flex-shrink-0 w-full md:w-60">
-              <div className="font-bold mb-4 text-violet-700 text-lg">Vehicle Images</div>
-              {images.length > 0 ? (
-                <div className="flex flex-row md:flex-col gap-2 md:gap-2">
-                  {images.map((url, idx) => (
-                    <img
-                      key={idx}
-                      src={url}
-                      alt={`Car image ${idx + 1}`}
-                      className="rounded-xl w-28 h-20 md:w-56 md:h-32 object-cover border border-gray-200 shadow-sm"
-                      style={{objectFit: 'cover'}}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="w-56 h-32 flex items-center justify-center bg-gray-100 text-gray-400 rounded-xl border">
-                  No Images
-                </div>
-              )}
+        <main className="flex-1 px-4 py-4 sm:px-8 sm:py-8 overflow-y-auto print:p-0 print:m-0 print:shadow-none">
+          {/* Assign the ref to the div that wraps the entire contract content */}
+          <div ref={contractRef} className="bg-white rounded-xl p-4 sm:p-8 shadow-lg print:rounded-none print:shadow-none print:p-6 max-w-4xl mx-auto">
+            <div className="text-center mb-6 sm:mb-10 border-b pb-4 sm:pb-6 border-gray-200 print:mb-6 print:pb-4">
+              <h2 className="text-2xl sm:text-4xl font-extrabold text-gray-900 mb-2 sm:mb-3 tracking-tight">VEHICLE PURCHASE AGREEMENT</h2>
+              <p className="text-base sm:text-xl text-gray-600 mb-1 sm:mb-2">Agreement No: <span className="font-bold text-gray-800">{transaction.saleId}</span></p>
+              <p className="text-base sm:text-xl text-gray-600">Date: <span className="font-bold text-gray-800">{formatDate(transaction.saleDate)}</span></p>
             </div>
-            <div className="flex-1">
-              <div className="font-bold mb-4 text-violet-700 text-lg">Vehicle Information</div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                <div>
-                  <span className="font-medium text-gray-600">Manufacturer: </span>
-                  <span className="text-gray-900">{carInfo.manufacturer}</span>
+
+            {/* Contract Body - Mimicking SurveyJS structure */}
+            <section className="mb-6 sm:mb-10 text-base sm:text-lg text-gray-900 leading-relaxed font-semibold">
+                <div className="flex flex-wrap items-baseline -mt-1 sm:-mt-2">
+                    <p className="inline pr-1" style={{ lineHeight: '36px' }}>
+                        This sales contract (hereinafter referred to as the "Agreement") is entered into as of
+                    </p>
+                    {/* date */}
+                    <span className="inline-block text-gray-800 border-b border-gray-400 px-2 min-w-[100px] w-full sm:w-auto sm:flex-grow text-center" style={{ lineHeight: '36px', fontWeight:'800' }}>
+                       {formatDate(transaction.saleDate)}
+                    </span>
+                    <p className="inline pl-1 pr-1" style={{ lineHeight: '36px' }}>
+                        by and between
+                    </p>
+                    {/* seller-name */}
+                    <span className="inline-block text-gray-800 border-b border-gray-400 px-2 min-w-[150px] w-full sm:w-auto sm:flex-grow text-center" style={{ lineHeight: '36px' , fontWeight:'800'}}>
+                        {getVal("seller", "fullName")}
+                    </span>
+                    <p className="inline pl-1 pr-1" style={{ lineHeight: '36px' }}>
+                        with a mailing address of
+                    </p>
+                    {/* seller-address-line-1 */}
+                    <span className="inline-block text-gray-800 border-b border-gray-400 px-2 min-w-[64px] w-full sm:w-auto sm:flex-grow text-center" style={{ lineHeight: '36px', fontWeight:'800' }}>
+                        {getVal("seller", "province")}
+                    </span>
+                    <span className="inline-block w-full text-gray-800 px-2" style={{ lineHeight: '36px' }}>
+                        {/* seller-address-line-2 (if available, add another line for address details) */}
+                    </span>
                 </div>
-                <div>
-                  <span className="font-medium text-gray-600">Model: </span>
-                  <span className="text-gray-900">{carInfo.model}</span>
+                <div className="flex flex-wrap items-baseline -mt-1 sm:-mt-2">
+                    <p className="inline pr-1" style={{ lineHeight: '36px' }}>
+                        (hereinafter referred to as the "Seller") and
+                    </p>
+                    {/* buyer-name */}
+                    <span className="inline-block text-gray-800 border-b border-gray-400 px-2 min-w-[150px] w-full sm:w-auto sm:flex-grow text-center" style={{ lineHeight: '36px', fontWeight:'800' }}>
+                        {getVal("customer", "fullName")}
+                    </span>
+                    <p className="inline pl-1 pr-1" style={{ lineHeight: '36px' }}>
+                        with a mailing address of
+                    </p>
+                    {/* buyer-address-line-1 */}
+                    <span className="inline-block text-gray-800 border-b border-gray-400 px-2 min-w-[64px] w-full sm:w-auto sm:flex-grow text-center" style={{ lineHeight: '36px', fontWeight:'800' }}>
+                        {getVal("customer", "province")}
+                    </span>
+                    <span className="inline-block w-full text-gray-800 px-2" style={{ lineHeight: '36px' }}>
+                        {/* buyer-address-line-2 (if available) */}
+                    </span>
                 </div>
-                <div>
-                  <span className="font-medium text-gray-600">Year: </span>
-                  <span className="text-gray-900">{carInfo.year}</span>
+                <p className="mt-2" style={{ lineHeight: '42px', marginBottom: '30px', marginTop: '-8px' }}>
+                    (hereinafter referred to as the "Buyer"), collectively referred to as the "Parties", both
+                    of whom agree to be bound by this Agreement.
+                </p>
+
+                <p style={{ lineHeight: '36px' }}>
+                    The Seller is the manufacturer and distributor of the following product(s):
+                </p>
+                {/* goods */}
+                <div className="border-b border-gray-400 py-2 mt-1 px-2 min-h-[40px] text-gray-800 whitespace-pre-line" style={{fontWeight:'800'}}>
+                    {getVal("car", "manufacturer")} {getVal("car", "model")} ({getVal("car", "year")}), VIN: {getVal("car", "vin")}
+                    <br/>
+                    Condition: {getVal("car", "condition")}
+                    <br/>
+                    Transmission: {getVal("car", "transmission")}
+                    <br/>
+                    Seating Capacity: {getVal("car", "seatingCapacity")} seats
+                    <br/>
+                    Fuel Type: {getVal("car", "fuelType")}
                 </div>
-                <div>
-                  <span className="font-medium text-gray-600">Mileage: </span>
-                  <span className="text-gray-900">{carInfo.mileage}</span>
+                <p className="mt-2" style={{ lineHeight: '42px', marginBottom: '30px', marginTop: '-8px' }}>
+                    (hereinafter referred to as the "Goods").
+                    <br />
+                    The Buyer wishes to purchase the aforementioned product(s).
+                </p>
+
+                <p style={{ lineHeight: '42px', marginBottom: '-8px', marginTop: '-8px' }}>
+                    <span className="font-bold">THEREFORE, the Parties agree as follows:</span>
+                    <br />
+                    <span className="font-bold">1. Sale of Goods.</span> The Seller shall make available for sale, and the Buyer shall purchase the Goods.
+                    <br />
+                    <span className="font-bold">2. Delivery and Shipping.</span>
+                </p>
+                {/* delivery-details */}
+                <div className="border-b border-gray-400 py-2 mt-1 px-2 min-h-[40px] text-gray-800 whitespace-pre-line" >
+                    Delivery will be arranged to: <span style={{fontWeight:'800'}}>{getVal("customer", "province")}</span>.
+                    <br/>
+                    Pickup/Sale Location: <span style={{fontWeight:'800'}}>{getVal("car", "location", "name")}</span> at <span style={{fontWeight:'800'}}>{getVal("car", "location", "address")}</span>.
                 </div>
-                <div>
-                  <span className="font-medium text-gray-600">Price (listed): </span>
-                  <span className="text-gray-900">{carInfo.price ? Number(carInfo.price).toLocaleString(undefined, { style: "currency", currency: "USD" }) : '-'}</span>
+
+                <p style={{ lineHeight: '42px', marginBottom: '-8px', marginTop: '-8px' }}>
+                    <span className="font-bold">3. Purchase Price and Payments.</span>
+                </p>
+                <div className="flex flex-wrap items-baseline -mt-1 sm:-mt-2">
+                    <p className="inline pr-1" style={{ lineHeight: '36px' }}>
+                        The Seller agrees to sell the Goods to the Buyer for
+                    </p>
+                    {/* price */}
+                    <span className="inline-block text-gray-800 border-b border-gray-400 px-2 min-w-[64px] w-full sm:w-auto sm:flex-grow text-center" style={{ lineHeight: '36px',fontWeight:'800' }}>
+                        {Number(transaction.finalPrice).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
+                    </span>
+                    <p className="inline pl-1 pr-1" style={{ lineHeight: '36px' }}>
+                        VND.
+                    </p>
                 </div>
-                <div>
-                  <span className="font-medium text-gray-600">VIN: </span>
-                  <span className="text-gray-900">{carInfo.vin}</span>
+                <p style={{ lineHeight: '42px', marginBottom: '-8px', marginTop: '-8px' }}>
+                    The Seller will provide an invoice to the Buyer at the time of delivery or pick-up.
+                </p>
+                <div className="flex flex-wrap items-baseline -mt-1 sm:-mt-2">
+                    <p className="inline pr-1" style={{ lineHeight: '36px' }}>
+                        All invoices must be paid, in full, within
+                    </p>
+                    {/* terms */}
+                    <span className="inline-block text-gray-800 border-b border-gray-400 px-2 min-w-[64px] w-full sm:w-[64px] text-center" style={{ lineHeight: '36px',fontWeight:'800' }}>
+                        30 {/* Example value, replace if you have this in transaction data */}
+                    </span>
+                    <p className="inline pl-1 pr-1" style={{ lineHeight: '36px' }}>
+                        days.
+                    </p>
                 </div>
-                <div>
-                  <span className="font-medium text-gray-600">Location: </span>
-                  <span className="text-gray-900">{carInfo.location}</span>
+                <div className="flex flex-wrap items-baseline -mt-1 sm:-mt-2">
+                    <p className="inline pr-1" style={{ lineHeight: '36px' }}>
+                        Any balances not paid within
+                    </p>
+                    {/* grace-period */}
+                    <span className="inline-block text-gray-800 border-b border-gray-400 px-2 min-w-[48px] w-full sm:w-[48px] text-center" style={{ lineHeight: '36px' ,fontWeight:'800'}}>
+                        7 {/* Example value */}
+                    </span>
+                    <p className="inline pl-1 pr-1" style={{ lineHeight: '36px' }}>
+                        days will be subject to a
+                    </p>
+                    {/* penalty-percentage */}
+                    <span className="inline-block text-gray-800 border-b border-gray-400 px-2 min-w-[48px] w-full sm:w-[48px] text-center" style={{ lineHeight: '36px' ,fontWeight:'800'}}>
+                        5 {/* Example value */}
+                    </span>
+                    <p className="inline pl-1 pr-1" style={{ lineHeight: '36px' }}>
+                        % late payment penalty.
+                    </p>
                 </div>
-                <div>
-                  <span className="font-medium text-gray-600">Condition: </span>
-                  <span className="text-gray-900">{carInfo.condition}</span>
+
+                <p style={{ lineHeight: '42px', marginBottom: '0px', marginTop: '-8px' }}>
+                    <span className="font-bold">4. Inspection of Goods and Rejection.</span> The Buyer is entitled to inspect the Goods promptly upon delivery or receipt. The Buyer shall have a reasonable period, not exceeding
+                </p>
+                <div className="flex flex-wrap items-baseline">
+                    {/* inspect-period */}
+                    <span className="inline-block text-gray-800 border-b border-gray-400 px-2 min-w-[64px] w-full sm:w-[64px] text-center" style={{ lineHeight: '36px' ,fontWeight:'800'}}>
+                        3 {/* Example value */}
+                    </span>
+                    <p className="inline pl-1" style={{ lineHeight: '36px' }}>
+                        days, from the date of delivery to thoroughly inspect the Goods and
+                    </p>
                 </div>
-                <div>
-                  <span className="font-medium text-gray-600">Type: </span>
-                  <span className="text-gray-900">{carInfo.rentSell}</span>
+                <p className="mt-2" style={{ lineHeight: '42px', marginBottom: '16px' }}>
+                    ensure they conform to the specifications and quality agreed upon in this Agreement. If the Goods do not meet the agreed-upon standards or are found to be damaged, the Buyer has the right to reject the Goods.
+                </p>
+            </section>
+            
+            {/* Signatures */}
+            <section className="mt-10 sm:mt-16 pt-4 sm:pt-8 border-t border-gray-200 print:mt-8 print:pt-4">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6 sm:mb-8 text-center">SIGNATURES</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 print:grid-cols-3 print:gap-4">
+                {/* Seller Signature */}
+                <div className="text-center flex flex-col items-center">
+                  <p className="font-medium text-gray-600 text-base sm:text-lg mb-3 sm:mb-4">SELLER</p>
+                  <div className="w-full h-24 sm:h-32 border-b-2 border-dashed border-gray-400 flex items-center justify-center relative bg-gray-50 rounded-md overflow-hidden print:h-24 print:bg-transparent">
+                    {transaction.saleStatus === 'Completed' && getVal("seller", "signature") ? (
+                      <img 
+                        src={getVal("seller", "signature")} 
+                        alt="Seller Signature" 
+                        className="w-full h-full object-contain p-1 sm:p-2"
+                      />
+                    ) : (
+                      <span className="text-gray-400 text-sm italic">Seller signed</span>
+                    )}
+                  </div>
+                  <p className="text-base sm:text-lg text-gray-900 font-bold mt-3 sm:mt-4">{getVal("seller", "fullName")}</p>
                 </div>
-                <div>
-                  <span className="font-medium text-gray-600">Certified: </span>
-                  <span className="text-gray-900">{carInfo.certified === 1 ? "Yes" : carInfo.certified === 0 ? "No" : "-"}</span>
+
+                {/* Buyer Signature */}
+                <div className="text-center flex flex-col items-center">
+                  <p className="font-medium text-gray-600 text-base sm:text-lg mb-3 sm:mb-4">BUYER</p>
+                  <div className="w-full h-24 sm:h-32 border-b-2 border-dashed border-gray-400 flex items-center justify-center relative bg-gray-50 rounded-md overflow-hidden print:h-24 print:bg-transparent">
+                    {transaction.saleStatus === 'Completed' && getVal("customer", "signature") ? (
+                      <img 
+                        src={getVal("customer", "signature")} 
+                        alt="Buyer Signature" 
+                        className="w-full h-full object-contain p-1 sm:p-2"
+                      />
+                    ) : (
+                      <span className="text-gray-400 text-sm italic">Buyer signed</span>
+                    )}
+                  </div>
+                  <p className="text-base sm:text-lg text-gray-900 font-bold mt-3 sm:mt-4">{getVal("customer", "fullName")}</p>
                 </div>
-                <div>
-                  <span className="font-medium text-gray-600">Color: </span>
-                  <span className="text-gray-900">{carInfo.color}</span>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-600">Transmission: </span>
-                  <span className="text-gray-900">{carInfo.transmission}</span>
+
+                {/* Witness Signature */}
+                <div className="text-center flex flex-col items-center">
+                  <p className="font-medium text-gray-600 text-base sm:text-lg mb-3 sm:mb-4">WITNESS</p>
+                  <div className="w-full h-24 sm:h-32 border-b-2 border-dashed border-gray-400 flex items-center justify-center bg-gray-50 rounded-md print:h-24 print:bg-transparent">
+                    <span className="text-gray-400 text-sm italic">WITNESS signed</span>
+                  </div>
+                  <p className="text-base sm:text-lg text-gray-900 font-bold mt-3 sm:mt-4">AutoSaleDN</p>
                 </div>
               </div>
-              <div className="mt-4 text-sm">
-                <div className="font-medium text-gray-600">Description</div>
-                <div className="text-gray-900 whitespace-pre-line">{carInfo.description}</div>
-              </div>
-            </div>
+            </section>
+            
+            <footer className="mt-10 sm:mt-16 text-center text-gray-500 text-xs sm:text-sm print:mt-8 print:text-xs">
+              <p>This agreement is made in two (02) copies of equal legal value, with each party retaining one (01) copy.</p>
+              <p className="mt-1 sm:mt-2">&copy; {new Date().getFullYear()} AutoSaleDN Company. All rights reserved.</p>
+            </footer>
+
           </div>
-
         </main>
       </div>
     </div>

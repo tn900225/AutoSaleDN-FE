@@ -16,11 +16,15 @@ import SellCars from "./pages/admin/SellCars";
 import Services from "./pages/admin/Services";
 import Settings from "./pages/admin/Settings";
 import ShowroomManagement from "./pages/admin/ShowroomManagement";
-import Booking from "./pages/admin/Booking";
+import EmployeeAdmin from "./pages/admin/EmployeeAdmin";
 import CustomerAdmin from "./pages/admin/CustomerAdmin";
 import CarAdmin from "./pages/admin/CarAdmin";
 import TransactionDetail from "./pages/admin/TransactionDetail";
 import AddNewCarPage from "./pages/admin/AddNewCarPage";
+import CarFeatures from "./pages/admin/CarFeatures";
+import CarColor from "./pages/admin/CarColor";
+import CarManufacturers from "./pages/admin/CarManufacturers";
+import UpdateCar from "./pages/admin/UpdateCar";
 
 function UserLayout({ children }) {
   return (
@@ -82,7 +86,11 @@ function App() {
                   <Route path="services" element={<Services />} />
                   <Route path="settings" element={<Settings />} />
                   <Route path="showroom" element={<ShowroomManagement />} />
-                  <Route path="booking" element={<Booking />} />
+                  <Route path="employee" element={<EmployeeAdmin />} />
+                  <Route path="car-features" element={<CarFeatures />} />
+                  <Route path="car-colors" element={<CarColor />} />
+                  <Route path="car-manufacturers-models" element={<CarManufacturers />} />
+                  <Route path="cars/edit/:listingId" element={<UpdateCar />} />
                   
                   {/* Admin-only routes */}
                   <Route
