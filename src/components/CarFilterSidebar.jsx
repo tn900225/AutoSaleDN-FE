@@ -1,44 +1,168 @@
-import React, { useState } from "react";
-import SelectMakePopup from "./SelectMakePopup";
+import React, { useState, useEffect, useCallback } from "react";
+import SelectMakePopup from "./SelectMakePopup"; // Ensure correct path
 
-export default function CarFilterSidebar({ onFilter }) {
+export default function CarFilterSidebar({ onFilter, currentFilters }) {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
-  const [paymentType, setPaymentType] = useState("cash");
-  const [transmission, setTransmission] = useState("");
-  const [fuel, setFuel] = useState("");
-  const [powerUnit, setPowerUnit] = useState("kW");
-  const [keyword, setKeyword] = useState("");
+  const [paymentType, setPaymentType] = useState(currentFilters.paymentType || "cash");
+  const [transmission, setTransmission] = useState(currentFilters.transmission || "");
+  const [keyword, setKeyword] = useState(currentFilters.keyword || "");
 
-  const [priceFrom, setPriceFrom] = useState("");
-  const [priceTo, setPriceTo] = useState("");
-  const [vatDeduction, setVatDeduction] = useState(false);
-  const [discountedCars, setDiscountedCars] = useState(false);
-  const [premiumPartners, setPremiumPartners] = useState(false);
-  const [registrationFrom, setRegistrationFrom] = useState("");
-  const [registrationTo, setRegistrationTo] = useState("");
-  const [mileageFrom, setMileageFrom] = useState("");
-  const [mileageTo, setMileageTo] = useState("");
-  const [powerFrom, setPowerFrom] = useState("");
-  const [powerTo, setPowerTo] = useState("");
-  const [vehicleType, setVehicleType] = useState("");
-  const [driveType4x4, setDriveType4x4] = useState(false);
-  const [selectedExteriorColor, setSelectedExteriorColor] = useState("");
-  const [selectedFeatures, setSelectedFeatures] = useState([]);
+  // Convert currentFilters.priceFrom and priceTo back to the format for selectedPriceRange
+  const getInitialPriceRange = (filters) => {
+    if (filters.priceFrom === null && filters.priceTo === null) return "";
+    if (filters.priceFrom !== null && filters.priceTo === null) return `${filters.priceFrom}-max`;
+    if (filters.priceFrom !== null && filters.priceTo !== null) return `${filters.priceFrom}-${filters.priceTo}`;
+    return "";
+  };
+
+  const [selectedPriceRange, setSelectedPriceRange] = useState(getInitialPriceRange(currentFilters));
+  const [vatDeduction, setVatDeduction] = useState(currentFilters.vatDeduction || false);
+  const [discountedCars, setDiscountedCars] = useState(currentFilters.discountedCars || false);
+  const [premiumPartners, setPremiumPartners] = useState(currentFilters.premiumPartners || false);
+
+  // Convert currentFilters.registrationFrom and registrationTo back to the format for selectedRegistrationYearRange
+  const getInitialRegistrationYearRange = (filters) => {
+    if (filters.registrationFrom === null && filters.registrationTo === null) return "";
+    if (filters.registrationFrom === 0 && filters.registrationTo === 2004) return "before-2005"; // Special case for "Before 2005"
+    if (filters.registrationFrom !== null && filters.registrationFrom === filters.registrationTo) return `${filters.registrationFrom}-${filters.registrationTo}`;
+    return "";
+  };
+
+  const [selectedRegistrationYearRange, setSelectedRegistrationYearRange] = useState(getInitialRegistrationYearRange(currentFilters));
+
+  // Convert currentFilters.mileageFrom and mileageTo back to the format for selectedMileageRange
+  const getInitialMileageRange = (filters) => {
+    if (filters.mileageFrom === null && filters.mileageTo === null) return "";
+    if (filters.mileageFrom !== null && filters.mileageTo === null) return `${filters.mileageFrom}-max`;
+    if (filters.mileageFrom !== null && filters.mileageTo !== null) return `${filters.mileageFrom}-${filters.mileageTo}`;
+    return "";
+  };
+  const [selectedMileageRange, setSelectedMileageRange] = useState(getInitialMileageRange(currentFilters));
+
+  const [vehicleType, setVehicleType] = useState(currentFilters.vehicleType || "");
+  const [fuelType, setFuelType] = useState(currentFilters.fuelType || ""); // Đảm bảo khai báo state fuelType
+
+  const [driveType4x4, setDriveType4x4] = useState(currentFilters.driveType4x4 || false);
+  const [selectedExteriorColor, setSelectedExteriorColor] = useState(currentFilters.exteriorColor || "");
+  const [selectedFeatures, setSelectedFeatures] = useState(currentFilters.features || []);
+
+  const [showAllFeatures, setShowAllFeatures] = useState(false);
+
+  // State to store dynamically fetched options
+  const [registrationYearOptions, setRegistrationYearOptions] = useState([]);
+  const [mileageOptions, setMileageOptions] = useState([]);
+  const [priceRangeOptions, setPriceRangeOptions] = useState([]);
+  const [allFeaturesOptions, setAllFeaturesOptions] = useState([]);
+  const [vehicleTypeOptions, setVehicleTypeOptions] = useState([]);
+  const [fuelTypeOptions, setFuelTypeOptions] = useState([]);
+
+
+  // --- Fetch filter options from API on component mount ---
+  useEffect(() => {
+    const fetchFilterOptions = async () => {
+      try {
+        const yearsRes = await fetch('/api/User/cars/years');
+        if (yearsRes.ok) {
+          const yearsData = await yearsRes.json();
+          const options = [{ value: "", label: "Any Year" }];
+          yearsData.forEach(year => options.push({ value: `${year}-${year}`, label: `${year}` }));
+          // Add "Before 2005" option if applicable and not already present
+          if (!options.some(opt => opt.value === "before-2005")) {
+            options.push({ value: "before-2005", label: "Before 2005" });
+          }
+          setRegistrationYearOptions(options);
+        }
+
+        const mileageRes = await fetch('/api/User/cars/mileage-ranges');
+        if (mileageRes.ok) {
+          const mileageData = await mileageRes.json();
+          setMileageOptions([{ value: "", label: "Any Mileage" }, ...mileageData]);
+        }
+
+        const priceRes = await fetch('/api/User/cars/price-ranges');
+        if (priceRes.ok) {
+          const priceData = await priceRes.json();
+          setPriceRangeOptions([{ value: "", label: "Any Price" }, ...priceData]);
+        }
+
+        const featuresRes = await fetch('/api/User/cars/features');
+        if (featuresRes.ok) {
+          const featuresData = await featuresRes.json();
+          setAllFeaturesOptions(featuresData);
+        }
+
+        const vehicleTypeRes = await fetch('/api/User/cars/vehicle-types');
+        if (vehicleTypeRes.ok) {
+          const vehicleTypesData = await vehicleTypeRes.json();
+          setVehicleTypeOptions(vehicleTypesData.map(type => ({ value: type, label: type })));
+        }
+        // const fuelTypeRes = await fetch('/api/User/cars/fuel-types');
+        // if (fuelTypeRes.ok) {
+        //   const fuelTypesData = await fuelTypeRes.json();
+        //   setFuelTypeOptions([{ value: "", label: "All Fuel Types" }, ...fuelTypesData.map(type => ({ value: type, label: type }))]);
+        // }
+        const fuelTypeRes = await fetch('/api/User/cars/fuel-types');
+        if (fuelTypeRes.ok) {
+          const fuelTypesData = await fuelTypeRes.json();
+          // Remove the "All Fuel Types" entry from here
+          setFuelTypeOptions(fuelTypesData.map(type => ({ value: type, label: type })));
+        }
+
+      } catch (error) {
+        console.error("Failed to fetch filter options:", error);
+      }
+    };
+
+    fetchFilterOptions();
+  }, []); // Empty dependency array means this runs once on mount
+
+  // --- Synchronize local state with currentFilters prop ---
+  // This useEffect ensures that when currentFilters changes (e.g., from a URL param change
+  // or initial load), the sidebar inputs reflect those filters.
+  useEffect(() => {
+    setPaymentType(currentFilters.paymentType || "cash");
+    setTransmission(currentFilters.transmission || "");
+    setFuelType(currentFilters.fuelType || ""); // Đồng bộ với currentFilters.fuelType
+    setKeyword(currentFilters.keyword || "");
+    setSelectedPriceRange(getInitialPriceRange(currentFilters)); // Use helper
+    setVatDeduction(currentFilters.vatDeduction || false);
+    setDiscountedCars(currentFilters.discountedCars || false);
+    setPremiumPartners(currentFilters.premiumPartners || false);
+    setSelectedRegistrationYearRange(getInitialRegistrationYearRange(currentFilters)); // Use helper
+    setSelectedMileageRange(getInitialMileageRange(currentFilters)); // Use helper
+    setVehicleType(currentFilters.vehicleType || "");
+    setDriveType4x4(currentFilters.driveType4x4 || false);
+    setSelectedExteriorColor(currentFilters.exteriorColor || "");
+    setSelectedFeatures(currentFilters.features || []);
+  }, [currentFilters]); // Rerun when currentFilters prop changes
 
   const handleOpenPopup = () => setIsPopupOpen(true);
   const handleClosePopup = () => setIsPopupOpen(false);
 
-  const SelectInput = ({ placeholder, value, onChange, ...props }) => (
+  const FilterInput = ({ placeholder, value, onChange, type = "text", ...props }) => (
+    <input
+      {...props}
+      type={type}
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+      className="w-full border border-[#bcc6dd] rounded-lg px-4 py-2 text-[#1c274c] bg-white focus:border-[#3452e1] focus:ring-2 focus:ring-[#3452e1] transition"
+    />
+  );
+
+  const SelectInput = ({ placeholder, value, onChange, options, ...props }) => (
     <div className="relative w-full">
-      <input
+      <select
         {...props}
-        placeholder={placeholder}
         value={value}
         onChange={onChange}
         className="w-full border border-[#bcc6dd] rounded-lg px-4 py-2 pr-8 text-[#1c274c] bg-white focus:border-[#3452e1] focus:ring-2 focus:ring-[#3452e1] appearance-none transition cursor-pointer"
-        readOnly
-        tabIndex={0}
-      />
+      >
+        <option value="">{placeholder}</option>
+        {options.map(option => (
+          <option key={option.value || option.label} value={option.value}>{option.label}</option>
+        ))}
+      </select>
       <svg
         className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
         width={16}
@@ -80,36 +204,102 @@ export default function CarFilterSidebar({ onFilter }) {
     );
   };
 
+  const parseRange = (rangeString) => {
+    if (!rangeString) return { from: null, to: null };
+    if (rangeString === "before-2005") return { from: 0, to: 2004 }; // Specific for year, using 0 as a placeholder for "any year before"
+    if (rangeString.endsWith("-max")) {
+      const from = parseFloat(rangeString.split('-')[0]);
+      return { from: from, to: null };
+    }
+    const [fromStr, toStr] = rangeString.split('-');
+    return { from: parseFloat(fromStr), to: parseFloat(toStr) };
+  };
+
+  // No resetFormFields() call in handleSubmit anymore
   const handleSubmit = (e) => {
     e.preventDefault();
-    onFilter({
+
+    const registrationRange = parseRange(selectedRegistrationYearRange);
+    const mileageRange = parseRange(selectedMileageRange);
+    const priceRange = parseRange(selectedPriceRange);
+
+    const newFilters = {
       keyword,
       paymentType,
-      priceFrom: parseFloat(priceFrom) || null,
-      priceTo: parseFloat(priceTo) || null,
+      priceFrom: priceRange.from,
+      priceTo: priceRange.to,
       vatDeduction,
       discountedCars,
       premiumPartners,
-      registrationFrom: parseInt(registrationFrom, 10) || null,
-      registrationTo: parseInt(registrationTo, 10) || null,
-      mileageFrom: parseInt(mileageFrom, 10) || null,
-      mileageTo: parseInt(mileageTo, 10) || null,
+      registrationFrom: registrationRange.from,
+      registrationTo: registrationRange.to,
+      mileageFrom: mileageRange.from,
+      mileageTo: mileageRange.to,
       transmission,
-      fuel,
-      powerUnit,
-      powerFrom: parseFloat(powerFrom) || null,
-      powerTo: parseFloat(powerTo) || null,
+      fuelType, // ĐÃ SỬA: Đảm bảo sử dụng fuelType
       vehicleType,
       driveType4x4,
       exteriorColor: selectedExteriorColor,
       features: selectedFeatures,
-    });
+    };
+
+    onFilter(newFilters); // Apply filters via parent callback
   };
+
+  const handleResetFilters = () => {
+    const defaultFilters = {
+        keyword: '',
+        paymentType: 'cash',
+        priceFrom: null,
+        priceTo: null,
+        vatDeduction: false,
+        discountedCars: false,
+        premiumPartners: false,
+        registrationFrom: null,
+        registrationTo: null,
+        mileageFrom: null,
+        mileageTo: null,
+        transmission: '',
+        fuelType: '', // ĐÃ SỬA: Đặt lại fuelType trong defaultFilters
+        powerUnit: 'kW',
+        powerFrom: null,
+        powerTo: null,
+        vehicleType: '',
+        driveType4x4: false,
+        exteriorColor: '',
+        features: [],
+    };
+    onFilter(defaultFilters); // Inform parent about filter reset
+    // Reset local form fields by updating state to default/empty values
+    setKeyword('');
+    setPaymentType('cash');
+    setSelectedPriceRange('');
+    setVatDeduction(false);
+    setDiscountedCars(false);
+    setPremiumPartners(false);
+    setSelectedRegistrationYearRange('');
+    setSelectedMileageRange('');
+    setTransmission('');
+    setFuelType(''); // ĐÃ SỬA: Đặt lại state fuelType
+    setVehicleType('');
+    setDriveType4x4(false);
+    setSelectedExteriorColor('');
+    setSelectedFeatures([]);
+    setShowAllFeatures(false);
+  };
+
 
   return (
     <aside className="w-full md:w-[340px] bg-white rounded-xl shadow-lg p-6 flex flex-col gap-6">
       <div className="flex items-center justify-between mb-3">
-        <h4 className="text-xl font-bold text-[#253887]">Filter</h4>
+        <h4 className="text-xl font-bold text-[#253887]">Filters</h4>
+        <button
+          type="button"
+          onClick={handleResetFilters}
+          className="text-[#3452e1] text-sm font-semibold hover:underline"
+        >
+          Reset Filters
+        </button>
       </div>
 
       <div className="flex mb-4 border-b border-gray-200">
@@ -140,24 +330,22 @@ export default function CarFilterSidebar({ onFilter }) {
 
       <form id="form-search-filter" className="flex flex-col gap-5" onSubmit={handleSubmit}>
         <section>
-          <input
-            type="text"
+          <FilterInput
             placeholder="Search car by keyword..."
             value={keyword}
             onChange={e => setKeyword(e.target.value)}
-            className="w-full border border-[#bcc6dd] rounded-lg px-4 py-2 text-[#1c274c] bg-white focus:border-[#3452e1] focus:ring-2 focus:ring-[#3452e1] transition mb-2"
           />
           <button
             type="submit"
-            className="w-full bg-[#3452e1] text-white font-bold rounded-lg py-2 text-lg transition hover:bg-[#253887] focus:outline-none"
+            className="w-full bg-[#3452e1] text-white font-bold rounded-lg py-2 text-lg transition hover:bg-[#253887] focus:outline-none mt-2"
           >
             Search
           </button>
         </section>
 
-        <section>
+        <section className="pb-4 border-b border-[#e6e8f0]">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[#253887] font-semibold">Price (€)</span>
+            <span className="text-[#253887] font-semibold">Price (VND)</span>
             <div
               data-testid="payment_type"
               className="flex bg-[#f4f6fc] rounded-lg px-2 py-1 w-fit"
@@ -189,24 +377,14 @@ export default function CarFilterSidebar({ onFilter }) {
               <input type="hidden" name="payment-type" value={paymentType} />
             </div>
           </div>
-          <br />
-          <div className="flex gap-2 mb-2 ">
-            <SelectInput
-              placeholder="From"
-              type="number"
-              value={priceFrom}
-              onChange={(e) => setPriceFrom(e.target.value)}
-            />
-            <SelectInput
-              placeholder="To"
-              type="number"
-              value={priceTo}
-              onChange={(e) => setPriceTo(e.target.value)}
-            />
-          </div>
-          <br />
+          <SelectInput
+            placeholder="Select Price Range"
+            value={selectedPriceRange}
+            onChange={(e) => setSelectedPriceRange(e.target.value)}
+            options={priceRangeOptions}
+          />
           <div className="flex flex-col gap-2 mt-2">
-            <label className="flex items-center gap-2 text-[#1c274c] text-[15px] font-medium">
+            <label className="flex items-center gap-2 text-[#1c274c] text-[15px] font-medium cursor-pointer">
               <input
                 type="checkbox"
                 className="w-5 h-5 border-[#bcc6dd] rounded focus:ring-[#3452e1]"
@@ -215,7 +393,7 @@ export default function CarFilterSidebar({ onFilter }) {
               />
               VAT deduction
             </label>
-            <label className="flex items-center gap-2 text-[#1c274c] text-[15px] font-medium">
+            <label className="flex items-center gap-2 text-[#1c274c] text-[15px] font-medium cursor-pointer">
               <input
                 type="checkbox"
                 className="w-5 h-5 border-[#bcc6dd] rounded focus:ring-[#3452e1]"
@@ -223,14 +401,14 @@ export default function CarFilterSidebar({ onFilter }) {
                 onChange={(e) => setDiscountedCars(e.target.checked)}
               />
               Discounted cars
-              <span className="ml-1 flex items-center">
+              <span className="ml-1 flex items-center text-gray-500" title="Cars with special discounts">
                 <svg width={18} height={18} fill="none" viewBox="0 0 18 18">
-                  <circle cx={9} cy={9} r={8} stroke="#bcc6dd" strokeWidth={1.3} fill="#fff" />
-                  <text x="9" y="13" textAnchor="middle" fontSize="11" fill="#bcc6dd" fontWeight="bold">i</text>
+                  <circle cx={9} cy={9} r={8} stroke="currentColor" strokeWidth={1.3} fill="none" />
+                  <text x="9" y="13" textAnchor="middle" fontSize="11" fill="currentColor" fontWeight="bold">i</text>
                 </svg>
               </span>
             </label>
-            <label className="flex items-center gap-2 text-[#1c274c] text-[15px] font-medium">
+            <label className="flex items-center gap-2 text-[#1c274c] text-[15px] font-medium cursor-pointer">
               <input
                 type="checkbox"
                 className="w-5 h-5 border-[#bcc6dd] rounded focus:ring-[#3452e1]"
@@ -238,200 +416,80 @@ export default function CarFilterSidebar({ onFilter }) {
                 onChange={(e) => setPremiumPartners(e.target.checked)}
               />
               Premium partners
-              <span className="ml-1 flex items-center">
+              <span className="ml-1 flex items-center text-gray-500" title="Cars from trusted premium sellers">
                 <svg width={18} height={18} fill="none" viewBox="0 0 18 18">
-                  <circle cx={9} cy={9} r={8} stroke="#bcc6dd" strokeWidth={1.3} fill="#fff" />
-                  <text x="9" y="13" textAnchor="middle" fontSize="11" fill="#bcc6dd" fontWeight="bold">i</text>
+                  <circle cx={9} cy={9} r={8} stroke="currentColor" strokeWidth={1.3} fill="none" />
+                  <text x="9" y="13" textAnchor="middle" fontSize="11" fill="currentColor" fontWeight="bold">i</text>
                 </svg>
               </span>
             </label>
           </div>
         </section>
 
-        <section>
-          <div className="mb-2 text-xs font-extrabold uppercase text-[#1c274c] tracking-wider">REGISTRATION</div>
-          <div className="flex gap-2">
-            <SelectInput
-              placeholder="From"
-              type="number"
-              value={registrationFrom}
-              onChange={(e) => setRegistrationFrom(e.target.value)}
-            />
-            <SelectInput
-              placeholder="To"
-              type="number"
-              value={registrationTo}
-              onChange={(e) => setRegistrationTo(e.target.value)}
-            />
-          </div>
-        </section>
-        <section>
-          <div className="mb-2 text-xs font-extrabold uppercase text-[#1c274c] tracking-wider">MILEAGE</div>
-          <div className="flex gap-2">
-            <SelectInput
-              placeholder="From"
-              type="number"
-              value={mileageFrom}
-              onChange={(e) => setMileageFrom(e.target.value)}
-            />
-            <SelectInput
-              placeholder="To"
-              type="number"
-              value={mileageTo}
-              onChange={(e) => setMileageTo(e.target.value)}
-            />
-          </div>
+        <section className="pb-4 border-b border-[#e6e8f0]">
+          <div className="mb-2 text-xs font-extrabold uppercase text-[#1c274c] tracking-wider">REGISTRATION YEAR</div>
+          <SelectInput
+            placeholder="Select Year Range"
+            value={selectedRegistrationYearRange}
+            onChange={(e) => setSelectedRegistrationYearRange(e.target.value)}
+            options={registrationYearOptions}
+          />
         </section>
 
-        <section>
+        <section className="pb-4 border-b border-[#e6e8f0]">
+          <div className="mb-2 text-xs font-extrabold uppercase text-[#1c274c] tracking-wider">MILEAGE (KM)</div>
+          <SelectInput
+            placeholder="Select Mileage Range"
+            value={selectedMileageRange}
+            onChange={(e) => setSelectedMileageRange(e.target.value)}
+            options={mileageOptions}
+          />
+        </section>
+
+        <section className="pb-4 border-b border-[#e6e8f0]">
           <div className="mb-2 text-xs font-extrabold uppercase text-[#1c274c] tracking-wider">TRANSMISSION</div>
           <ToggleGroup
             options={[
-              { value: "Automatic", label: "Automatic" }, // Values should match your API response
-              { value: "Manual", label: "Manual" },       // Values should match your API response
-              { value: "", label: "Any", className: "w-0 overflow-hidden opacity-0" } // Added "Any" option, hidden
+              { value: "", label: "Any" },
+              { value: "Automatic", label: "Automatic" },
+              { value: "Manual", label: "Manual" },
             ]}
             value={transmission}
             setValue={setTransmission}
+            blueActive={true}
+            rounded={true}
           />
         </section>
 
-        <section>
-          <div className="mb-2 text-xs font-extrabold uppercase text-[#1c274c] tracking-wider">FUEL</div>
-          <ToggleGroup
-            options={[
-              { value: "Diesel", label: "Diesel" }, // Values should match your API response
-              { value: "Gasoline", label: "Petrol" }, // Renamed Petrol to match your API response
-              { value: "", label: "Any", className: "w-0 overflow-hidden opacity-0" } // Added "Any" option, hidden
-            ]}
-            value={fuel}
-            setValue={setFuel}
-          />
-        </section>
-        <section>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-extrabold uppercase text-[#1c274c] tracking-wider">POWER</span>
-            <span className="flex gap-1">
-              <button
-                type="button"
-                className={`px-2 py-1 text-xs font-bold rounded transition border border-[#bcc6dd] ${
-                  powerUnit === "hp" ? "bg-[#e9ecfa] text-[#1c274c]" : "bg-white text-[#3452e1]"
-                }`}
-                onClick={() => setPowerUnit("hp")}
-              >hp</button>
-              <button
-                type="button"
-                className={`px-2 py-1 text-xs font-bold rounded transition border border-[#bcc6dd] ${
-                  powerUnit === "kW" ? "bg-[#3452e1] text-white" : "bg-white text-[#3452e1]"
-                }`}
-                onClick={() => setPowerUnit("kW")}
-              >kW</button>
-            </span>
-          </div>
-          <div className="flex gap-2">
+        <section className="pb-4 border-b border-[#e6e8f0]">
+          <div className="mb-2 text-xs font-extrabold uppercase text-[#1c274c] tracking-wider">FUEL TYPE</div>
+          <div className="mb-2">
             <SelectInput
-              placeholder="From"
-              type="number"
-              value={powerFrom}
-              onChange={(e) => setPowerFrom(e.target.value)}
-            />
-            <SelectInput
-              placeholder="To"
-              type="number"
-              value={powerTo}
-              onChange={(e) => setPowerTo(e.target.value)}
+              placeholder="All Fuel Types"
+              value={fuelType}
+              onChange={(e) => setFuelType(e.target.value)}
+              options={fuelTypeOptions}
             />
           </div>
         </section>
 
-        <section>
+        <section className="pb-4 border-b border-[#e6e8f0]">
           <div className="mb-2 text-xs font-extrabold uppercase text-[#1c274c] tracking-wider">VEHICLE TYPE</div>
           <div className="mb-2">
-            <div className="relative w-full">
-              <select
-                className="w-full border border-[#bcc6dd] rounded-lg px-4 py-2 pr-8 text-[#1c274c] bg-white focus:border-[#3452e1] focus:ring-2 focus:ring-[#3452e1] appearance-none transition cursor-pointer"
-                value={vehicleType}
-                onChange={(e) => setVehicleType(e.target.value)}
-              >
-                <option value="">All</option>
-                <option value="SUV">SUV</option>
-                <option value="Sedan">Sedan</option>
-                <option value="Estate">Estate</option>
-                <option value="Hatchback">Hatchback</option>
-                <option value="Convertible">Convertible</option>
-              </select>
-              <svg
-                className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                width={16}
-                height={16}
-                fill="none"
-                viewBox="0 0 16 16"
-              >
-                <path d="M4 6l4 4 4-4" stroke="#1c274c" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-          </div>
-          <label className="flex items-center gap-2 mb-4">
-            <input
-              type="checkbox"
-              className="w-5 h-5 border-[#bcc6dd] rounded focus:ring-[#3452e1]"
-              checked={driveType4x4}
-              onChange={(e) => setDriveType4x4(e.target.checked)}
+            <SelectInput
+              placeholder="All Vehicle Types"
+              value={vehicleType}
+              onChange={(e) => setVehicleType(e.target.value)}
+              options={vehicleTypeOptions}
             />
-            <span className="text-[#1c274c] text-[15px]">Drive type 4x4</span>
-          </label>
-        </section>
-
-
-        <section>
-          <div className="mb-2 text-xs font-extrabold uppercase text-[#1c274c] tracking-wider">EXTERIOR COLOR</div>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {[
-              { color: "#000", label: "Black" },
-              { color: "#fff", label: "White", border: true },
-              { color: "#a7b0bd", label: "Grey" },
-              { color: "#e23c3c", label: "Red" },
-              { color: "#456fed", label: "Blue" },
-              { color: "#bfcbe3", label: "Silver" },
-              { color: "#bfa678", label: "Beige" },
-              { color: "#ffb84c", label: "Yellow" },
-              { color: "#ff7a00", label: "Orange" },
-              { color: "#a46a44", label: "Brown" },
-              { color: "#6d66e8", label: "Purple" },
-              { color: "#4fb548", label: "Green" }
-            ].map(({ color, label, border }) => (
-              <div
-                key={label}
-                className={`w-6 h-6 rounded-full cursor-pointer border-2 ${border ? "border-[#bcc6dd]" : "border-transparent"} ${
-                  selectedExteriorColor === label ? 'ring-2 ring-[#3452e1]' : '' // Highlight selected color
-                }`}
-                style={{ background: color }}
-                title={label}
-                tabIndex={0}
-                onClick={() => setSelectedExteriorColor(label)}
-              />
-            ))}
           </div>
+        
         </section>
 
-        <section className="border-t border-[#e6e8f0] pt-4">
+        <section className="border-b border-[#e6e8f0] pt-4">
           <div className="mb-2 text-xs font-extrabold uppercase text-[#1c274c] tracking-wider">FEATURES</div>
           <div className="flex flex-col gap-2">
-            {[
-              "GPS",
-              "Sunroof", 
-              "Leather Seats", 
-              "Backup Camera", 
-              "Bluetooth", 
-              "Air conditioning",
-              "Cruise control",
-              "Heated front seats",
-              "Multifunctional steering wheel",
-              "Navigation system",
-              "Trailer coupling",
-              "LED headlights",
-              "Xenon headlights"
-            ].map(feat => (
+            {allFeaturesOptions.slice(0, showAllFeatures ? allFeaturesOptions.length : 4).map(feat => (
               <label key={feat} className="flex items-center gap-3 text-[#1c274c] text-[15px] font-medium cursor-pointer">
                 <input
                   type="checkbox"
@@ -443,24 +501,27 @@ export default function CarFilterSidebar({ onFilter }) {
               </label>
             ))}
           </div>
-          <button
-            type="button"
-            className="mt-3 ml-1 text-[#3452e1] text-[15px] font-semibold hover:underline flex items-center gap-1"
-          >
-            More features
-            <svg width={16} height={16} fill="none" viewBox="0 0 16 16">
-              <path d="M7 4l4 4-4 4" stroke="#3452e1" strokeWidth={2} strokeLinecap="round" />
-            </svg>
-          </button>
+          {allFeaturesOptions.length > 4 && (
+            <button
+              type="button"
+              className="mt-3 ml-1 text-[#3452e1] text-[15px] font-semibold hover:underline flex items-center gap-1"
+              onClick={() => setShowAllFeatures(!showAllFeatures)}
+            >
+              {showAllFeatures ? "Show less" : "Show more"} features
+              <svg width={16} height={16} fill="none" viewBox="0 0 16 16" className={`transform transition-transform ${showAllFeatures ? 'rotate-180' : ''}`}>
+                <path d="M7 4l4 4-4 4" stroke="#3452e1" strokeWidth={2} strokeLinecap="round" />
+              </svg>
+            </button>
+          )}
         </section>
       </form>
       <div className="border-t border-[#e6e8f0] pt-6 pb-2 flex">
         <button
           type="button"
-          className="w-full bg-white text-[#3452e1] font-bold rounded-lg py-3 border-2 border-[#3452e1] text-lg transition hover:bg-[#e9ecfa] focus:outline-none"
-          onClick={handleSubmit}
+          className="w-full bg-white text-[#3452e1] font-bold rounded-lg py-3 border-2 border-[#3452e1] transition hover:bg-[#e9ecfa] focus:outline-none"
+          onClick={handleResetFilters}
         >
-          Detailed search
+          Reset Filters
         </button>
       </div>
       {isPopupOpen && <SelectMakePopup onClose={handleClosePopup} />}

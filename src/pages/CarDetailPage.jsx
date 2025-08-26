@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import Swal from "sweetalert2";
-
+import Login from "../components/Login";
 const formatCurrency = (num) =>
   new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -21,6 +21,23 @@ const formatDateTime = (dateString) => {
     hour12: true,
   };
   return date.toLocaleString("en-US", options);
+};
+
+// Đảm bảo hàm này xử lý tốt cả YouTube và các URL video trực tiếp
+const getEmbedUrlAndType = (url) => {
+  // Regex mạnh mẽ hơn cho YouTube
+  const youtubeRegExp = /^(?:http(?:s)?:\/\/)?(?:www\.)?(?:m\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|v\/|)([\w-]{11})(?:\S+)?$/;
+  const match = url.match(youtubeRegExp);
+  if (match && match[1]) {
+    // Thêm autoplay và rel=0 cho Lightbox, nhưng sẽ loại bỏ chúng khi hiển thị trong lưới nhỏ
+    return { url: `https://www.youtube.com/embed/${match[1]}?autoplay=1&rel=0`, type: 'youtube' };
+  }
+  // Kiểm tra nếu là URL video trực tiếp (ví dụ: .mp4, .webm)
+  if (/\.(mp4|webm|ogg)$/i.test(url)) {
+    return { url: url, type: 'direct-video' };
+  }
+  // Mặc định là một URL không xác định (có thể là URL nhúng sẵn từ dịch vụ khác)
+  return { url: url, type: 'unknown' };
 };
 
 const FEATURE_CATEGORIES = [
@@ -78,12 +95,16 @@ export default function CarDetailPage({ carId: propCarId }) {
   const [similarCars, setSimilarCars] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [galleryIndex, setGalleryIndex] = useState(0);
-  const [lightboxImage, setLightboxImage] = useState(null);
+  const [photoGalleryIndex, setPhotoGalleryIndex] = useState(0);
+  const [videoGalleryIndex, setVideoGalleryIndex] = useState(0);
+  const [lightboxContent, setLightboxContent] = useState(null); 
   const [downPayment, setDownPayment] = useState(20);
   const [paybackPeriod, setPaybackPeriod] = useState(48);
   const [featureSearch, setFeatureSearch] = useState("");
   const heroRef = useRef(null);
+
+    const [showSignInModal, setShowSignInModal] = useState(false);
+
 
   useEffect(() => {
     const fetchCarData = async () => {
@@ -130,6 +151,17 @@ export default function CarDetailPage({ carId: propCarId }) {
             url: img.url,
             filename: img.filename,
           })) || [],
+          // Assuming VideoURL in carData is an array of video objects with a 'url' field
+          // Apply getEmbedUrlAndType to each video URL
+          videoURLs: carData.carVideo?.map((video) => {
+            const { url, type } = getEmbedUrlAndType(video.url);
+            return {
+                id: video.id,
+                originalUrl: video.url, // Keep original for reference if needed
+                embedUrl: url,
+                type: type
+            };
+          }) || [],
           features: carData.features?.map((f) => ({ name: f.name })) || [],
           pricing: carData.pricing?.[0]
             ? {
@@ -158,14 +190,14 @@ export default function CarDetailPage({ carId: propCarId }) {
 
         // Map similar cars to match the component's expected structure
         const mappedSimilarCars = similarCarsData.map((sc) => ({
-          id: sc.ListingId,
-          name: sc.Name || "Unknown Car",
-          image: sc.Image || "https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=400&h=300&fit=crop",
-          price: sc.Price || 0,
-          details: sc.Details
-            ? [sc.Details.Engine || "Unknown", sc.Details.Transmission || "Unknown", sc.Details.FuelType || "Unknown"]
+          id: sc.listingId,
+          name: sc.name || "Unknown Car",
+          image: sc.image || "https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=400&h=300&fit=crop",
+          price: sc.price || 0,
+          details: sc.details
+            ? [sc.details.engine || "Unknown", sc.details.transmission || "Unknown", sc.details.fuelType || "Unknown"]
             : ["Unknown", "Unknown", "Unknown"],
-          tags: sc.Tags || [],
+          tags: sc.tags || [],
         }));
 
         setSimilarCars(mappedSimilarCars);
@@ -180,8 +212,11 @@ export default function CarDetailPage({ carId: propCarId }) {
     fetchCarData();
   }, [carId]);
 
-  const handleLightbox = (imgUrl) => setLightboxImage(imgUrl);
-  const handleCloseLightbox = () => setLightboxImage(null);
+  // Lightbox now accepts embedUrl and its type
+  const handleLightbox = (embedUrl, type = 'image') => {
+    setLightboxContent({ content: embedUrl, type });
+  };
+  const handleCloseLightbox = () => setLightboxContent(null);
 
   const handleTestDrive = async (showroom) => {
     try {
@@ -230,82 +265,59 @@ export default function CarDetailPage({ carId: propCarId }) {
     }
   };
 
-  const handlePurchase = async () => {
+ const handlePurchase = async () => { // Keep async here
+    if (!car || !car.id) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Car details not available for purchase.",
+        confirmButtonText: "OK",
+      });
+      return;
+    }
+
     try {
-      const { value } = await Swal.fire({
-        title: "Complete Your Purchase",
-        html: `
-          <div class="text-left space-y-4">
-            <div class="bg-gray-50 p-4 rounded-lg">
-              <h3 class="font-semibold text-lg mb-2">Purchase Summary</h3>
-              <div class="space-y-2 text-sm">
-                <div class="flex justify-between"><span>Vehicle Price:</span><span class="font-semibold">${formatCurrency(
-                  car.price
-                )}</span></div>
-                <div class="flex justify-between"><span>Registration Fee:</span><span>${formatCurrency(
-                  car.pricing.registrationFee
-                )}</span></div>
-                <div class="flex justify-between"><span>Documentation:</span><span>${formatCurrency(
-                  car.pricing.dealerFee
-                )}</span></div>
-                <div class="flex justify-between"><span>Tax (${
-                  car.pricing.taxRate * 100
-                }%):</span><span>${formatCurrency(car.price * car.pricing.taxRate)}</span></div>
-                <hr class="my-2">
-                <div class="flex justify-between font-bold text-lg"><span>Total:</span><span>${formatCurrency(
-                  car.price + car.pricing.registrationFee + car.pricing.dealerFee + car.price * car.pricing.taxRate
-                )}</span></div>
-              </div>
-            </div>
-            <input id="buyer-name" class="swal2-input" placeholder="Full Name">
-            <input id="buyer-phone" class="swal2-input" placeholder="Phone Number">
-            <input id="buyer-email" class="swal2-input" placeholder="Email Address">
-            <select id="payment-method" class="swal2-input">
-              <option value="">Select Payment Method</option>
-              <option value="cash">Cash Payment</option>
-              <option value="financing">Financing</option>
-              <option value="lease">Lease</option>
-            </select>
-          </div>
-        `,
-        width: 600,
-        focusConfirm: false,
-        showCancelButton: true,
-        confirmButtonText: "Proceed to Payment",
-        confirmButtonColor: "#10B981",
-        cancelButtonColor: "#6B7280",
-        preConfirm: () => {
-          const name = document.getElementById("buyer-name").value;
-          const phone = document.getElementById("buyer-phone").value;
-          const email = document.getElementById("buyer-email").value;
-          const paymentMethod = document.getElementById("payment-method").value;
-          if (!name || !phone || !email || !paymentMethod) {
-            Swal.showValidationMessage("Please fill in all fields");
-            return false;
-          }
-          return { name, phone, email, paymentMethod };
-        },
+      const token = localStorage.getItem('token');
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`; // <--- Thêm Authorization header nếu có token
+      }
+
+      // Fetch user data to check if logged in
+      const userResponse = await fetch("/api/User/me", {
+        method: 'GET', // Method is GET by default for fetch, but explicitly setting is good practice
+        headers: headers, // <--- Truyền headers vào đây
       });
 
-      if (value) {
-        await Swal.fire({
-          icon: "success",
-          title: "Purchase Initiated!",
-          text: "Thank you for your purchase! Our sales team will contact you within 24 hours to complete the transaction.",
-          confirmButtonText: "Excellent!",
-          confirmButtonColor: "#10B981",
+      if (userResponse.ok) {
+        // User is logged in, proceed to purchase terms page
+        navigate(`/cars/${car.id}/purchase-terms`);
+      } else if (userResponse.status === 401) {
+        // User is not authorized/logged in, show login modal
+        setShowSignInModal(true);
+      } else {
+        // Handle other potential API errors
+        const errorData = await userResponse.json();
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: `Failed to verify login status: ${errorData.message || userResponse.statusText}`,
+          confirmButtonText: "OK",
         });
       }
-    } catch (err) {
-      await Swal.fire({
+    } catch (error) {
+      console.error("Error checking login status:", error);
+      Swal.fire({
         icon: "error",
-        title: "Purchase Failed",
-        text: `Unable to process purchase: ${err.message}`,
-        confirmButtonText: "Try Again",
-        confirmButtonColor: "#EF4444",
+        title: "Network Error",
+        text: "Could not connect to the server to verify login status. Please try again.",
+        confirmButtonText: "OK",
       });
     }
   };
+
 
   if (loading) {
     return (
@@ -335,6 +347,7 @@ export default function CarDetailPage({ carId: propCarId }) {
     model,
     specification = {},
     images = [],
+    videoURLs = [], // Destructure videoURLs
     features = [],
     pricing = {},
     showrooms = [],
@@ -353,6 +366,23 @@ export default function CarDetailPage({ carId: propCarId }) {
     keys: filteredFeatures.filter((featureName) => cat.keys.includes(featureName)),
   })).filter((cat) => cat.keys.length > 0);
   const monthlyPayment = ((price - (price * downPayment) / 100) * 1.05) / paybackPeriod;
+
+  // Determine grid classes for video gallery
+  let videoGridClasses = "grid grid-cols-1 gap-6 mb-6";
+  if (videoURLs.length === 1) {
+    // For 1 video, it takes full width
+    videoGridClasses += " md:grid-cols-1";
+  } else if (videoURLs.length === 2) {
+    // For 2 videos, 2 columns on medium screens
+    videoGridClasses += " md:grid-cols-2";
+  } else if (videoURLs.length === 3) {
+    // For 3 videos, 3 columns on medium screens
+    videoGridClasses += " md:grid-cols-3";
+  } else if (videoURLs.length >= 4) {
+    // For 4 or more videos, 4 columns on medium/large screens (and wraps)
+    videoGridClasses += " md:grid-cols-2 lg:grid-cols-4";
+  }
+
 
   return (
     <div className="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
@@ -384,7 +414,7 @@ export default function CarDetailPage({ carId: propCarId }) {
                   )}
                 </div>
               </div>
-              <p className="text-lg text-gray-200 leading-relaxed max-w-lg">{description || "No description available."}</p>
+              {/* Description removed from here */}
               <div className="space-y-4">
                 <div className="text-5xl font-bold text-green-400">{formatCurrency(price)}</div>
                 <div className="flex flex-wrap gap-4">
@@ -491,11 +521,11 @@ export default function CarDetailPage({ carId: propCarId }) {
         <h2 className="text-3xl font-bold text-gray-900 mb-8">Photo Gallery</h2>
         <div className="relative">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            {images.slice(galleryIndex, galleryIndex + 3).map((img, i) => (
+            {images.slice(photoGalleryIndex, photoGalleryIndex + 3).map((img, i) => (
               <div
                 key={img.imageId || i}
                 className="relative aspect-video rounded-2xl overflow-hidden cursor-pointer group shadow-lg hover:shadow-xl transition-all duration-300"
-                onClick={() => handleLightbox(img.url)}
+                onClick={() => handleLightbox(img.url, 'image')}
               >
                 <img
                   src={img.url}
@@ -512,12 +542,12 @@ export default function CarDetailPage({ carId: propCarId }) {
               </div>
             ))}
           </div>
-          {/* Gallery Navigation */}
+          {/* Photo Gallery Navigation */}
           <div className="flex justify-center space-x-4">
             <button
               className="bg-white hover:bg-gray-50 rounded-full p-3 shadow-lg transition-all disabled:opacity-50"
-              onClick={() => setGalleryIndex(Math.max(0, galleryIndex - 1))}
-              disabled={galleryIndex === 0}
+              onClick={() => setPhotoGalleryIndex(Math.max(0, photoGalleryIndex - 1))}
+              disabled={photoGalleryIndex === 0}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
                 <path d="M15 18l-6-6 6-6" />
@@ -525,30 +555,131 @@ export default function CarDetailPage({ carId: propCarId }) {
             </button>
             <button
               className="bg-white hover:bg-gray-50 rounded-full p-3 shadow-lg transition-all disabled:opacity-50"
-              onClick={() => setGalleryIndex(Math.min(images.length - 3, galleryIndex + 1))}
-              disabled={galleryIndex >= images.length - 3}
+              onClick={() => setPhotoGalleryIndex(Math.min(images.length - 3, photoGalleryIndex + 1))}
+              disabled={photoGalleryIndex >= images.length - 3}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
                 <path d="M9 6l6 6-6 6" />
               </svg>
             </button>
           </div>
-          {/* Thumbnail Strip */}
-          <div className="flex justify-center space-x-2 mt-6 overflow-x-auto pb-2">
+          {/* Photo Thumbnail Strip */}
+          {/* <div className="flex justify-center space-x-2 mt-6 overflow-x-auto pb-2">
             {images.map((img, i) => (
               <img
                 key={img.imageId || i}
                 src={img.url}
                 alt={`Thumbnail ${i + 1}`}
                 className={`w-20 h-12 object-cover rounded-lg cursor-pointer border-2 transition-all ${
-                  galleryIndex <= i && i < galleryIndex + 3 ? "border-blue-500 shadow-md" : "border-transparent hover:border-gray-300"
+                  photoGalleryIndex <= i && i < photoGalleryIndex + 3 ? "border-blue-500 shadow-md" : "border-transparent hover:border-gray-300"
                 }`}
-                onClick={() => setGalleryIndex(i)}
+                onClick={() => setPhotoGalleryIndex(i)}
               />
             ))}
-          </div>
+          </div> */}
         </div>
       </div>
+
+      {/* Video Gallery */}
+      {videoURLs.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 py-16">
+          <h2 className="text-3xl font-bold text-gray-900 mb-8">Video Gallery</h2>
+          <div className="relative">
+            {/* Dynamic grid classes based on video count */}
+            <div className={videoGridClasses}>
+              {videoURLs.slice(videoGalleryIndex, videoGalleryIndex + (videoURLs.length === 1 ? 1 : (videoURLs.length === 2 ? 2 : (videoURLs.length === 3 ? 3 : 4)))).map((video, i) => (
+                <div
+                  key={video.id || i}
+                  className="relative aspect-video rounded-2xl overflow-hidden cursor-pointer group shadow-lg hover:shadow-xl transition-all duration-300 bg-gray-200"
+                  onClick={() => handleLightbox(video.embedUrl, 'video')} // Mở lightbox với video embed URL
+                >
+                  {video.type === 'youtube' ? (
+                    <iframe
+                      src={video.embedUrl.replace('?autoplay=1&rel=0', '')} // <-- Thêm .replace() ở đây
+                      title={`Video ${i + 1}`}
+                      frameBorder="0"
+                      allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" // allowFullScreen bị xóa khỏi đây
+                      // allowFullScreen // Disable fullscreen for small embeds for better UX
+                      className="w-full h-full object-cover"
+                    ></iframe>
+                  ) : video.type === 'direct-video' ? (
+                    <video controls muted className="w-full h-full object-cover">
+                      <source src={video.embedUrl} type="video/mp4" />
+                      Your browser does not support the video tag.
+                    </video>
+                  ) : (
+                    // Fallback for unknown video types or if embedUrl is not suitable for iframe/video tag
+                    <div className="w-full h-full flex items-center justify-center bg-gray-300 text-gray-600 text-sm">
+                        Không thể hiển thị video: {video.originalUrl}
+                    </div>
+                  )}
+                  {/* Overlay for play icon (only if not a direct video with controls) */}
+                  {!(video.type === 'direct-video') && (
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <div className="bg-white/90 rounded-full p-3">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                        </div>
+                      </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            {/* Video Gallery Navigation - Only show if more than 1 video */}
+            {videoURLs.length > (videoURLs.length === 1 ? 1 : (videoURLs.length === 2 ? 2 : (videoURLs.length === 3 ? 3 : 4))) && (
+                <div className="flex justify-center space-x-4">
+                  <button
+                    className="bg-white hover:bg-gray-50 rounded-full p-3 shadow-lg transition-all disabled:opacity-50"
+                    onClick={() => setVideoGalleryIndex(Math.max(0, videoGalleryIndex - 1))}
+                    disabled={videoGalleryIndex === 0}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
+                      <path d="M15 18l-6-6 6-6" />
+                    </svg>
+                  </button>
+                  <button
+                    className="bg-white hover:bg-gray-50 rounded-full p-3 shadow-lg transition-all disabled:opacity-50"
+                    onClick={() => setVideoGalleryIndex(Math.min(videoURLs.length - (videoURLs.length === 1 ? 1 : (videoURLs.length === 2 ? 2 : (videoURLs.length === 3 ? 3 : 4))), videoGalleryIndex + 1))}
+                    disabled={videoGalleryIndex >= videoURLs.length - (videoURLs.length === 1 ? 1 : (videoURLs.length === 2 ? 2 : (videoURLs.length === 3 ? 3 : 4)))}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
+                      <path d="M9 6l6 6-6 6" />
+                    </svg>
+                  </button>
+                </div>
+            )}
+            {/* Video Thumbnail Strip (displaying actual video in small size) - only show if more than 1 video */}
+            {videoURLs.length > 1 && (
+                <div className="flex justify-center space-x-2 mt-6 overflow-x-auto pb-2">
+                  {videoURLs.map((video, i) => (
+                    <div
+                      key={video.id || i}
+                      className={`w-20 h-12 flex-shrink-0 object-cover rounded-lg cursor-pointer border-2 transition-all overflow-hidden ${
+                        (videoGalleryIndex <= i && i < videoGalleryIndex + (videoURLs.length === 1 ? 1 : (videoURLs.length === 2 ? 2 : (videoURLs.length === 3 ? 3 : 4)))) ? "border-blue-500 shadow-md" : "border-transparent hover:border-gray-300"
+                      }`}
+                      onClick={() => setVideoGalleryIndex(i)}
+                    >
+                        {video.type === 'youtube' ? (
+                            <img
+                              src={`https://img.youtube.com/vi/${video.embedUrl.split('/')[4].split('?')[0]}/default.jpg`}
+                              alt={`Video thumbnail ${i + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                        ) : video.type === 'direct-video' ? (
+                            <video muted className="w-full h-full object-cover">
+                                <source src={video.embedUrl} type="video/mp4" />
+                            </video>
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gray-300 text-gray-600 text-xs">Video</div>
+                        )}
+                    </div>
+                  ))}
+                </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Vehicle specification */}
       <div className="max-w-7xl mx-auto px-4 py-16">
@@ -575,6 +706,16 @@ export default function CarDetailPage({ carId: propCarId }) {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Description Section (New Position) */}
+      <div className="max-w-7xl mx-auto px-4 py-16">
+        <h2 className="text-3xl font-bold text-gray-900 mb-8">More Description</h2>
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          <p className="text-lg text-gray-700 leading-relaxed">
+            {description || "Không có mô tả nào được cung cấp cho chiếc xe này."}
+          </p>
         </div>
       </div>
 
@@ -695,7 +836,7 @@ export default function CarDetailPage({ carId: propCarId }) {
           </div>
         ) : (
           <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-            <div className="text-gray-500 text-lg">Currently not available at any showrooms</div>
+            <div className="text-gray-500 text-lg">Hiện không có sẵn tại bất kỳ showroom nào.</div>
           </div>
         )}
       </div>
@@ -748,10 +889,23 @@ export default function CarDetailPage({ carId: propCarId }) {
       </div>
 
       {/* Lightbox Modal */}
-      {lightboxImage && (
+      {lightboxContent && (
         <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4">
           <div className="relative max-w-6xl max-h-[90vh] w-full">
-            <img src={lightboxImage} alt="Car detail" className="w-full h-full object-contain rounded-lg" />
+            {lightboxContent.type === 'image' ? (
+              <img src={lightboxContent.content} alt="Car detail" className="w-full h-full object-contain rounded-lg" />
+            ) : (
+              // For videos in lightbox, ensure autoplay is enabled
+              <iframe
+                src={lightboxContent.content}
+                title="Car Video"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="w-full h-full rounded-lg"
+                style={{ aspectRatio: '16/9' }} // Maintain aspect ratio for videos
+              ></iframe>
+            )}
             <button
               onClick={handleCloseLightbox}
               className="absolute top-4 right-4 bg-white/90 hover:bg-white rounded-full p-3 text-gray-900 transition-all duration-200"
@@ -761,36 +915,51 @@ export default function CarDetailPage({ carId: propCarId }) {
                 <path d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            {/* Navigation arrows in lightbox */}
-            <button
-              onClick={() => {
-                const currentIndex = images.findIndex((img) => img.url === lightboxImage);
-                const prevIndex = currentIndex > 0 ? currentIndex - 1 : images.length - 1;
-                setLightboxImage(images[prevIndex].url);
-              }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-3 text-gray-900 transition-all duration-200"
-              aria-label="Previous image"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-            </button>
-            <button
-              onClick={() => {
-                const currentIndex = images.findIndex((img) => img.url === lightboxImage);
-                const nextIndex = currentIndex < images.length - 1 ? currentIndex + 1 : 0;
-                setLightboxImage(images[nextIndex].url);
-              }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-3 text-gray-900 transition-all duration-200"
-              aria-label="Next image"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
-                <path d="M9 6l6 6-6 6" />
-              </svg>
-            </button>
+            {/* Navigation arrows in lightbox (adjust for combined content) */}
+            {/* For simplicity, navigation in lightbox is currently only for images. */}
+            {lightboxContent.type === 'image' && (
+              <>
+                <button
+                  onClick={() => {
+                    const currentIndex = images.findIndex((img) => img.url === lightboxContent.content);
+                    const prevIndex = currentIndex > 0 ? currentIndex - 1 : images.length - 1;
+                    setLightboxContent({ content: images[prevIndex].url, type: 'image' });
+                  }}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-3 text-gray-900 transition-all duration-200"
+                  aria-label="Previous image"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
+                    <path d="M15 18l-6-6 6-6" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => {
+                    const currentIndex = images.findIndex((img) => img.url === lightboxContent.content);
+                    const nextIndex = currentIndex < images.length - 1 ? currentIndex + 1 : 0;
+                    setLightboxContent({ content: images[nextIndex].url, type: 'image' });
+                  }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-3 text-gray-900 transition-all duration-200"
+                  aria-label="Next image"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
+                    <path d="M9 6l6 6-6 6" />
+                  </svg>
+                </button>
+              </>
+            )}
+            {/* If you want video navigation, you'd add similar logic here, but for videoURLs */}
           </div>
         </div>
       )}
+       {/* Login Modal */}
+      <Login
+        show={showSignInModal}
+        onClose={() => setShowSignInModal(false)}
+        onLoginSuccess={() => {
+          setShowSignInModal(false);
+          handlePurchase();
+        }}
+      />
 
       {/* Footer CTA */}
       <div className="bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 text-white py-16">
