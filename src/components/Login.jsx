@@ -1,11 +1,18 @@
 import React, { useState } from "react";
 import Register from "./Register";
+
+import Swal from "sweetalert2";
+import { useUserContext } from "./context/UserContext";
+
+export default function Login({ show, onClose }) {
+
 import Swal from "sweetalert2"; // Ensure Swal is imported
 import { useUserContext } from "./context/UserContext";
 import { useNavigate } from 'react-router-dom';
 
 export default function Login({ show, onClose }) {
   const navigate = useNavigate();
+
   const { setUser } = useUserContext();
   const [showPassword, setShowPassword] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
@@ -26,6 +33,7 @@ export default function Login({ show, onClose }) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
+
   const validatePassword = (pw) => {
     return pw.length >= 8;
   };
@@ -40,12 +48,35 @@ export default function Login({ show, onClose }) {
     const err = validateForm();
     setErrors(err);
 
+
+
+  const validatePassword = (pw) => {
+    return pw.length >= 8;
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    const err = validateForm();
+    setErrors(err);
+
+
+ 
     if (Object.keys(err).length === 0) {
       try {
         const loginDto = {
           Email: form.email,
           Password: form.password
         };
+
+        console.log("Login DTO:", loginDto);
+        
+
+
 
         const resp = await fetch("/api/User/login", {
           method: "POST",
@@ -56,6 +87,13 @@ export default function Login({ show, onClose }) {
         });
 
         if (resp.ok) {
+
+          const { token } = await resp.json();
+          // Store token in localStorage
+          localStorage.setItem('token', token);
+          
+          // Fetch user info and set in context
+
           const { token, role } = await resp.json();
           localStorage.setItem('token', token);
           localStorage.setItem('role', role);
@@ -71,6 +109,7 @@ export default function Login({ show, onClose }) {
             return;
           }
 
+
           const userInfoResp = await fetch('/api/User/me', {
             headers: {
               'Authorization': `Bearer ${token}`
@@ -79,13 +118,30 @@ export default function Login({ show, onClose }) {
           const userInfo = await userInfoResp.json();
           setUser(userInfo);
 
+          
+          // Close modal
           onClose();
+          
+          // Show success message
+
+
+          onClose();
+
           Swal.fire({
             icon: "success",
             title: "Login Successful",
             text: "Welcome back!"
           });
         } else if (resp.status === 401) {
+
+          Swal.fire({
+            icon: "error",
+            title: "Authentication Failed",
+            text: "Invalid Email or password. Please try again."
+          });
+        } else {
+          throw new Error("Login failed");
+
           const errorText = await resp.text(); // Get the error message from the response body
 
           if (errorText === "Your account has been deactivated by the administrator.") {
@@ -105,13 +161,18 @@ export default function Login({ show, onClose }) {
           // For any other non-OK status, throw an error
           const errorDetail = await resp.text(); // Get more specific error if available
           throw new Error(`Login failed with status ${resp.status}: ${errorDetail}`);
+
         }
       } catch (error) {
         console.error("Login error:", error);
         Swal.fire({
           icon: "error",
           title: "Login Failed",
+
+          text: "An error occurred. Please try again."
+
           text: `An unexpected error occurred. Please try again. (${error.message})`
+
         });
       }
     }
