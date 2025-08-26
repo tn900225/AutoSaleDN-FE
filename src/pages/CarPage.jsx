@@ -71,7 +71,7 @@ async function fetchCars(filters = {}) {
   }
 
   const queryString = queryParams.toString();
-  const url = `/api/Customer/cars${queryString ? `?${queryString}` : ""}`;
+  const url = `/api/User/cars${queryString ? `?${queryString}` : ""}`;
 
   const res = await fetch(url, {
     headers: {
