@@ -1,3 +1,11 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.quill-editor-lg .ql-container {
+  height: 400px;
+  overflow: auto;
+}
+.quill-editor-lg .ql-editor {
+  min-height: 380px;
+}

@@ -60,103 +60,103 @@ export default function PrePurchasePage() {
   const getToken = () => localStorage.getItem('token');
 
   // Effect to fetch car and showroom information if not already in state
- useEffect(() => {
+  useEffect(() => {
     if (!carFromState || initialShowrooms.length === 0) {
-        const fetchCarAndShowrooms = async () => {
-            setLoadingUser(true);
-            setErrorUser('');
-            try {
-                const response = await fetch(`/api/User/cars/${carId}`);
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch car data: ${response.statusText}`);
-                }
-                const carData = await response.json();
-                
-                let taxRateValue = 0.085;
-                if (carData.pricing && carData.pricing[0] && typeof carData.pricing[0].taxRate === 'number') {
-                    taxRateValue = carData.pricing[0].taxRate / 100;
-                }
-                
-                const mappedCar = {
-                    id: carData.listingId,
-                    model: {
-                        name: carData.model?.name || "Unknown Model",
-                        manufacturer: {
-                            name: carData.model?.manufacturer?.name || "Unknown Manufacturer",
-                        },
-                    },
-                    price: carData.price,
-                    pricing: carData.pricing?.[0]
-                        ? {
-                            registrationFee: carData.pricing[0].registrationFee || 0,
-                            dealerFee: 500,
-                            taxRate: taxRateValue
-                        }
-                        : { registrationFee: 0, dealerFee: 500, taxRate: 0.085 },
-                    showrooms: carData.showrooms?.map(s => ({
-                        id: s.storeLocationId,
-                        name: s.name,
-                        address: s.address,
-                        phone: s.Phone || "+1 (555) 123-4567"
-                    })) || [],
-                    sellerInfo: carData.sellerInfo || { name: "Auto Sales Inc.", contact: "sales@autosales.com" },
-                    vin: carData.vin
-                };
-                
-                setCar(mappedCar);
-                setShowrooms(mappedCar.showrooms);
-                if (mappedCar.showrooms.length > 0) {
-                    setSelectedShowroom(String(mappedCar.showrooms[0].id));
-                }
-            } catch (err) {
-                setErrorUser('Failed to load car and showroom information. ' + err.message);
-                console.error("Error fetching car and showroom data in PrePurchasePage:", err);
-            } finally {
-                setLoadingUser(false);
-            }
-        };
-        fetchCarAndShowrooms();
-    } else {
-        setCar(carFromState);
-        setShowrooms(initialShowrooms);
-        if (initialShowrooms.length > 0 && !selectedShowroom) {
-            setSelectedShowroom(String(initialShowrooms[0].id));
+      const fetchCarAndShowrooms = async () => {
+        setLoadingUser(true);
+        setErrorUser('');
+        try {
+          const response = await fetch(`/api/User/cars/${carId}`);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch car data: ${response.statusText}`);
+          }
+          const carData = await response.json();
+
+          let taxRateValue = 0.085;
+          if (carData.pricing && carData.pricing[0] && typeof carData.pricing[0].taxRate === 'number') {
+            taxRateValue = carData.pricing[0].taxRate / 100;
+          }
+
+          const mappedCar = {
+            id: carData.listingId,
+            model: {
+              name: carData.model?.name || "Unknown Model",
+              manufacturer: {
+                name: carData.model?.manufacturer?.name || "Unknown Manufacturer",
+              },
+            },
+            price: carData.price,
+            pricing: carData.pricing?.[0]
+              ? {
+                registrationFee: carData.pricing[0].registrationFee || 0,
+                dealerFee: 500,
+                taxRate: taxRateValue
+              }
+              : { registrationFee: 0, dealerFee: 500, taxRate: 0.085 },
+            showrooms: carData.showrooms?.map(s => ({
+              id: s.storeLocationId,
+              name: s.name,
+              address: s.address,
+              phone: s.Phone || "+1 (555) 123-4567"
+            })) || [],
+            sellerInfo: carData.sellerInfo || { name: "Auto Sales Inc.", contact: "sales@autosales.com" },
+            vin: carData.vin
+          };
+
+          setCar(mappedCar);
+          setShowrooms(mappedCar.showrooms);
+          if (mappedCar.showrooms.length > 0) {
+            setSelectedShowroom(String(mappedCar.showrooms[0].id));
+          }
+        } catch (err) {
+          setErrorUser('Failed to load car and showroom information. ' + err.message);
+          console.error("Error fetching car and showroom data in PrePurchasePage:", err);
+        } finally {
+          setLoadingUser(false);
         }
-        setLoadingUser(false);
+      };
+      fetchCarAndShowrooms();
+    } else {
+      setCar(carFromState);
+      setShowrooms(initialShowrooms);
+      if (initialShowrooms.length > 0 && !selectedShowroom) {
+        setSelectedShowroom(String(initialShowrooms[0].id));
+      }
+      setLoadingUser(false);
     }
-}, [carId]); 
+  }, [carId]);
 
 
   // Fetch user data
   useEffect(() => {
     if (!userData && !errorUser) {
-        setLoadingUser(true);
-        setErrorUser('');
-        const fetchUserData = async () => {
-            try {
-                const token = getToken();
-                const headers = { 'Content-Type': 'application/json' };
-                if (token) {
-                    headers['Authorization'] = `Bearer ${token}`;
-                }
+      setLoadingUser(true);
+      setErrorUser('');
+      const fetchUserData = async () => {
+        try {
+          const token = getToken();
+          const headers = { 'Content-Type': 'application/json' };
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+          }
 
-                const response = await fetch("/api/User/me", { headers });
-                if (!response.ok) {
-                    if (response.status === 401) {
-                        throw new Error('Authentication failed. Please log in again.');
-                    }
-                    throw new Error(`Failed to fetch user data: ${response.statusText}`);
-                }
-                const data = await response.json();
-                setUserData(data);
-            } catch (err) {
-                setErrorUser('Failed to load user information. ' + err.message);
-                console.error("Error fetching user data in PrePurchasePage:", err);
-            } finally {
-                setLoadingUser(false);
+          const response = await fetch("/api/User/me", { headers });
+          if (!response.ok) {
+            if (response.status === 401) {
+              throw new Error('Authentication failed. Please log in again.');
             }
-        };
-        fetchUserData();
+            throw new Error(`Failed to fetch user data: ${response.statusText}`);
+          }
+          const data = await response.json();
+          setUserData(data);
+        } catch (err) {
+          setErrorUser('Failed to load user information. ' + err.message);
+          console.error("Error fetching user data in PrePurchasePage:", err);
+        } finally {
+          setLoadingUser(false);
+        }
+      };
+      fetchUserData();
     }
   }, [userData, errorUser]);
 
@@ -180,10 +180,10 @@ export default function PrePurchasePage() {
 
           if (!response.ok) {
             if (response.status === 404) {
-                throw new Error('No seller found for the selected showroom.');
+              throw new Error('No seller found for the selected showroom.');
             }
             if (response.status === 401) {
-                throw new Error('Authentication failed for seller data. Please log in again.');
+              throw new Error('Authentication failed for seller data. Please log in again.');
             }
             throw new Error(`Failed to load seller information: ${response.statusText}`);
           }
@@ -198,58 +198,58 @@ export default function PrePurchasePage() {
       };
       fetchSellerData();
     } else {
-        setSellerData(null);
-        setErrorSeller('');
-        setLoadingSeller(false);
+      setSellerData(null);
+      setErrorSeller('');
+      setLoadingSeller(false);
     }
   }, [selectedShowroom]);
 
- useEffect(() => {
-  console.log("--- useEffect for Momo callback initiated ---");
-  const query = new URLSearchParams(location.search);
+  useEffect(() => {
+    console.log("--- useEffect for Momo callback initiated ---");
+    const query = new URLSearchParams(location.search);
 
-  const momopartnerCode = query.get('partnerCode');
-  const momoOrderId = query.get('orderId');
-  const momoExtraData = query.get('extraData');
-  const momorequestId = query.get('requestId');
-  const momoResultCode = query.get('errorCode');
-  const momoAmount = query.get('amount');
-  const momoTransId = query.get('transId');
-  const momoOrderInfo = query.get('orderInfo');
-  const momoOrderType = query.get('orderType');
-  const momoMessage = query.get('message');
-  const momoLocalMessage = query.get('localMessage');
-  const momoResponseTime = query.get('responseTime');
-  const momoPayType = query.get('payType');
-  const momoSignature = query.get('signature');
-  const momoAccessKey = query.get('accessKey');
+    const momopartnerCode = query.get('partnerCode');
+    const momoOrderId = query.get('orderId');
+    const momoExtraData = query.get('extraData');
+    const momorequestId = query.get('requestId');
+    const momoResultCode = query.get('errorCode');
+    const momoAmount = query.get('amount');
+    const momoTransId = query.get('transId');
+    const momoOrderInfo = query.get('orderInfo');
+    const momoOrderType = query.get('orderType');
+    const momoMessage = query.get('message');
+    const momoLocalMessage = query.get('localMessage');
+    const momoResponseTime = query.get('responseTime');
+    const momoPayType = query.get('payType');
+    const momoSignature = query.get('signature');
+    const momoAccessKey = query.get('accessKey');
 
-  if (momoResultCode !== null) {
-    console.log("--- Momo callback parameters detected, processing... ---");
-    setIsProcessingGateway(true);
+    if (momoResultCode !== null) {
+      console.log("--- Momo callback parameters detected, processing... ---");
+      setIsProcessingGateway(true);
 
-    if (momoResultCode === "0") {
-      console.log("Momo Payment SUCCESS! Sending data to server...");
+      if (momoResultCode === "0") {
+        console.log("Momo Payment SUCCESS! Sending data to server...");
 
-      const payload = {
-        partnerCode: momopartnerCode,
-        orderId: momoOrderId,
-        extraData: momoExtraData,
-        requestId: momorequestId,
-        resultCode: momoResultCode,
-        amount: momoAmount,
-        transId: momoTransId,
-        orderInfo: momoOrderInfo,
-        orderType: momoOrderType,
-        message: momoMessage,
-        localMessage: momoLocalMessage,
-        responseTime: momoResponseTime,
-        payType: momoPayType,
-        signature: momoSignature,
-        accessKey: momoAccessKey
-      };
+        const payload = {
+          partnerCode: momopartnerCode,
+          orderId: momoOrderId,
+          extraData: momoExtraData,
+          requestId: momorequestId,
+          resultCode: momoResultCode,
+          amount: momoAmount,
+          transId: momoTransId,
+          orderInfo: momoOrderInfo,
+          orderType: momoOrderType,
+          message: momoMessage,
+          localMessage: momoLocalMessage,
+          responseTime: momoResponseTime,
+          payType: momoPayType,
+          signature: momoSignature,
+          accessKey: momoAccessKey
+        };
 
-      fetch('/api/Momo/momo_ipn', {
+        fetch('/api/Momo/momo_ipn', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -268,49 +268,49 @@ export default function PrePurchasePage() {
 
             // Check the resultCode from your server's response
             if (data.resultCode === "0") {
-                // Attempt to determine payment purpose from extraData
-                let paymentPurposeText = "payment";
-                if (momoExtraData) {
-                    try {
-                        const decodedExtraData = atob(momoExtraData); // Decode Base64
-                        const parts = decodedExtraData.split('|');
-                        if (parts.length > 1) {
-                            paymentPurposeText = parts[1] === "deposit" ? "deposit" : "full payment";
-                        }
-                    } catch (e) {
-                        console.error("Error decoding extraData:", e);
-                    }
+              // Attempt to determine payment purpose from extraData
+              let paymentPurposeText = "payment";
+              if (momoExtraData) {
+                try {
+                  const decodedExtraData = atob(momoExtraData); // Decode Base64
+                  const parts = decodedExtraData.split('|');
+                  if (parts.length > 1) {
+                    paymentPurposeText = parts[1] === "deposit" ? "deposit" : "full payment";
+                  }
+                } catch (e) {
+                  console.error("Error decoding extraData:", e);
                 }
+              }
 
-                Swal.fire({
-                    icon: "success",
-                    title: "Payment Successful!",
-                    html: `Your ${paymentPurposeText} has been processed successfully.<br/>Please check your email; we've sent the detailed invoice there.`,
-                    confirmButtonText: "Complete",
-                    confirmButtonColor: "#10B981", // Green color
-                }).then(() => {
-                    // Redirect the user after they click "Complete"
-                    if (carId) {
-                        navigate(`/cars/orders`, { replace: true });
-                    } else {
-                        navigate('/some-success-page', { replace: true }); // Or a generic success page
-                    }
-                });
+              Swal.fire({
+                icon: "success",
+                title: "Payment Successful!",
+                html: `Your ${paymentPurposeText} has been processed successfully.<br/>Please check your email; we've sent the detailed invoice there.`,
+                confirmButtonText: "Complete",
+                confirmButtonColor: "#10B981", // Green color
+              }).then(() => {
+                // Redirect the user after they click "Complete"
+                if (carId) {
+                  navigate(`/cars/orders`, { replace: true });
+                } else {
+                  navigate('/some-success-page', { replace: true }); // Or a generic success page
+                }
+              });
             } else {
-                // Case where MoMo reported success but your server validation failed
-                Swal.fire({
-                    icon: "error",
-                    title: "Payment Verification Failed!",
-                    text: `There was an issue verifying your payment on our system. Please contact support. (Error Code: ${data.resultCode})`,
-                    confirmButtonText: "Try Again",
-                    confirmButtonColor: "#EF4444",
-                }).then(() => {
-                    if (carId) {
-                        navigate(`/cars/${carId}/confirm-orders}`, { replace: true });
-                    } else {
-                        navigate('/some-error-page', { replace: true });
-                    }
-                });
+              // Case where MoMo reported success but your server validation failed
+              Swal.fire({
+                icon: "error",
+                title: "Payment Verification Failed!",
+                text: `There was an issue verifying your payment on our system. Please contact support. (Error Code: ${data.resultCode})`,
+                confirmButtonText: "Try Again",
+                confirmButtonColor: "#EF4444",
+              }).then(() => {
+                if (carId) {
+                  navigate(`/cars/${carId}/confirm-orders}`, { replace: true });
+                } else {
+                  navigate('/some-error-page', { replace: true });
+                }
+              });
             }
           })
           .catch(error => {
@@ -417,6 +417,147 @@ export default function PrePurchasePage() {
   // Handle Deposit
   const handleDeposit = async () => {
     if (!car) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Missing Car Data',
+        text: 'Car details are not loaded. Please try again.',
+        confirmButtonText: 'OK',
+      });
+      return;
+    }
+    if (!selectedShowroom) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Showroom Required',
+        text: 'Please select a showroom.',
+        confirmButtonText: 'OK',
+      });
+      return;
+    }
+    if (!depositPaymentMethod) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Deposit Payment Method Required',
+        text: 'Please select a method to pay the deposit.',
+        confirmButtonText: 'OK',
+      });
+      return;
+    }
+    if (deliveryOption === 'shipping' && !useUserProfileAddress) {
+      if (!shippingAddressInfo.name || !shippingAddressInfo.address || !shippingAddressInfo.phone) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Shipping Information Incomplete',
+          text: 'Please fill in all shipping address details.',
+          confirmButtonText: 'OK',
+        });
+        return;
+      }
+    }
+
+    setIsProcessingDeposit(true);
+
+    try {
+      const token = getToken();
+      const payload = {
+        listingId: car.id,
+        totalPrice: calculateTotalPrice(),
+        depositAmount: depositAmount,
+        deliveryOption: deliveryOption,
+        selectedShowroomId: deliveryOption === 'pickup' ? Number(selectedShowroom) : null,
+        useUserProfileAddress: deliveryOption === 'shipping' ? useUserProfileAddress : false,
+        shippingAddressInfo: deliveryOption === 'shipping' && !useUserProfileAddress ? shippingAddressInfo : null,
+        depositPaymentMethod: depositPaymentMethod,
+        expectedDeliveryDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
+      };
+
+      if (depositPaymentMethod === 'e_wallet_momo_test') {
+        const createOrderResponse = await fetch('/api/Customer/orders/deposit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ ...payload, depositPaymentMethod: depositPaymentMethod })
+        });
+
+        if (!createOrderResponse.ok) {
+          const errorData = await createOrderResponse.json();
+          throw new Error(errorData.message || 'Failed to create pending deposit order.');
+        }
+        const orderConfirmation = await createOrderResponse.json();
+        setCurrentOrderId(orderConfirmation.orderId);
+
+        await initiateMomoPayment(orderConfirmation.orderId, depositAmount, 'deposit');
+      } else {
+        const response = await fetch('/api/Customer/orders/deposit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to process deposit on server.');
+        }
+
+        const depositConfirmation = await response.json();
+        setIsDepositPaid(true);
+        setCurrentOrderId(depositConfirmation.orderId);
+
+        const apiExpectedDeliveryDate = depositConfirmation.expectedDeliveryDate ? new Date(depositConfirmation.expectedDeliveryDate) : new Date(new Date().setDate(new Date().getDate() + 30));
+        setDeliveryDate(apiExpectedDeliveryDate.toISOString().split('T')[0]);
+
+        const calculatedPaymentDueDate = new Date(apiExpectedDeliveryDate);
+        calculatedPaymentDueDate.setDate(apiExpectedDeliveryDate.getDate() - 10);
+        setPaymentDueDate(calculatedPaymentDueDate.toISOString().split('T')[0]);
+
+        await Swal.fire({
+          icon: "success",
+          title: "Deposit Payment Successful!",
+          html: `
+          <p>Your deposit of <strong>${formatCurrency(depositAmount)}</strong> has been successfully processed.</p>
+          <p class="mt-2 text-sm text-gray-600">A confirmation email has been sent to your email address. Please check your inbox (and spam/junk folder).</p>
+          <p class="mt-1 text-sm text-gray-600">Our sales team will contact you soon to complete the purchase contract and full payment.</p>
+          <p class="mt-1 text-sm text-gray-600">Vehicle delivery is scheduled for: <strong>${apiExpectedDeliveryDate.toLocaleDateString('en-US')}</strong></p>
+          <p class="mt-1 text-sm text-gray-600">Full payment is due by: <strong>${calculatedPaymentDueDate.toLocaleDateString('en-US')}</strong></p>
+        `,
+          confirmButtonText: "OK",
+          confirmButtonColor: "#10B981",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            navigate('/orders');
+          }
+        });
+      }
+    } catch (err) {
+      await Swal.fire({
+        icon: "error",
+        title: "Deposit Failed",
+        text: `Unable to process deposit: ${err.message}`,
+        confirmButtonText: "OK",
+        confirmButtonColor: "#EF4444",
+      });
+    } finally {
+      setIsProcessingDeposit(false);
+    }
+  };
+const handleFullPayment = async () => {
+  // 1. Validate required data before payment
+  if (!paymentMethod) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Payment Method Required',
+      text: 'Please select a payment method for the full order.',
+      confirmButtonText: 'OK',
+    });
+    return;
+  }
+
+  if (!car) {
     Swal.fire({
       icon: 'error',
       title: 'Missing Car Data',
@@ -425,6 +566,7 @@ export default function PrePurchasePage() {
     });
     return;
   }
+
   if (!selectedShowroom) {
     Swal.fire({
       icon: 'warning',
@@ -434,15 +576,7 @@ export default function PrePurchasePage() {
     });
     return;
   }
-  if (!depositPaymentMethod) {
-    Swal.fire({
-      icon: 'warning',
-      title: 'Deposit Payment Method Required',
-      text: 'Please select a method to pay the deposit.',
-      confirmButtonText: 'OK',
-    });
-    return;
-  }
+
   if (deliveryOption === 'shipping' && !useUserProfileAddress) {
     if (!shippingAddressInfo.name || !shippingAddressInfo.address || !shippingAddressInfo.phone) {
       Swal.fire({
@@ -455,210 +589,176 @@ export default function PrePurchasePage() {
     }
   }
 
-  setIsProcessingDeposit(true);
+  setIsProcessingFullPayment(true);
 
   try {
     const token = getToken();
-    const payload = {
-      listingId: car.id,
-      totalPrice: calculateTotalPrice(),
-      depositAmount: depositAmount,
-      deliveryOption: deliveryOption,
-      selectedShowroomId: deliveryOption === 'pickup' ? Number(selectedShowroom) : null,
-      useUserProfileAddress: deliveryOption === 'shipping' ? useUserProfileAddress : false,
-      shippingAddressInfo: deliveryOption === 'shipping' && !useUserProfileAddress ? shippingAddressInfo : null,
-      depositPaymentMethod: depositPaymentMethod,
-      expectedDeliveryDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
-    };
 
-    if (depositPaymentMethod === 'e_wallet_momo_test') {
+    if (purchaseType === 'full_payment') {
+      // Full payment from the start - need to create deposit order first, then process full payment
+      const depositPayload = {
+        listingId: car.id,
+        totalPrice: calculateTotalPrice(),
+        depositAmount: Math.max(MIN_DEPOSIT, Math.round(calculateTotalPrice() * DEPOSIT_PERCENT)),
+        deliveryOption: deliveryOption,
+        selectedShowroomId: deliveryOption === 'pickup' ? Number(selectedShowroom) : null,
+        useUserProfileAddress: deliveryOption === 'shipping' ? useUserProfileAddress : false,
+        shippingAddressInfo: deliveryOption === 'shipping' && !useUserProfileAddress ? shippingAddressInfo : null,
+        depositPaymentMethod: paymentMethod, // Use the same payment method selected for full payment
+        expectedDeliveryDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
+      };
+
+      // First create the order with deposit structure
       const createOrderResponse = await fetch('/api/Customer/orders/deposit', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ ...payload, depositPaymentMethod: depositPaymentMethod })
+        body: JSON.stringify(depositPayload)
       });
 
       if (!createOrderResponse.ok) {
         const errorData = await createOrderResponse.json();
-        throw new Error(errorData.message || 'Failed to create pending deposit order.');
+        throw new Error(errorData.message || 'Failed to create order for full payment.');
       }
+      
       const orderConfirmation = await createOrderResponse.json();
-      setCurrentOrderId(orderConfirmation.orderId);
+      const orderId = orderConfirmation.orderId;
+      setCurrentOrderId(orderId);
 
-      await initiateMomoPayment(orderConfirmation.orderId, depositAmount, 'deposit');
-    } else {
-      const response = await fetch('/api/Customer/orders/deposit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to process deposit on server.');
-      }
-
-      const depositConfirmation = await response.json();
-      setIsDepositPaid(true);
-      setCurrentOrderId(depositConfirmation.orderId);
-
-      const apiExpectedDeliveryDate = depositConfirmation.expectedDeliveryDate ? new Date(depositConfirmation.expectedDeliveryDate) : new Date(new Date().setDate(new Date().getDate() + 30));
-      setDeliveryDate(apiExpectedDeliveryDate.toISOString().split('T')[0]);
-
-      const calculatedPaymentDueDate = new Date(apiExpectedDeliveryDate);
-      calculatedPaymentDueDate.setDate(apiExpectedDeliveryDate.getDate() - 10);
-      setPaymentDueDate(calculatedPaymentDueDate.toISOString().split('T')[0]);
-
-      await Swal.fire({
-        icon: "success",
-        title: "Deposit Payment Successful!",
-        html: `
-          <p>Your deposit of <strong>${formatCurrency(depositAmount)}</strong> has been successfully processed.</p>
-          <p class="mt-2 text-sm text-gray-600">A confirmation email has been sent to your email address. Please check your inbox (and spam/junk folder).</p>
-          <p class="mt-1 text-sm text-gray-600">Our sales team will contact you soon to complete the purchase contract and full payment.</p>
-          <p class="mt-1 text-sm text-gray-600">Vehicle delivery is scheduled for: <strong>${apiExpectedDeliveryDate.toLocaleDateString('en-US')}</strong></p>
-          <p class="mt-1 text-sm text-gray-600">Full payment is due by: <strong>${calculatedPaymentDueDate.toLocaleDateString('en-US')}</strong></p>
-        `,
-        confirmButtonText: "OK",
-        confirmButtonColor: "#10B981",
-      }).then((result) => {
-        if (result.isConfirmed) {
-          navigate('/orders');
-        }
-      });
-    }
-  } catch (err) {
-    await Swal.fire({
-      icon: "error",
-      title: "Deposit Failed",
-      text: `Unable to process deposit: ${err.message}`,
-      confirmButtonText: "OK",
-      confirmButtonColor: "#EF4444",
-    });
-  } finally {
-    setIsProcessingDeposit(false);
-  }
-};
-
-  // Handle Full Payment
-  const handleFullPayment = async () => {
-    if (purchaseType === 'deposit' && (!isDepositPaid || !currentOrderId)) {
-    Swal.fire({
-      icon: 'warning',
-      title: 'Deposit Required',
-      text: 'Please place the deposit first before making the full payment.',
-      confirmButtonText: 'OK',
-    });
-    return;
-  }
-
-  if (!deliveryDate) {
-    Swal.fire({
-      icon: 'warning',
-      title: 'Delivery Date Required',
-      text: 'Delivery date is not set. Please place a deposit first or select full payment option.',
-      confirmButtonText: 'OK',
-    });
-    return;
-  }
-
-  if (!paymentMethod) {
-    Swal.fire({
-      icon: 'warning',
-      title: 'Full Payment Method Required',
-      text: 'Please select a payment method for the full order.',
-      confirmButtonText: 'OK',
-    });
-    return;
-  }
-
-  setIsProcessingFullPayment(true);
-
-  let deliveryDetails = '';
-  const currentShowroom = showrooms.find(sr => String(sr.id) === String(selectedShowroom));
-
-  if (deliveryOption === 'pickup') {
-    deliveryDetails = `Pick up at Showroom: ${currentShowroom?.name || 'N/A'} at ${currentShowroom?.address || 'N/A'}`;
-  } else {
-    const finalShippingAddress = useUserProfileAddress
-      ? `${userData?.address || 'N/A'}, ${userData?.city || 'N/A'}, ${userData?.province || 'N/A'}`
-      : `${shippingAddressInfo.address}, Phone: ${shippingAddressInfo.phone}, Recipient: ${shippingAddressInfo.name}`;
-    deliveryDetails = `Ship to: ${finalShippingAddress}`;
-  }
-
-  try {
-    const token = getToken();
-    const orderIdToUse = currentOrderId || location.state?.orderId;
-
-    if (!orderIdToUse) {
-      throw new Error("Order ID is missing. Cannot process full payment.");
-    }
-
-    const amountToPay = purchaseType === 'deposit' ? remainingBalance : calculateTotalPrice();
-
-    if (paymentMethod === 'e_wallet_momo_test') {
-      await initiateMomoPayment(orderIdToUse, amountToPay, 'full_payment');
-    } else {
-      const payload = {
+      // Now process the full payment for this order
+      const fullPaymentPayload = {
         paymentMethod: paymentMethod,
-        actualDeliveryDate: deliveryDate,
+        actualDeliveryDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
       };
 
-      const response = await fetch(`/api/Customer/orders/${orderIdToUse}/full-payment`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
+      if (paymentMethod === 'e_wallet_momo_test') {
+        // For Momo, we need to process full payment first, then redirect
+        const fullPaymentResponse = await fetch(`/api/Customer/orders/full-payment?orderId=${orderId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(fullPaymentPayload)
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to process full payment on server.');
+        if (!fullPaymentResponse.ok) {
+          const errorData = await fullPaymentResponse.json();
+          throw new Error(errorData.message || 'Failed to process full payment.');
+        }
+
+        // Then initiate Momo payment
+        await initiateMomoPayment(orderId, calculateTotalPrice(), 'full_payment');
+      } else {
+        // Handle non-gateway payment methods
+        const fullPaymentResponse = await fetch(`/api/Customer/orders/full-payment?orderId=${orderId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(fullPaymentPayload)
+        });
+
+        if (!fullPaymentResponse.ok) {
+          const errorData = await fullPaymentResponse.json();
+          throw new Error(errorData.message || 'Failed to process full payment.');
+        }
+
+        // Handle successful API response
+        await Swal.fire({
+          icon: "success",
+          title: "Purchase Complete!",
+          html: `<p>Thank you for your purchase! Your full payment has been processed.</p>
+          <p>Delivery is scheduled for: <strong>${new Date(fullPaymentPayload.actualDeliveryDate).toLocaleDateString()}</strong></p>
+          <p>A confirmation email has been sent to your email address.</p>`,
+          confirmButtonText: "OK",
+          confirmButtonColor: "#10B981",
+        }).then(() => {
+          navigate('/orders');
+        });
+      }
+    } else if (purchaseType === 'deposit') {
+      // Completing remaining payment after deposit
+      const orderIdToUse = currentOrderId || location.state?.orderId;
+      if (!orderIdToUse) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Order ID Missing',
+          text: 'Cannot proceed with full payment. Please ensure a deposit has been placed first to create an order.',
+          confirmButtonText: 'OK',
+        });
+        return;
       }
 
-      const fullPaymentConfirmation = await response.json();
+      const fullPaymentPayload = {
+        paymentMethod: paymentMethod,
+        actualDeliveryDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
+      };
 
-      await Swal.fire({
-        icon: "success",
-        title: "Purchase Complete!",
-        html: `
-          <p>Thank you for your purchase! Your full payment has been processed.</p>
-          <p class="mt-2 text-sm text-gray-600"><strong>Total Amount Paid:</strong> ${formatCurrency(calculateTotalPrice())}</p>
-          <p class="mt-1 text-sm text-gray-600"><strong>Delivery Date:</strong> ${new Date(deliveryDate).toLocaleDateString('en-US')}</p>
-          <p class="mt-1 text-sm text-gray-600"><strong>Delivery Method:</strong> ${deliveryDetails}</p>
-          <p class="mt-1 text-sm text-gray-600"><strong>Full Payment Method:</strong> ${paymentMethod.replace(/_/g, ' ').toUpperCase()}</p>
-          <p class="mt-2 text-sm text-gray-600">A confirmation email has been sent to your email address. Please check your inbox (and spam/junk folder).</p>
-          <p class="mt-2 text-base text-blue-700 font-semibold">Your car will be delivered on the scheduled date!</p>
-        `,
-        confirmButtonText: "OK",
-        confirmButtonColor: "#10B981",
-      }).then((result) => {
-        if (result.isConfirmed) {
-          navigate('/orders');
+      if (paymentMethod === 'e_wallet_momo_test') {
+        // Process full payment first, then redirect to Momo
+        const fullPaymentResponse = await fetch(`/api/Customer/orders/full-payment?orderId=${orderIdToUse}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(fullPaymentPayload)
+        });
+
+        if (!fullPaymentResponse.ok) {
+          const errorData = await fullPaymentResponse.json();
+          throw new Error(errorData.message || 'Failed to process remaining payment.');
         }
-      });
+
+        // Then initiate Momo payment for remaining balance
+        await initiateMomoPayment(orderIdToUse, remainingBalance, 'full_payment');
+      } else {
+        // Handle non-gateway payment methods
+        const fullPaymentResponse = await fetch(`/api/Customer/orders/full-payment?orderId=${orderIdToUse}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(fullPaymentPayload)
+        });
+
+        if (!fullPaymentResponse.ok) {
+          const errorData = await fullPaymentResponse.json();
+          throw new Error(errorData.message || 'Failed to process remaining payment.');
+        }
+
+        // Handle successful API response
+        await Swal.fire({
+          icon: "success",
+          title: "Payment Complete!",
+          html: `<p>Thank you! Your remaining payment has been processed successfully.</p>
+          <p>Your order is now complete.</p>
+          <p>A confirmation email has been sent to your email address.</p>`,
+          confirmButtonText: "OK",
+          confirmButtonColor: "#10B981",
+        }).then(() => {
+          navigate('/orders');
+        });
+      }
     }
   } catch (err) {
+    // Error handling
     await Swal.fire({
       icon: "error",
-      title: "Full Payment Failed",
-      text: `Unable to process full payment: ${err.message}`,
+      title: "Payment Failed",
+      text: `Unable to process payment: ${err.message}`,
       confirmButtonText: "Try Again",
       confirmButtonColor: "#EF4444",
     });
   } finally {
     setIsProcessingFullPayment(false);
   }
-}
-
+};
   const handleShowroomChange = (e) => {
     setSelectedShowroom(e.target.value);
   };
@@ -694,10 +794,10 @@ export default function PrePurchasePage() {
 
     let deliverySection = '';
     if (deliveryAddress !== 'N/A' && deliveryOption === 'shipping') {
-        deliverySection += `Delivery will be arranged to: ${deliveryAddress}\n`;
+      deliverySection += `Delivery will be arranged to: ${deliveryAddress}\n`;
     }
     if (pickupLocation !== 'N/A' && deliveryOption === 'pickup') {
-        deliverySection += `Pickup/Sale Location: ${pickupLocation}\n`;
+      deliverySection += `Pickup/Sale Location: ${pickupLocation}\n`;
     }
     deliverySection += `Expected Delivery Date: ${currentDeliveryDate}`;
 
@@ -771,6 +871,17 @@ export default function PrePurchasePage() {
     setDeliveryDate('');
     setPaymentDueDate('');
     setCurrentOrderId(null);
+    if (e.target.value === 'full_payment') {
+      const today = new Date();
+      const delivery = new Date(today.setDate(today.getDate() + 30));
+      const paymentDue = new Date(delivery);
+      paymentDue.setDate(delivery.getDate() - 1);
+      setDeliveryDate(delivery.toISOString().split('T')[0]);
+      setPaymentDueDate(paymentDue.toISOString().split('T')[0]);
+    } else {
+      setDeliveryDate('');
+      setPaymentDueDate('');
+    }
   };
 
   if (loadingUser || !car || isProcessingGateway) {
@@ -823,26 +934,26 @@ export default function PrePurchasePage() {
           <div className="flex-1 overflow-y-auto px-2 py-2">
             {/* Car Information Display */}
             <div className="bg-blue-50 p-6 rounded-xl border border-blue-200 shadow-sm mb-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                    <svg className="w-6 h-6 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 6l3 1m0 0l-3 9a5 5 0 000 1.986V19H4.276a1 1 0 00-.765 1.637l1.392 1.392A1 1 0 005.637 23H18a1 1 0 00.765-1.637l1.392-1.392A1 1 0 0019.724 19H17v-1.014a5 5 0 000-1.986l-3-9zm-9 0h12" />
-                    </svg>
-                    Car Information
-                </h3>
-                <div className="space-y-2 text-lg">
-                    <div className="flex justify-between items-center text-gray-700">
-                        <span>Manufacturer:</span>
-                        <span className="font-semibold">{car?.model?.manufacturer?.name || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-gray-700">
-                        <span>Model:</span>
-                        <span className="font-semibold">{car?.model?.name || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-gray-700">
-                        <span>Car Price:</span>
-                        <span className="font-semibold">{formatCurrency(car.price)}</span>
-                    </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <svg className="w-6 h-6 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 6l3 1m0 0l-3 9a5 5 0 000 1.986V19H4.276a1 1 0 00-.765 1.637l1.392 1.392A1 1 0 005.637 23H18a1 1 0 00.765-1.637l1.392-1.392A1 1 0 0019.724 19H17v-1.014a5 5 0 000-1.986l-3-9zm-9 0h12" />
+                </svg>
+                Car Information
+              </h3>
+              <div className="space-y-2 text-lg">
+                <div className="flex justify-between items-center text-gray-700">
+                  <span>Manufacturer:</span>
+                  <span className="font-semibold">{car?.model?.manufacturer?.name || 'N/A'}</span>
                 </div>
+                <div className="flex justify-between items-center text-gray-700">
+                  <span>Model:</span>
+                  <span className="font-semibold">{car?.model?.name || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between items-center text-gray-700">
+                  <span>Car Price:</span>
+                  <span className="font-semibold">{formatCurrency(car.price)}</span>
+                </div>
+              </div>
             </div>
 
             {/* Showroom Selection & User/Seller Info */}
@@ -865,154 +976,154 @@ export default function PrePurchasePage() {
               </div>
             ) : (
               <div className="space-y-6">
-                 <div className="space-y-4 bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm">
-                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                        <svg className="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13 21.314A2 2 0 0110.172 21H7a2 2 0 01-2-2V7a2 2 0 012-2h10a2 2 0 012 2v10a2 2 0 01-2 2zM12 10a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        Select Sales Showroom
-                    </h3>
-                    <div className="relative">
-                        <select
-                        id="showroom-select"
-                        className="block w-full px-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md appearance-none cursor-pointer"
-                        value={selectedShowroom}
-                        onChange={handleShowroomChange}
-                        >
-                        <option value="">Choose your preferred showroom to purchase from</option>
-                        {showrooms.map((showroom) => (
-                            <option key={showroom.id} value={String(showroom.id)}>
-                            {showroom.name || 'Unknown'} - {showroom.address || 'No address'}
-                            </option>
-                        ))}
-                        </select>
-                        <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
-                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                        </div>
+                <div className="space-y-4 bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm">
+                  <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <svg className="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13 21.314A2 2 0 0110.172 21H7a2 2 0 01-2-2V7a2 2 0 012-2h10a2 2 0 012 2v10a2 2 0 01-2 2zM12 10a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Select Sales Showroom
+                  </h3>
+                  <div className="relative">
+                    <select
+                      id="showroom-select"
+                      className="block w-full px-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md appearance-none cursor-pointer"
+                      value={selectedShowroom}
+                      onChange={handleShowroomChange}
+                    >
+                      <option value="">Choose your preferred showroom to purchase from</option>
+                      {showrooms.map((showroom) => (
+                        <option key={showroom.id} value={String(showroom.id)}>
+                          {showroom.name || 'Unknown'} - {showroom.address || 'No address'}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                      </svg>
                     </div>
-                    {showrooms.length === 0 && (
-                        <div className="bg-amber-50 border-l-4 border-amber-500 p-3 rounded-lg mt-2">
-                            <p className="text-amber-800 text-sm font-medium">No showrooms available for this car. Please contact support.</p>
-                        </div>
-                    )}
-                 </div>
+                  </div>
+                  {showrooms.length === 0 && (
+                    <div className="bg-amber-50 border-l-4 border-amber-500 p-3 rounded-lg mt-2">
+                      <p className="text-amber-800 text-sm font-medium">No showrooms available for this car. Please contact support.</p>
+                    </div>
+                  )}
+                </div>
 
-                 <div className="space-y-4 bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm">
-                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                        <svg className="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Delivery Options
-                    </h3>
-                    <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-6">
+                <div className="space-y-4 bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm">
+                  <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <svg className="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Delivery Options
+                  </h3>
+                  <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-6">
+                    <label className="flex items-center text-gray-700 font-medium cursor-pointer">
+                      <input
+                        type="radio"
+                        name="deliveryOption"
+                        value="pickup"
+                        checked={deliveryOption === 'pickup'}
+                        onChange={handleDeliveryOptionChange}
+                        className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      />
+                      <span className="ml-3">Pick up at Showroom</span>
+                    </label>
+                    <label className="flex items-center text-gray-700 font-medium cursor-pointer">
+                      <input
+                        type="radio"
+                        name="deliveryOption"
+                        value="shipping"
+                        checked={deliveryOption === 'shipping'}
+                        onChange={handleDeliveryOptionChange}
+                        className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      />
+                      <span className="ml-3">Ship to Address (+$<span className="font-semibold">{formatCurrency(SHIPPING_COST)}</span>)</span>
+                    </label>
+                  </div>
+
+                  {deliveryOption === 'shipping' && (
+                    <div className="mt-4 space-y-4 p-4 border border-blue-200 rounded-lg bg-blue-50">
+                      <h4 className="text-lg font-semibold text-gray-800 mb-3">Shipping Address</h4>
+                      <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-6">
                         <label className="flex items-center text-gray-700 font-medium cursor-pointer">
-                            <input
-                                type="radio"
-                                name="deliveryOption"
-                                value="pickup"
-                                checked={deliveryOption === 'pickup'}
-                                onChange={handleDeliveryOptionChange}
-                                className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
-                            />
-                            <span className="ml-3">Pick up at Showroom</span>
+                          <input
+                            type="radio"
+                            name="shippingAddressOption"
+                            value="profile"
+                            checked={useUserProfileAddress}
+                            onChange={() => setUseUserProfileAddress(true)}
+                            className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
+                          />
+                          <span className="ml-3">Use my profile address</span>
                         </label>
                         <label className="flex items-center text-gray-700 font-medium cursor-pointer">
-                            <input
-                                type="radio"
-                                name="deliveryOption"
-                                value="shipping"
-                                checked={deliveryOption === 'shipping'}
-                                onChange={handleDeliveryOptionChange}
-                                className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
-                            />
-                            <span className="ml-3">Ship to Address (+$<span className="font-semibold">{formatCurrency(SHIPPING_COST)}</span>)</span>
+                          <input
+                            type="radio"
+                            name="shippingAddressOption"
+                            value="other"
+                            checked={!useUserProfileAddress}
+                            onChange={() => setUseUserProfileAddress(false)}
+                            className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
+                          />
+                          <span className="ml-3">Ship to a different address</span>
                         </label>
-                    </div>
+                      </div>
 
-                    {deliveryOption === 'shipping' && (
-                        <div className="mt-4 space-y-4 p-4 border border-blue-200 rounded-lg bg-blue-50">
-                            <h4 className="text-lg font-semibold text-gray-800 mb-3">Shipping Address</h4>
-                            <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-6">
-                                <label className="flex items-center text-gray-700 font-medium cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="shippingAddressOption"
-                                        value="profile"
-                                        checked={useUserProfileAddress}
-                                        onChange={() => setUseUserProfileAddress(true)}
-                                        className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
-                                    />
-                                    <span className="ml-3">Use my profile address</span>
-                                </label>
-                                <label className="flex items-center text-gray-700 font-medium cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="shippingAddressOption"
-                                        value="other"
-                                        checked={!useUserProfileAddress}
-                                        onChange={() => setUseUserProfileAddress(false)}
-                                        className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
-                                    />
-                                    <span className="ml-3">Ship to a different address</span>
-                                </label>
-                            </div>
-
-                            {useUserProfileAddress ? (
-                                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                                    <p className="text-sm font-medium text-gray-600">Address:</p>
-                                    <p className="text-base text-gray-800 font-semibold">
-                                        {userData?.address || 'N/A'}, {userData?.city || 'N/A'}, {userData?.province || 'N/A'}
-                                    </p>
-                                    <p className="text-sm font-medium text-gray-600 mt-2">Phone:</p>
-                                    <p className="text-base text-gray-800 font-semibold">
-                                        {userData?.mobile || 'N/A'}
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    <div>
-                                        <label htmlFor="shipping-name" className="block text-sm font-medium text-gray-700">Recipient Name</label>
-                                        <input
-                                            type="text"
-                                            id="shipping-name"
-                                            name="name"
-                                            value={shippingAddressInfo.name}
-                                            onChange={handleShippingAddressInfoChange}
-                                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                            placeholder="Full Name"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label htmlFor="shipping-address" className="block text-sm font-medium text-gray-700">Address</label>
-                                        <input
-                                            type="text"
-                                            id="shipping-address"
-                                            name="address"
-                                            value={shippingAddressInfo.address}
-                                            onChange={handleShippingAddressInfoChange}
-                                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                            placeholder="Street, City, Province/State, Postal Code"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label htmlFor="shipping-phone" className="block text-sm font-medium text-gray-700">Phone Number</label>
-                                        <input
-                                            type="tel"
-                                            id="shipping-phone"
-                                            name="phone"
-                                            value={shippingAddressInfo.phone}
-                                            onChange={handleShippingAddressInfoChange}
-                                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                            placeholder="e.g., +1234567890"
-                                        />
-                                    </div>
-                                </div>
-                            )}
+                      {useUserProfileAddress ? (
+                        <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                          <p className="text-sm font-medium text-gray-600">Address:</p>
+                          <p className="text-base text-gray-800 font-semibold">
+                            {userData?.address || 'N/A'}, {userData?.city || 'N/A'}, {userData?.province || 'N/A'}
+                          </p>
+                          <p className="text-sm font-medium text-gray-600 mt-2">Phone:</p>
+                          <p className="text-base text-gray-800 font-semibold">
+                            {userData?.mobile || 'N/A'}
+                          </p>
                         </div>
-                    )}
-                 </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <div>
+                            <label htmlFor="shipping-name" className="block text-sm font-medium text-gray-700">Recipient Name</label>
+                            <input
+                              type="text"
+                              id="shipping-name"
+                              name="name"
+                              value={shippingAddressInfo.name}
+                              onChange={handleShippingAddressInfoChange}
+                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                              placeholder="Full Name"
+                            />
+                          </div>
+                          <div>
+                            <label htmlFor="shipping-address" className="block text-sm font-medium text-gray-700">Address</label>
+                            <input
+                              type="text"
+                              id="shipping-address"
+                              name="address"
+                              value={shippingAddressInfo.address}
+                              onChange={handleShippingAddressInfoChange}
+                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                              placeholder="Street, City, Province/State, Postal Code"
+                            />
+                          </div>
+                          <div>
+                            <label htmlFor="shipping-phone" className="block text-sm font-medium text-gray-700">Phone Number</label>
+                            <input
+                              type="tel"
+                              id="shipping-phone"
+                              name="phone"
+                              value={shippingAddressInfo.phone}
+                              onChange={handleShippingAddressInfoChange}
+                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                              placeholder="e.g., +1234567890"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {userData && (
@@ -1129,244 +1240,282 @@ export default function PrePurchasePage() {
             )}
 
             <div className="space-y-4 bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm mt-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                    <svg className="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Choose Purchase Type
-                </h3>
-                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-6">
-                    <label className="flex items-center text-gray-700 font-medium cursor-pointer">
-                        <input
-                            type="radio"
-                            name="purchaseType"
-                            value="deposit"
-                            checked={purchaseType === 'deposit'}
-                            onChange={handlePurchaseTypeChange}
-                            className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
-                        />
-                        <span className="ml-3">Deposit First, Then Full Payment</span>
-                    </label>
-                    <label className="flex items-center text-gray-700 font-medium cursor-pointer">
-                        <input
-                            type="radio"
-                            name="purchaseType"
-                            value="full_payment"
-                            checked={purchaseType === 'full_payment'}
-                            onChange={handlePurchaseTypeChange}
-                            className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
-                        />
-                        <span className="ml-3">Full Payment Now</span>
-                    </label>
-                </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <svg className="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Choose Purchase Type
+              </h3>
+              <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-6">
+                <label className="flex items-center text-gray-700 font-medium cursor-pointer">
+                  <input
+                    type="radio"
+                    name="purchaseType"
+                    value="deposit"
+                    checked={purchaseType === 'deposit'}
+                    onChange={handlePurchaseTypeChange}
+                    className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  />
+                  <span className="ml-3">Deposit First, Then Full Payment</span>
+                </label>
+                <label className="flex items-center text-gray-700 font-medium cursor-pointer">
+                  <input
+                    type="radio"
+                    name="purchaseType"
+                    value="full_payment"
+                    checked={purchaseType === 'full_payment'}
+                    onChange={handlePurchaseTypeChange}
+                    className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  />
+                  <span className="ml-3">Full Payment Now</span>
+                </label>
+              </div>
             </div>
 
             {purchaseType === 'deposit' && (
-                <div className="space-y-4 bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm mt-6">
-                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                        <svg className="w-6 h-6 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        Deposit Information
-                    </h3>
-                    <div className="space-y-2 text-lg">
-                        <div className="flex justify-between items-center text-gray-700">
-                            <span>Expected Deposit Amount (30%):</span>
-                            <span className="font-semibold text-green-700">{formatCurrency(depositAmount)}</span>
-                        </div>
-                    </div>
-
-                    <div className="mt-4">
-                        <h4 className="text-lg font-semibold text-gray-800 mb-3">Deposit Payment Method</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors duration-200">
-                                <input
-                                    type="radio"
-                                    name="depositPaymentMethod"
-                                    value="bank_transfer"
-                                    checked={depositPaymentMethod === 'bank_transfer'}
-                                    onChange={handleDepositPaymentMethodChange}
-                                    className="h-5 w-5 text-green-600 border-gray-300 focus:ring-green-500"
-                                />
-                                <span className="ml-3 font-medium text-gray-700">Bank Transfer</span>
-                            </label>
-                            <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors duration-200">
-                                <input
-                                    type="radio"
-                                    name="depositPaymentMethod"
-                                    value="e_wallet_momo_test"
-                                    checked={depositPaymentMethod === 'e_wallet_momo_test'}
-                                    onChange={handleDepositPaymentMethodChange}
-                                    className="h-5 w-5 text-green-600 border-gray-300 focus:ring-green-500"
-                                />
-                                <span className="ml-3 font-medium text-gray-700">E-Wallet (Momo Test)</span>
-                            </label>
-                            <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors duration-200">
-                                <input
-                                    type="radio"
-                                    name="depositPaymentMethod"
-                                    value="installment_plan"
-                                    checked={depositPaymentMethod === 'installment_plan'}
-                                    onChange={handleDepositPaymentMethodChange}
-                                    className="h-5 w-5 text-green-600 border-gray-300 focus:ring-green-500"
-                                />
-                                <span className="ml-3 font-medium text-gray-700">Installment Plan</span>
-                            </label>
-                        </div>
-                        {!depositPaymentMethod && (
-                            <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-lg mt-4">
-                                <p className="text-red-800 text-sm font-medium">Please select a deposit payment method.</p>
-                            </div>
-                        )}
-                    </div>
-
-                    {isDepositPaid && (
-                        <div className="mt-6 space-y-2">
-                            <h4 className="text-lg font-semibold text-gray-800 mb-3">Key Dates</h4>
-                            <div className="flex justify-between items-center text-gray-700">
-                                <span>Calculated Delivery Date:</span>
-                                <span className="font-semibold">{deliveryDate ? new Date(deliveryDate).toLocaleDateString('en-US') : 'N/A'}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-gray-700">
-                                <span>Payment Due Date:</span>
-                                <span className="font-semibold">{paymentDueDate ? new Date(paymentDueDate).toLocaleDateString('en-US') : 'N/A'}</span>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="mt-4 text-center">
-                        <p className="text-sm font-semibold text-gray-800 mb-2">Purchase Agreement</p>
-                        <div className="flex flex-col sm:flex-row justify-center gap-3">
-                            <button
-                                onClick={handleViewContract}
-                                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
-                            >
-                                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
-                                View Agreement
-                            </button>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-2 italic">You can view the agreement at any time.</p>
-                    </div>
+              <div className="space-y-4 bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm mt-6">
+                <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                  <svg className="w-6 h-6 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  Deposit Information
+                </h3>
+                <div className="space-y-2 text-lg">
+                  <div className="flex justify-between items-center text-gray-700">
+                    <span>Expected Deposit Amount (30%):</span>
+                    <span className="font-semibold text-green-700">{formatCurrency(depositAmount)}</span>
+                  </div>
                 </div>
+
+                <div className="mt-4">
+                  <h4 className="text-lg font-semibold text-gray-800 mb-3">Deposit Payment Method</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors duration-200">
+                      <input
+                        type="radio"
+                        name="depositPaymentMethod"
+                        value="bank_transfer"
+                        checked={depositPaymentMethod === 'bank_transfer'}
+                        onChange={handleDepositPaymentMethodChange}
+                        className="h-5 w-5 text-green-600 border-gray-300 focus:ring-green-500"
+                      />
+                      <span className="ml-3 font-medium text-gray-700">Bank Transfer</span>
+                    </label>
+                    <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors duration-200">
+                      <input
+                        type="radio"
+                        name="depositPaymentMethod"
+                        value="e_wallet_momo_test"
+                        checked={depositPaymentMethod === 'e_wallet_momo_test'}
+                        onChange={handleDepositPaymentMethodChange}
+                        className="h-5 w-5 text-green-600 border-gray-300 focus:ring-green-500"
+                      />
+                      <span className="ml-3 font-medium text-gray-700">E-Wallet (Momo Test)</span>
+                    </label>
+                    <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors duration-200">
+                      <input
+                        type="radio"
+                        name="depositPaymentMethod"
+                        value="installment_plan"
+                        checked={depositPaymentMethod === 'installment_plan'}
+                        onChange={handleDepositPaymentMethodChange}
+                        className="h-5 w-5 text-green-600 border-gray-300 focus:ring-green-500"
+                      />
+                      <span className="ml-3 font-medium text-gray-700">Installment Plan</span>
+                    </label>
+                  </div>
+                  {!depositPaymentMethod && (
+                    <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-lg mt-4">
+                      <p className="text-red-800 text-sm font-medium">Please select a deposit payment method.</p>
+                    </div>
+                  )}
+                </div>
+
+                {isDepositPaid && (
+                  <div className="mt-6 space-y-2">
+                    <h4 className="text-lg font-semibold text-gray-800 mb-3">Key Dates</h4>
+                    <div className="flex justify-between items-center text-gray-700">
+                      <span>Calculated Delivery Date:</span>
+
+                      <span className="font-semibold">
+                        {(() => {
+                          const today = new Date();
+                          const deliveryDate = new Date(today.setDate(today.getDate() + 30));
+                          return deliveryDate.toLocaleDateString('vi-VN');
+                        })()}
+
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-gray-700">
+                      <span>Payment Due Date:</span>
+                      <span className="font-semibold">
+
+                        {(() => {
+                          const today = new Date();
+                          const deliveryDate = new Date(today.setDate(today.getDate() + 30));
+                          const paymentDueDate = new Date(deliveryDate.setDate(deliveryDate.getDate() - 1));
+                          return paymentDueDate.toLocaleDateString('vi-VN');
+                        })()}
+
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-4 text-center">
+                  <p className="text-sm font-semibold text-gray-800 mb-2">Purchase Agreement</p>
+                  <div className="flex flex-col sm:flex-row justify-center gap-3">
+                    <button
+                      onClick={handleViewContract}
+                      className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+                    >
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      View Agreement
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2 italic">You can view the agreement at any time.</p>
+                </div>
+              </div>
             )}
 
             {purchaseType === 'full_payment' && (
-                <div className="space-y-4 bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm mt-6">
-                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                        <svg className="w-6 h-6 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                        </svg>
-                        Full Payment Method
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors duration-200">
-                            <input
-                                type="radio"
-                                name="paymentMethod"
-                                value="bank_transfer"
-                                checked={paymentMethod === 'bank_transfer'}
-                                onChange={handlePaymentMethodChange}
-                                className="h-5 w-5 text-purple-600 border-gray-300 focus:ring-purple-500"
-                            />
-                            <span className="ml-3 font-medium text-gray-700">Bank Transfer</span>
-                        </label>
-                        <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors duration-200">
-                            <input
-                                type="radio"
-                                name="paymentMethod"
-                                value="e_wallet_momo_test"
-                                checked={paymentMethod === 'e_wallet_momo_test'}
-                                onChange={handlePaymentMethodChange}
-                                className="h-5 w-5 text-purple-600 border-gray-300 focus:ring-purple-500"
-                            />
-                            <span className="ml-3 font-medium text-gray-700">E-Wallet (Momo Test)</span>
-                        </label>
-                        <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors duration-200">
-                            <input
-                                type="radio"
-                                name="paymentMethod"
-                                value="installment_plan"
-                                checked={paymentMethod === 'installment_plan'}
-                                onChange={handlePaymentMethodChange}
-                                className="h-5 w-5 text-purple-600 border-gray-300 focus:ring-purple-500"
-                            />
-                            <span className="ml-3 font-medium text-gray-700">Installment Plan</span>
-                        </label>
-                    </div>
-                    {!paymentMethod && (
-                        <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-lg mt-4">
-                            <p className="text-red-800 text-sm font-medium">Please select a full payment method to proceed.</p>
-                        </div>
-                    )}
-                    <div className="mt-6 space-y-2">
-                        <h4 className="text-lg font-semibold text-gray-800 mb-3">Key Dates</h4>
-                        <div className="flex justify-between items-center text-gray-700">
-                            <span>Calculated Delivery Date:</span>
-                            <span className="font-semibold">{deliveryDate ? new Date(deliveryDate).toLocaleDateString('en-US') : 'N/A'}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-gray-700">
-                            <span>Payment Due Date:</span>
-                            <span className="font-semibold">{paymentDueDate ? new Date(paymentDueDate).toLocaleDateString('en-US') : 'N/A'}</span>
-                        </div>
-                        {!deliveryDate && (
-                            <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-lg mt-4">
-                                <p className="text-red-800 text-sm font-medium">Delivery date is not set. This is required to proceed with full payment.</p>
-                            </div>
-                        )}
-                    </div>
+              <div className="space-y-4 bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm mt-6">
+                <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                  <svg className="w-6 h-6 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                  Full Payment Method
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors duration-200">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="bank_transfer"
+                      checked={paymentMethod === 'bank_transfer'}
+                      onChange={handlePaymentMethodChange}
+                      className="h-5 w-5 text-purple-600 border-gray-300 focus:ring-purple-500"
+                    />
+                    <span className="ml-3 font-medium text-gray-700">Bank Transfer</span>
+                  </label>
+                  <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors duration-200">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="e_wallet_momo_test"
+                      checked={paymentMethod === 'e_wallet_momo_test'}
+                      onChange={handlePaymentMethodChange}
+                      className="h-5 w-5 text-purple-600 border-gray-300 focus:ring-purple-500"
+                    />
+                    <span className="ml-3 font-medium text-gray-700">E-Wallet (Momo Test)</span>
+                  </label>
+                  <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors duration-200">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="installment_plan"
+                      checked={paymentMethod === 'installment_plan'}
+                      onChange={handlePaymentMethodChange}
+                      className="h-5 w-5 text-purple-600 border-gray-300 focus:ring-purple-500"
+                    />
+                    <span className="ml-3 font-medium text-gray-700">Installment Plan</span>
+                  </label>
                 </div>
+                {!paymentMethod && (
+                  <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-lg mt-4">
+                    <p className="text-red-800 text-sm font-medium">Please select a full payment method to proceed.</p>
+                  </div>
+                )}
+                <div className="mt-6 space-y-2">
+                  <h4 className="text-lg font-semibold text-gray-800 mb-3">Key Dates</h4>
+                  <div className="flex justify-between items-center text-gray-700">
+                    <span>Calculated Delivery Date:</span>
+
+                    <span className="font-semibold">
+                      {(() => {
+                        const today = new Date();
+                        const deliveryDate = new Date(today.setDate(today.getDate() + 30));
+                        return deliveryDate.toLocaleDateString('vi-VN');
+                      })()}
+
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-gray-700">
+                    <span>Payment Due Date:</span>
+                    <span className="font-semibold">
+
+                      {(() => {
+                        const today = new Date();
+                        const deliveryDate = new Date(today.setDate(today.getDate() + 30));
+                        const paymentDueDate = new Date(deliveryDate.setDate(deliveryDate.getDate() - 1));
+                        return paymentDueDate.toLocaleDateString('vi-VN');
+                      })()}
+
+                    </span>
+                  </div>
+                  {(() => {
+                    const today = new Date();
+                    const deliveryDate = new Date(today.setDate(today.getDate() + 30));
+                    return !deliveryDate ? (
+                      <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-lg mt-4">
+                        <p className="text-red-800 text-sm font-medium">Delivery date is not set. This is required to proceed with full payment.</p>
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+              </div>
             )}
 
             <div className="mt-8 p-6 bg-blue-50 rounded-xl border border-blue-200 shadow-lg">
-                <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                    <svg className="w-6 h-6 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                    </svg>
-                    Order Summary
-                </h3>
-                <div className="space-y-2 text-lg">
-                    <div className="flex justify-between items-center text-gray-700">
-                        <span>Vehicle Price:</span>
-                        <span className="font-semibold">{formatCurrency(car.price)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-gray-700">
-                        <span>Registration Fee:</span>
-                        <span className="font-semibold">{formatCurrency(car.pricing?.registrationFee || 0)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-gray-700">
-                        <span>Dealer Fee:</span>
-                        <span className="font-semibold">{formatCurrency(car.pricing?.dealerFee || 0)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-gray-700">
-                        <span>Tax ({((car.pricing?.taxRate || 0.085) * 100).toFixed(1)}%):</span>
-                        <span className="font-semibold">{formatCurrency(Math.round(car.price * (car.pricing?.taxRate || 0.085)))}</span>
-                    </div>
-                    {deliveryOption === 'shipping' && (
-                        <div className="flex justify-between items-center text-gray-700">
-                            <span>Shipping Cost:</span>
-                            <span className="font-semibold">{formatCurrency(SHIPPING_COST)}</span>
-                        </div>
-                    )}
-                    {purchaseType === 'deposit' && (
-                        <>
-                            <div className="flex justify-between items-center text-gray-700 font-bold text-lg border-t border-dashed border-gray-300 pt-2 mt-2">
-                                <span>Deposit Amount (30%):</span>
-                                <span className="font-semibold text-green-700">{formatCurrency(depositAmount)}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-gray-700 font-bold text-lg border-t border-dashed border-gray-300 pt-2 mt-2">
-                                <span>Remaining Balance:</span>
-                                <span className="font-semibold text-red-700">{formatCurrency(remainingBalance)}</span>
-                            </div>
-                        </>
-                    )}
-                    <div className="border-t border-gray-300 pt-3 mt-3 flex justify-between items-center text-xl font-bold text-gray-900">
-                        <span>Total Payable:</span>
-                        <span>{formatCurrency(calculateTotalPrice())}</span>
-                    </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <svg className="w-6 h-6 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+                Order Summary
+              </h3>
+              <div className="space-y-2 text-lg">
+                <div className="flex justify-between items-center text-gray-700">
+                  <span>Vehicle Price:</span>
+                  <span className="font-semibold">{formatCurrency(car.price)}</span>
                 </div>
+                <div className="flex justify-between items-center text-gray-700">
+                  <span>Registration Fee:</span>
+                  <span className="font-semibold">{formatCurrency(car.pricing?.registrationFee || 0)}</span>
+                </div>
+                <div className="flex justify-between items-center text-gray-700">
+                  <span>Dealer Fee:</span>
+                  <span className="font-semibold">{formatCurrency(car.pricing?.dealerFee || 0)}</span>
+                </div>
+                <div className="flex justify-between items-center text-gray-700">
+                  <span>Tax ({((car.pricing?.taxRate || 0.085) * 100).toFixed(1)}%):</span>
+                  <span className="font-semibold">{formatCurrency(Math.round(car.price * (car.pricing?.taxRate || 0.085)))}</span>
+                </div>
+                {deliveryOption === 'shipping' && (
+                  <div className="flex justify-between items-center text-gray-700">
+                    <span>Shipping Cost:</span>
+                    <span className="font-semibold">{formatCurrency(SHIPPING_COST)}</span>
+                  </div>
+                )}
+                {purchaseType === 'deposit' && (
+                  <>
+                    <div className="flex justify-between items-center text-gray-700 font-bold text-lg border-t border-dashed border-gray-300 pt-2 mt-2">
+                      <span>Deposit Amount (30%):</span>
+                      <span className="font-semibold text-green-700">{formatCurrency(depositAmount)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-gray-700 font-bold text-lg border-t border-dashed border-gray-300 pt-2 mt-2">
+                      <span>Remaining Balance:</span>
+                      <span className="font-semibold text-red-700">{formatCurrency(remainingBalance)}</span>
+                    </div>
+                  </>
+                )}
+                <div className="border-t border-gray-300 pt-3 mt-3 flex justify-between items-center text-xl font-bold text-gray-900">
+                  <span>Total Payable:</span>
+                  <span>{formatCurrency(calculateTotalPrice())}</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1378,53 +1527,51 @@ export default function PrePurchasePage() {
               Cancel
             </button>
             {purchaseType === 'deposit' && !isDepositPaid ? (
-                <button
+              <button
                 onClick={handleDeposit}
                 disabled={isProcessingDeposit || loadingUser || errorUser || loadingSeller || errorSeller || !userData || !sellerData || !car || !selectedShowroom || !depositPaymentMethod || (deliveryOption === 'shipping' && !useUserProfileAddress && (!shippingAddressInfo.name || !shippingAddressInfo.address || !shippingAddressInfo.phone))}
-                className={`flex-1 px-6 py-3 font-semibold rounded-xl transition-all duration-200 active:scale-95 ${
-                    (isProcessingDeposit || loadingUser || errorUser || loadingSeller || errorSeller || !userData || !sellerData || !car || !selectedShowroom || !depositPaymentMethod || (deliveryOption === 'shipping' && !useUserProfileAddress && (!shippingAddressInfo.name || !shippingAddressInfo.address || !shippingAddressInfo.phone)))
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed border border-gray-300'
-                    : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl border border-transparent'
-                }`}
-                >
+                className={`flex-1 px-6 py-3 font-semibold rounded-xl transition-all duration-200 active:scale-95 ${(isProcessingDeposit || loadingUser || errorUser || loadingSeller || errorSeller || !userData || !sellerData || !car || !selectedShowroom || !depositPaymentMethod || (deliveryOption === 'shipping' && !useUserProfileAddress && (!shippingAddressInfo.name || !shippingAddressInfo.address || !shippingAddressInfo.phone)))
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed border border-gray-300'
+                  : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl border border-transparent'
+                  }`}
+              >
                 {(isProcessingDeposit || loadingUser || loadingSeller) ? (
-                    <span className="flex items-center justify-center">
+                  <span className="flex items-center justify-center">
                     <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin mr-2"></div>
                     Processing Deposit...
-                    </span>
+                  </span>
                 ) : (
-                    <span className="flex items-center justify-center">
+                  <span className="flex items-center justify-center">
                     Place Deposit ({formatCurrency(depositAmount)})
                     <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg>
-                    </span>
+                  </span>
                 )}
-                </button>
+              </button>
             ) : (
-                <button
+              <button
                 onClick={handleFullPayment}
                 disabled={isProcessingFullPayment || !deliveryDate || !paymentMethod || (purchaseType === 'deposit' && !isDepositPaid) || (deliveryOption === 'shipping' && !useUserProfileAddress && (!shippingAddressInfo.name || !shippingAddressInfo.address || !shippingAddressInfo.phone))}
-                className={`flex-1 px-6 py-3 font-semibold rounded-xl transition-all duration-200 active:scale-95 ${
-                    (isProcessingFullPayment || !deliveryDate || !paymentMethod || (purchaseType === 'deposit' && !isDepositPaid) || (deliveryOption === 'shipping' && !useUserProfileAddress && (!shippingAddressInfo.name || !shippingAddressInfo.address || !shippingAddressInfo.phone)))
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed border border-gray-300'
-                    : 'bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white shadow-lg hover:shadow-xl border border-transparent'
-                }`}
-                >
+                className={`flex-1 px-6 py-3 font-semibold rounded-xl transition-all duration-200 active:scale-95 ${(isProcessingFullPayment || !deliveryDate || !paymentMethod || (purchaseType === 'deposit' && !isDepositPaid) || (deliveryOption === 'shipping' && !useUserProfileAddress && (!shippingAddressInfo.name || !shippingAddressInfo.address || !shippingAddressInfo.phone)))
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed border border-gray-300'
+                  : 'bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white shadow-lg hover:shadow-xl border border-transparent'
+                  }`}
+              >
                 {(isProcessingFullPayment || loadingUser || loadingSeller) ? (
-                    <span className="flex items-center justify-center">
+                  <span className="flex items-center justify-center">
                     <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin mr-2"></div>
                     Processing Payment...
-                    </span>
+                  </span>
                 ) : (
-                    <span className="flex items-center justify-center">
+                  <span className="flex items-center justify-center">
                     {purchaseType === 'deposit' ? `Make Full Payment (${formatCurrency(remainingBalance)})` : `Make Full Payment (${formatCurrency(calculateTotalPrice())})`}
                     <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                     </svg>
-                </span>
+                  </span>
                 )}
-                </button>
+              </button>
             )}
           </div>
         </div>
@@ -1521,7 +1668,7 @@ function ContractViewerModal({ content, onClose }) {
           <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
           <div className="absolute -top-2 -right-2 w-32 h-32 bg-white/5 rounded-full blur-xl"></div>
           <div className="absolute -bottom-4 -left-4 w-24 h-24 bg-white/5 rounded-full blur-lg"></div>
-          
+
           <div className="relative flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm border border-white/30">
@@ -1565,11 +1712,11 @@ function ContractViewerModal({ content, onClose }) {
               background: linear-gradient(135deg, #2563eb, #7c3aed);
             }
           `}</style>
-          
+
           {/* Content wrapper with subtle animation */}
-          <div 
+          <div
             className="animate-fade-in"
-            dangerouslySetInnerHTML={{ __html: formatContractTextToHtml(content) }} 
+            dangerouslySetInnerHTML={{ __html: formatContractTextToHtml(content) }}
           />
         </div>
 
@@ -1581,7 +1728,7 @@ function ContractViewerModal({ content, onClose }) {
             </svg>
             <span>Legal document - Please review carefully</span>
           </div>
-          
+
           <div className="flex gap-3">
             <button
               onClick={() => window.print()}
@@ -1604,7 +1751,7 @@ function ContractViewerModal({ content, onClose }) {
           </div>
         </div>
       </div>
-      
+
       {/* Add custom CSS for animations */}
       <style jsx>{`
         @keyframes fade-in {

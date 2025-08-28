@@ -100,7 +100,7 @@ export default function CarDetailPage({ carId: propCarId }) {
   const [error, setError] = useState("");
   const [photoGalleryIndex, setPhotoGalleryIndex] = useState(0);
   const [videoGalleryIndex, setVideoGalleryIndex] = useState(0);
-  const [lightboxContent, setLightboxContent] = useState(null); 
+  const [lightboxContent, setLightboxContent] = useState(null);
   const [downPayment, setDownPayment] = useState(20);
   const [paybackPeriod, setPaybackPeriod] = useState(48);
   const [featureSearch, setFeatureSearch] = useState("");
@@ -125,34 +125,31 @@ export default function CarDetailPage({ carId: propCarId }) {
         let taxRateValue = 0.085; // Default value
 
         if (carData.pricing && carData.pricing[0] && typeof carData.pricing[0].taxRate === 'number') {
-            taxRateValue = carData.pricing[0].taxRate;
-            // Normalize taxRate: If it's a value like 8.5 (for 8.5%), divide by 100
-            // Assuming tax rates are typically below 100% (e.g., 0.085 or 8.5, not 850)
-            if (taxRateValue > 1) {
-                taxRateValue = taxRateValue / 100;
-            }
+          taxRateValue = carData.pricing[0].taxRate;
+          // Normalize taxRate: If it's a value like 8.5 (for 8.5%), divide by 100
+          // Assuming tax rates are typically below 100% (e.g., 0.085 or 8.5, not 850)
+          if (taxRateValue > 1) {
+            taxRateValue = taxRateValue / 100;
+          }
         }
         let carSoldStatus = false;
         let saleText = "";
 
         if (carData.currentSaleStatus === "Sold" ||
-            carData.currentSaleStatus === "On Hold" ||
-            carData.currentSaleStatus === "Pending Deposit" || // Thêm trạng thái Pending
-            carData.currentSaleStatus === "Pending Full Payment") // Thêm trạng thái Pending
+          carData.currentSaleStatus === "On Hold" ||
+          carData.currentSaleStatus === "Pending Full Payment")
         {
-            carSoldStatus = true;
-            // Prefer currentPaymentStatus for detailed text if available, otherwise use currentSaleStatus
-            saleText = carData.currentPaymentStatus || carData.currentSaleStatus;
-            // You might want to refine saleText for "Pending" statuses
-            if (carData.currentSaleStatus === "Pending Deposit") {
-                saleText = "Pending Deposit";
-            } else if (carData.currentSaleStatus === "Pending Full Payment") {
-                saleText = "Pending Full Payment";
-            } else if (carData.currentSaleStatus === "On Hold" && saleText === "Deposit Made") {
-                saleText = "Deposit Placed"; // Match what's displayed on the button
-            } else if (carData.currentSaleStatus === "Sold" && saleText === "Full Payment Made") {
-                saleText = "Sold"; // Match what's displayed on the button
-            }
+          carSoldStatus = true;
+          // Prefer currentPaymentStatus for detailed text if available, otherwise use currentSaleStatus
+          saleText = carData.currentPaymentStatus || carData.currentSaleStatus;
+          // You might want to refine saleText for "Pending" statuses
+          if (carData.currentSaleStatus === "Pending Full Payment") {
+            saleText = "Pending Full Payment";
+          } else if (carData.currentSaleStatus === "On Hold" && saleText === "Deposit Made") {
+            saleText = "Deposit Placed"; // Match what's displayed on the button
+          } else if (carData.currentSaleStatus === "Sold" && saleText === "Full Payment Made") {
+            saleText = "Sold"; // Match what's displayed on the button
+          }
         }
         setIsCarSold(carSoldStatus);
         setSaleInfoText(saleText);
@@ -176,13 +173,13 @@ export default function CarDetailPage({ carId: propCarId }) {
           },
           specification: carData.specification?.[0]
             ? {
-                engine: carData.specification[0].engine || "Unknown",
-                transmission: carData.specification[0].transmission || "Unknown",
-                fuelType: carData.specification[0].fuelType || "Unknown",
-                carType: carData.specification[0].carType || "Unknown",
-                seatingCapacity: carData.specification[0].seatingCapacity || 0,
-                color: { name: carData.specification[0].exteriorColor || "Unknown" },
-              }
+              engine: carData.specification[0].engine || "Unknown",
+              transmission: carData.specification[0].transmission || "Unknown",
+              fuelType: carData.specification[0].fuelType || "Unknown",
+              carType: carData.specification[0].carType || "Unknown",
+              seatingCapacity: carData.specification[0].seatingCapacity || 0,
+              color: { name: carData.specification[0].exteriorColor || "Unknown" },
+            }
             : {},
           images: carData.images?.map((img) => ({
             imageId: img.imageId,
@@ -192,19 +189,19 @@ export default function CarDetailPage({ carId: propCarId }) {
           videoURLs: carData.carVideo?.map((video) => {
             const { url, type } = getEmbedUrlAndType(video.url);
             return {
-                id: video.id,
-                originalUrl: video.url, // Keep original for reference if needed
-                embedUrl: url,
-                type: type
+              id: video.id,
+              originalUrl: video.url, // Keep original for reference if needed
+              embedUrl: url,
+              type: type
             };
           }) || [],
           features: carData.features?.map((f) => ({ name: f.name })) || [],
           pricing: carData.pricing?.[0]
             ? {
-                registrationFee: carData.pricing[0].registrationFee || 0,
-                dealerFee: 500, // Static dealer fee as in original
-                taxRate: taxRateValue
-              }
+              registrationFee: carData.pricing[0].registrationFee || 0,
+              dealerFee: 500, // Static dealer fee as in original
+              taxRate: taxRateValue
+            }
             : { registrationFee: 0, dealerFee: 500, taxRate: 0.085 },
           showrooms: carData.showrooms?.map((s) => ({
             id: s.storeLocationId, // Đảm bảo ID này khớp với ID bạn mong đợi trong PrePurchaseFormModal
@@ -313,54 +310,54 @@ export default function CarDetailPage({ carId: propCarId }) {
       });
       return;
     }
-     if (isCarSold) {
-        Swal.fire({
-            icon: "info",
-            title: "Car Status",
-            // Use saleInfoText from state directly, as it's prepared from backend
-            text: `This car is currently ${saleInfoText.toLowerCase()}. It is not available for purchase.`,
-            confirmButtonText: "OK",
-        });
-        return;
+    if (isCarSold) {
+      Swal.fire({
+        icon: "info",
+        title: "Car Status",
+        // Use saleInfoText from state directly, as it's prepared from backend
+        text: `This car is currently ${saleInfoText.toLowerCase()}. It is not available for purchase.`,
+        confirmButtonText: "OK",
+      });
+      return;
     }
 
 
     try {
-        const token = localStorage.getItem('token');
-        const headers = {
-          'Content-Type': 'application/json',
-        };
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
+      const token = localStorage.getItem('token');
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
 
-        const userResponse = await fetch("/api/User/me", {
-          method: 'GET',
-          headers: headers,
-        });
+      const userResponse = await fetch("/api/User/me", {
+        method: 'GET',
+        headers: headers,
+      });
 
-        if (userResponse.ok) {
-          navigate(`/cars/${car.id}/purchase-terms`);
-        } else if (userResponse.status === 401) {
-          setShowSignInModal(true);
-        } else {
-          const errorData = await userResponse.json();
-          Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: `Failed to verify login status: ${errorData.message || userResponse.statusText}`,
-            confirmButtonText: "OK",
-          });
-        }
-      } catch (error) {
-        console.error("Error checking login status:", error);
+      if (userResponse.ok) {
+        navigate(`/cars/${car.id}/purchase-terms`);
+      } else if (userResponse.status === 401) {
+        setShowSignInModal(true);
+      } else {
+        const errorData = await userResponse.json();
         Swal.fire({
           icon: "error",
-          title: "Network Error",
-          text: "Could not connect to the server to verify login status. Please try again.",
+          title: "Error",
+          text: `Failed to verify login status: ${errorData.message || userResponse.statusText}`,
           confirmButtonText: "OK",
         });
       }
+    } catch (error) {
+      console.error("Error checking login status:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Network Error",
+        text: "Could not connect to the server to verify login status. Please try again.",
+        confirmButtonText: "OK",
+      });
+    }
   };
 
 
@@ -435,8 +432,8 @@ export default function CarDetailPage({ carId: propCarId }) {
             <div className="space-y-8">
               <div className="space-y-4">
                 <div className="flex items-center space-x-3 text-sm font-medium">
-                   <span className={`px-3 py-1 rounded-full ${isCarSold ? 'bg-red-500' : 'bg-green-500'} text-white`}>
-                    {isCarSold ? (saleInfoText) : (car.listingStatus || "Available")} 
+                  <span className={`px-3 py-1 rounded-full ${isCarSold ? 'bg-red-500' : 'bg-green-500'} text-white`}>
+                    {isCarSold ? (saleInfoText) : (car.listingStatus || "Available")}
                   </span>
                   <span className="bg-blue-500 text-white px-3 py-1 rounded-full">{condition}</span>
                 </div>
@@ -662,72 +659,71 @@ export default function CarDetailPage({ carId: propCarId }) {
                   ) : (
                     // Fallback for unknown video types or if embedUrl is not suitable for iframe/video tag
                     <div className="w-full h-full flex items-center justify-center bg-gray-300 text-gray-600 text-sm">
-                        Không thể hiển thị video: {video.originalUrl}
+                      Không thể hiển thị video: {video.originalUrl}
                     </div>
                   )}
                   {/* Overlay for play icon (only if not a direct video with controls) */}
                   {!(video.type === 'direct-video') && (
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                        <div className="bg-white/90 rounded-full p-3">
-                          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                            <path d="M8 5v14l11-7z" />
-                          </svg>
-                        </div>
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                      <div className="bg-white/90 rounded-full p-3">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
                       </div>
+                    </div>
                   )}
                 </div>
               ))}
             </div>
             {/* Video Gallery Navigation - Only show if more than 1 video */}
             {videoURLs.length > (videoURLs.length === 1 ? 1 : (videoURLs.length === 2 ? 2 : (videoURLs.length === 3 ? 3 : 4))) && (
-                <div className="flex justify-center space-x-4">
-                  <button
-                    className="bg-white hover:bg-gray-50 rounded-full p-3 shadow-lg transition-all disabled:opacity-50"
-                    onClick={() => setVideoGalleryIndex(Math.max(0, videoGalleryIndex - 1))}
-                    disabled={videoGalleryIndex === 0}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
-                      <path d="M15 18l-6-6 6-6" />
-                    </svg>
-                  </button>
-                  <button
-                    className="bg-white hover:bg-gray-50 rounded-full p-3 shadow-lg transition-all disabled:opacity-50"
-                    onClick={() => setVideoGalleryIndex(Math.min(videoURLs.length - (videoURLs.length === 1 ? 1 : (videoURLs.length === 2 ? 2 : (videoURLs.length === 3 ? 3 : 4))), videoGalleryIndex + 1))}
-                    disabled={videoGalleryIndex >= videoURLs.length - (videoURLs.length === 1 ? 1 : (videoURLs.length === 2 ? 2 : (videoURLs.length === 3 ? 3 : 4)))}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
-                      <path d="M9 6l6 6-6 6" />
-                    </svg>
-                  </button>
-                </div>
+              <div className="flex justify-center space-x-4">
+                <button
+                  className="bg-white hover:bg-gray-50 rounded-full p-3 shadow-lg transition-all disabled:opacity-50"
+                  onClick={() => setVideoGalleryIndex(Math.max(0, videoGalleryIndex - 1))}
+                  disabled={videoGalleryIndex === 0}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
+                    <path d="M15 18l-6-6 6-6" />
+                  </svg>
+                </button>
+                <button
+                  className="bg-white hover:bg-gray-50 rounded-full p-3 shadow-lg transition-all disabled:opacity-50"
+                  onClick={() => setVideoGalleryIndex(Math.min(videoURLs.length - (videoURLs.length === 1 ? 1 : (videoURLs.length === 2 ? 2 : (videoURLs.length === 3 ? 3 : 4))), videoGalleryIndex + 1))}
+                  disabled={videoGalleryIndex >= videoURLs.length - (videoURLs.length === 1 ? 1 : (videoURLs.length === 2 ? 2 : (videoURLs.length === 3 ? 3 : 4)))}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
+                    <path d="M9 6l6 6-6 6" />
+                  </svg>
+                </button>
+              </div>
             )}
             {/* Video Thumbnail Strip (displaying actual video in small size) - only show if more than 1 video */}
             {videoURLs.length > 1 && (
-                <div className="flex justify-center space-x-2 mt-6 overflow-x-auto pb-2">
-                  {videoURLs.map((video, i) => (
-                    <div
-                      key={video.id || i}
-                      className={`w-20 h-12 flex-shrink-0 object-cover rounded-lg cursor-pointer border-2 transition-all overflow-hidden ${
-                        (videoGalleryIndex <= i && i < videoGalleryIndex + (videoURLs.length === 1 ? 1 : (videoURLs.length === 2 ? 2 : (videoURLs.length === 3 ? 3 : 4)))) ? "border-blue-500 shadow-md" : "border-transparent hover:border-gray-300"
+              <div className="flex justify-center space-x-2 mt-6 overflow-x-auto pb-2">
+                {videoURLs.map((video, i) => (
+                  <div
+                    key={video.id || i}
+                    className={`w-20 h-12 flex-shrink-0 object-cover rounded-lg cursor-pointer border-2 transition-all overflow-hidden ${(videoGalleryIndex <= i && i < videoGalleryIndex + (videoURLs.length === 1 ? 1 : (videoURLs.length === 2 ? 2 : (videoURLs.length === 3 ? 3 : 4)))) ? "border-blue-500 shadow-md" : "border-transparent hover:border-gray-300"
                       }`}
-                      onClick={() => setVideoGalleryIndex(i)}
-                    >
-                        {video.type === 'youtube' ? (
-                            <img
-                              src={`https://img.youtube.com/vi/${video.embedUrl.split('/')[4].split('?')[0]}/default.jpg`}
-                              alt={`Video thumbnail ${i + 1}`}
-                              className="w-full h-full object-cover"
-                            />
-                        ) : video.type === 'direct-video' ? (
-                            <video muted className="w-full h-full object-cover">
-                                <source src={video.embedUrl} type="video/mp4" />
-                            </video>
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-300 text-gray-600 text-xs">Video</div>
-                        )}
-                    </div>
-                  ))}
-                </div>
+                    onClick={() => setVideoGalleryIndex(i)}
+                  >
+                    {video.type === 'youtube' ? (
+                      <img
+                        src={`https://img.youtube.com/vi/${video.embedUrl.split('/')[4].split('?')[0]}/default.jpg`}
+                        alt={`Video thumbnail ${i + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : video.type === 'direct-video' ? (
+                      <video muted className="w-full h-full object-cover">
+                        <source src={video.embedUrl} type="video/mp4" />
+                      </video>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gray-300 text-gray-600 text-xs">Video</div>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>
@@ -766,7 +762,11 @@ export default function CarDetailPage({ carId: propCarId }) {
         <h2 className="text-3xl font-bold text-gray-900 mb-8">More Description</h2>
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <p className="text-lg text-gray-700 leading-relaxed">
-            {description || "Không có mô tả nào được cung cấp cho chiếc xe này."}
+
+            <p><div
+              className="prose max-w-none"
+              dangerouslySetInnerHTML={{ __html: description || 'No description provided.' }}
+            /></p>
           </p>
         </div>
       </div>
@@ -1003,7 +1003,7 @@ export default function CarDetailPage({ carId: propCarId }) {
           </div>
         </div>
       )}
-       {/* Login Modal */}
+      {/* Login Modal */}
       <Login
         show={showSignInModal}
         onClose={() => setShowSignInModal(false)}
@@ -1069,7 +1069,7 @@ export default function CarDetailPage({ carId: propCarId }) {
           </div>
         </div>
       </div>
-      
+
     </div>
   );
 }

@@ -13,7 +13,12 @@ import {
   CreditCardIcon,
   CheckCircleIcon,
   ClockIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  PhoneIcon,
+  UserIcon,
+  DocumentTextIcon,
+  BanknotesIcon,
+  ShoppingCartIcon
 } from '@heroicons/react/24/outline';
 
 
@@ -132,22 +137,72 @@ export default function OrdersPage() {
     setSelectedOrder(null);
   };
 
-  const handlePayRemaining = () => {
+   const handlePayRemaining = async () => {
     if (selectedOrder) {
       Swal.fire({
         icon: "info",
         title: "Pay Remaining Amount",
-        text: `Do you want to pay ₫${selectedOrder.remainingBalance.toLocaleString('vi-VN')} for order ${selectedOrder.orderNumber}?`,
+        text: `Do you want to pay ₫${selectedOrder.remainingBalance.toLocaleString('en-US')} for order #${selectedOrder.orderNumber}?`,
         showCancelButton: true,
         confirmButtonText: "Confirm",
         cancelButtonText: "Cancel",
-      }).then((result) => {
+      }).then(async (result) => {
         if (result.isConfirmed) {
-          // TODO: Implement actual payment logic here
-          Swal.fire("Success!", "Payment request sent. (This feature requires payment API integration).", "success");
-          handleCloseDetailModal(); // Close modal after action
-          // You might want to re-fetch orders after a payment attempt
-          // fetchOrders();
+          try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+              Swal.fire({
+                icon: 'error',
+                title: 'Authentication Error',
+                text: 'Please log in again to proceed.',
+              });
+              return;
+            }
+
+            const orderId = selectedOrder.saleId;
+            const fullPaymentPayload = {
+              paymentMethod: "Bank Transfer", // Assuming 'Bank Transfer' for a direct payment.
+              actualDeliveryDate: selectedOrder.expectedDeliveryDate, 
+            };
+
+            const response = await fetch(`/api/Customer/orders/${orderId}/full-payment`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify(fullPaymentPayload),
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              Swal.fire({
+                icon: "success",
+                title: "Success!",
+                text: data.message,
+                confirmButtonText: "OK",
+              }).then(() => {
+                handleCloseDetailModal();
+                fetchOrders();
+              });
+            } else {
+              const errorData = await response.json();
+              Swal.fire({
+                icon: "error",
+                title: "Error",
+                text: errorData.message || `Failed to process payment: ${response.statusText}`,
+                confirmButtonText: "OK",
+              });
+            }
+          } catch (error) {
+            console.error("Error processing full payment:", error);
+            Swal.fire({
+              icon: "error",
+              title: "Network Error",
+              text: "Could not connect to the server to process payment. Please try again.",
+              confirmButtonText: "OK",
+            });
+          }
         }
       });
     }
@@ -187,7 +242,6 @@ export default function OrdersPage() {
       </div>
     );
   }
-
 
   const hasOrdersToShow = filteredOrders.length > 0;
 
@@ -264,7 +318,7 @@ export default function OrdersPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-semibold text-[#253887]">#{order.orderNumber || order.orderId}</div>
                         <div className="text-xs text-gray-500">
-                          {order.orderDate ? new Date(order.orderDate).toLocaleDateString('en-US') : 'N/A'}
+                          {order.orderDate ? new Date(order.orderDate).toLocaleDateString('vi-VN') : 'N/A'}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -295,7 +349,7 @@ export default function OrdersPage() {
                         {order.currentSaleStatus === "Deposit Paid" && order.remainingBalance > 0 ? (
                           <div className="flex items-center">
                             <CalendarDaysIcon className="h-4 w-4 text-gray-400 mr-1" />
-                            {order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString('en-US') : 'N/A'}
+                            {order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString('vi-VN') : 'N/A'}
                           </div>
                         ) : (
                           <span className="text-gray-500">
@@ -320,13 +374,21 @@ export default function OrdersPage() {
           </div>
         )}
 
+        {/* NEW REDESIGNED MODAL */}
         {showDetailModal && selectedOrder && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl mx-auto relative max-h-[90vh] overflow-y-auto">
-              <div className="sticky top-0 bg-white rounded-t-3xl border-b border-gray-200 px-8 py-6 flex justify-between items-center">
-                <div>
-                  <h2 className="text-2xl font-bold text-[#253887]">Order Details</h2>
-                  <p className="text-gray-600">#{selectedOrder.orderNumber || selectedOrder.orderId}</p>
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl mx-auto max-h-[95vh] overflow-hidden flex flex-col">
+
+              {/* Header */}
+              <div className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-gray-200 px-8 py-6 flex justify-between items-center">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                    <DocumentTextIcon className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Order History</h2>
+                    <p className="text-gray-600">Order #{selectedOrder.orderNumber || selectedOrder.orderId}</p>
+                  </div>
                 </div>
                 <button
                   onClick={handleCloseDetailModal}
@@ -336,239 +398,522 @@ export default function OrdersPage() {
                 </button>
               </div>
 
-              <div className="px-8 py-6">
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 mb-6 border border-blue-100">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div>
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-8 space-y-8">
 
-                      <h3 className="text-xl font-bold text-[#253887] mb-2">
-                        {selectedOrder.carDetails ? `${selectedOrder.carDetails.make} ${selectedOrder.carDetails.model}` : 'N/A'}
-                      </h3>
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div className="flex items-center">
-                          <span className="font-medium text-gray-600">Year:</span>
-                          <span className="ml-2 text-gray-800">{selectedOrder.carDetails?.year || 'N/A'}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <span className="font-medium text-gray-600">Mileage:</span>
-                          <span className="ml-2 text-gray-800">{selectedOrder.carDetails?.mileage ? selectedOrder.carDetails.mileage.toLocaleString() + ' km' : 'N/A'}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <span className="font-medium text-gray-600">Engine:</span>
-                          <span className="ml-2 text-gray-800">{selectedOrder.carDetails?.engine || 'N/A'}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <span className="font-medium text-gray-600">Transmission:</span>
-                          <span className="ml-2 text-gray-800">{selectedOrder.carDetails?.transmission || 'N/A'}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <span className="font-medium text-gray-600">Fuel Type:</span>
-                          <span className="ml-2 text-gray-800">{selectedOrder.carDetails?.fuelType || 'N/A'}</span>
-                        </div>
+                  {/* Order Status Timeline */}
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-xl font-bold text-gray-900">Order Status</h3>
+                      <div className="flex items-center space-x-3">
+                        {(() => {
+                          const statusConfig = getStatusConfig(selectedOrder.currentSaleStatus);
+                          const StatusIcon = statusConfig.icon;
+                          return (
+                            <>
+                              <StatusIcon className={`h-6 w-6 ${statusConfig.textColor}`} />
+                              <span className={`px-4 py-2 rounded-full text-white font-semibold text-sm ${statusConfig.bgColor}`}>
+                                {selectedOrder.currentSaleStatus}
+                              </span>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
 
-                    {/* Order Summary */}
-                    <div className="space-y-4">
-                      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                        <h4 className="font-semibold text-gray-800 mb-3">Order Summary</h4>
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Total Amount:</span>
-                            <span className="text-2xl font-bold text-[#3452e1]">
-                              ₫{selectedOrder.finalPrice ? selectedOrder.finalPrice.toLocaleString('vi-VN') : 'N/A'}
-                            </span>
+                    {/* Timeline */}
+                    <div className="relative">
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col items-center space-y-2">
+                          <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                            <ShoppingCartIcon className="h-4 w-4 text-white" />
                           </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Order Date:</span>
-                            <span className="text-gray-800">
-                              {selectedOrder.orderDate ? new Date(selectedOrder.orderDate).toLocaleDateString('en-US') : 'N/A'}
-                            </span>
+                          <div className="text-center">
+                            <p className="text-sm font-medium text-gray-900">Order Placed</p>
+                            <p className="text-xs text-gray-500">
+                              {selectedOrder.orderDate ? new Date(selectedOrder.orderDate).toLocaleDateString('vi-VN') : 'N/A'}
+                            </p>
                           </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Status:</span>
-                            <span className={`px-3 py-1 rounded-full text-white font-semibold text-sm ${getStatusBadgeClass(selectedOrder.currentSaleStatus)}`}>
-                              {selectedOrder.currentSaleStatus}
-                            </span>
+                        </div>
+
+                        <div className={`flex-1 h-0.5 mx-4 ${selectedOrder.depositPaymentDetails ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+
+                        <div className="flex flex-col items-center space-y-2">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedOrder.depositPaymentDetails ? 'bg-green-500' : 'bg-gray-300'}`}>
+                            <CreditCardIcon className={`h-4 w-4 ${selectedOrder.depositPaymentDetails ? 'text-white' : 'text-gray-500'}`} />
+                          </div>
+                          <div className="text-center">
+                            <p className={`text-sm font-medium ${selectedOrder.depositPaymentDetails ? 'text-gray-900' : 'text-gray-500'}`}>Deposit Paid</p>
+                            <p className="text-xs text-gray-500">
+                              {selectedOrder.depositPaymentDetails?.dateOfPayment
+                                ? new Date(selectedOrder.depositPaymentDetails.dateOfPayment).toLocaleDateString('vi-VN')
+                                : 'Pending'
+                              }
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className={`flex-1 h-0.5 mx-4 ${selectedOrder.fullPaymentDetails ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+
+                        <div className="flex flex-col items-center space-y-2">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedOrder.fullPaymentDetails ? 'bg-green-500' : 'bg-gray-300'}`}>
+                            <BanknotesIcon className={`h-4 w-4 ${selectedOrder.fullPaymentDetails ? 'text-white' : 'text-gray-500'}`} />
+                          </div>
+                          <div className="text-center">
+                            <p className={`text-sm font-medium ${selectedOrder.fullPaymentDetails ? 'text-gray-900' : 'text-gray-500'}`}>Full Payment</p>
+                            <p className="text-xs text-gray-400">
+                              {selectedOrder.fullPaymentDetails?.dateOfPayment
+                                ? new Date(selectedOrder.fullPaymentDetails.dateOfPayment).toLocaleDateString('vi-VN')
+                                : 'Pending'
+                              }
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className={`flex-1 h-0.5 mx-4 ${selectedOrder.actualDeliveryDate ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+
+                        <div className="flex flex-col items-center space-y-2">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedOrder.actualDeliveryDate ? 'bg-green-500' : 'bg-gray-300'}`}>
+                            <TruckIcon className={`h-4 w-4 ${selectedOrder.actualDeliveryDate ? 'text-white' : 'text-gray-500'}`} />
+                          </div>
+                          <div className="text-center">
+                            <p className={`text-sm font-medium ${selectedOrder.actualDeliveryDate ? 'text-gray-900' : 'text-gray-500'}`}>Delivered</p>
+                            <p className="text-xs text-gray-400">
+                              {selectedOrder.actualDeliveryDate
+                                ? new Date(selectedOrder.actualDeliveryDate).toLocaleDateString('vi-VN')
+                                : 'Pending'
+                              }
+                            </p>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                  {selectedOrder.depositPaymentDetails && (
-                    <div className="bg-blue-50 rounded-xl p-5 border border-blue-200">
-                      <div className="flex items-center mb-3">
-                        <CreditCardIcon className="h-5 w-5 text-blue-600 mr-2" />
-                        <h4 className="font-semibold text-blue-800">Deposit Payment</h4>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+                    {/* Vehicle Information */}
+                    <div className="space-y-6">
+                      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                            🚗
+                          </div>
+                          Vehicle Details
+                        </h3>
+
+                        <div className="space-y-4">
+                          {selectedOrder.carDetails?.imageUrl && (
+                            <img
+                              src={selectedOrder.carDetails.imageUrl}
+                              alt="Car"
+                              className="w-full h-48 rounded-lg object-cover border border-gray-200"
+                            />
+                          )}
+
+                          <div className="bg-gray-50 rounded-lg p-4">
+                            <h4 className="text-xl font-bold text-gray-900 mb-3">
+                              {selectedOrder.carDetails ? `${selectedOrder.carDetails.make} ${selectedOrder.carDetails.model}` : 'N/A'}
+                            </h4>
+
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Year:</span>
+                                <span className="font-medium text-gray-900">{selectedOrder.carDetails?.year || 'N/A'}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Mileage:</span>
+                                <span className="font-medium text-gray-900">
+                                  {selectedOrder.carDetails?.mileage ? `${selectedOrder.carDetails.mileage.toLocaleString()} km` : 'N/A'}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Engine:</span>
+                                <span className="font-medium text-gray-900">{selectedOrder.carDetails?.engine || 'N/A'}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Transmission:</span>
+                                <span className="font-medium text-gray-900">{selectedOrder.carDetails?.transmission || 'N/A'}</span>
+                              </div>
+                              <div className="flex justify-between col-span-2">
+                                <span className="text-gray-600">Fuel Type:</span>
+                                <span className="font-medium text-gray-900">{selectedOrder.carDetails?.fuelType || 'N/A'}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-blue-700">Amount:</span>
-                          <span className="font-semibold text-blue-800">
-                            ₫{selectedOrder.depositPaymentDetails.amount ? selectedOrder.depositPaymentDetails.amount.toLocaleString('vi-VN') : 'N/A'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-blue-700">Method:</span>
-                          <span className="text-blue-800">{selectedOrder.depositPaymentDetails.paymentMethod || 'N/A'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-blue-700">Status:</span>
-                          <span className="text-blue-800">{selectedOrder.depositPaymentDetails.paymentStatus || 'N/A'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-blue-700">Date:</span>
-                          <span className="text-blue-800">
-                            {selectedOrder.depositPaymentDetails.dateOfPayment ? new Date(selectedOrder.depositPaymentDetails.dateOfPayment).toLocaleDateString('en-US') : 'N/A'}
-                          </span>
+
+                      {/* Payment Summary */}
+                      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                          <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                            💰
+                          </div>
+                          Payment Summary
+                        </h3>
+
+                        <div className="space-y-4">
+                          <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-blue-700 font-medium">Total Amount</span>
+                              <span className="text-2xl font-bold text-blue-900">
+                                ₫{selectedOrder.finalPrice ? selectedOrder.finalPrice.toLocaleString('vi-VN') : 'N/A'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                              <span className="text-gray-600">Deposit Paid</span>
+                              <span className="font-semibold text-green-600">
+                                ₫{selectedOrder.depositPaymentDetails?.amount ? selectedOrder.depositPaymentDetails.amount.toLocaleString('vi-VN') : '0'}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center py-2">
+                              <span className="text-gray-600">Remaining Balance</span>
+                              <span className="font-semibold text-red-600">
+                                ₫{selectedOrder.remainingBalance ? selectedOrder.remainingBalance.toLocaleString('vi-VN') : '0'}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  )}
 
-                  {selectedOrder.fullPaymentDetails && (
-                    <div className="bg-green-50 rounded-xl p-5 border border-green-200">
-                      <div className="flex items-center mb-3">
-                        <CheckCircleIcon className="h-5 w-5 text-green-600 mr-2" />
-                        <h4 className="font-semibold text-green-800">Full Payment</h4>
+                    {/* Order & Delivery Information */}
+                    <div className="space-y-6">
+
+                      {/* Seller Information */}
+                      {selectedOrder.sellerDetails && (
+                        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                            <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
+                              🏪
+                            </div>
+                            Seller Information
+                          </h3>
+
+                          <div className="space-y-4">
+                            {/* Store Information */}
+                            <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-lg p-4 border border-orange-200">
+                              <h4 className="font-semibold text-orange-800 mb-3 flex items-center">
+                                🏢 Store Details
+                              </h4>
+                              <div className="grid grid-cols-1 gap-2 text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-orange-700">Store Name:</span>
+                                  <span className="font-medium text-orange-900">{selectedOrder.pickupLocationDetails.name || 'N/A'}</span>
+                                </div>
+                                <div className="flex items-start justify-between">
+                                  <span className="text-orange-700">Address:</span>
+                                  <span className="font-medium text-orange-900 text-right max-w-xs">
+                                    {selectedOrder.pickupLocationDetails.address || 'N/A'}
+                                  </span>
+                                </div>
+                                {selectedOrder.sellerDetails.storePhone && (
+                                  <div className="flex justify-between">
+                                    <span className="text-orange-700">Store Phone:</span>
+                                    <span className="font-medium text-orange-900">{selectedOrder.sellerDetails.storePhone}</span>
+                                  </div>
+                                )}
+                                {selectedOrder.sellerDetails.storeEmail && (
+                                  <div className="flex justify-between">
+                                    <span className="text-orange-700">Store Email:</span>
+                                    <span className="font-medium text-orange-900">{selectedOrder.sellerDetails.storeEmail}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Seller Contact Information */}
+                            {selectedOrder.sellerDetails.sellerInfo && (
+                              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
+                                <h4 className="font-semibold text-blue-800 mb-3 flex items-center">
+                                  👤 Sales Representative
+                                </h4>
+                                <div className="grid grid-cols-1 gap-2 text-sm">
+                                  <div className="flex justify-between">
+                                    <span className="text-blue-700">Name:</span>
+                                    <span className="font-medium text-blue-900">{selectedOrder.sellerDetails.sellerInfo.fullName || 'N/A'}</span>
+                                  </div>
+                                  {selectedOrder.sellerDetails.sellerInfo.role && (
+                                    <div className="flex justify-between">
+                                      <span className="text-blue-700">Role:</span>
+                                      <span className="font-medium text-blue-900">{selectedOrder.sellerDetails.sellerInfo.role}</span>
+                                    </div>
+                                  )}
+                                  {selectedOrder.sellerDetails.sellerInfo.phoneNumber && (
+                                    <div className="flex justify-between">
+                                      <span className="text-blue-700">Phone:</span>
+                                      <span className="font-medium text-blue-900">{"0" + selectedOrder.sellerDetails.sellerInfo.phoneNumber}</span>
+                                    </div>
+                                  )}
+                                  {selectedOrder.sellerDetails.sellerInfo.email && (
+                                    <div className="flex justify-between">
+                                      <span className="text-blue-700">Email:</span>
+                                      <span className="font-medium text-blue-900">{selectedOrder.sellerDetails.sellerInfo.email}</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Contact Actions */}
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                  {selectedOrder.sellerDetails.sellerInfo.phoneNumber && (
+                                    <a
+                                      href={`tel:${selectedOrder.sellerDetails.sellerInfo.phoneNumber}`}
+                                      className="inline-flex items-center px-3 py-2 bg-green-500 text-white text-xs rounded-lg hover:bg-green-600 transition-colors duration-200"
+                                    >
+                                      <PhoneIcon className="h-3 w-3 mr-1" />
+                                      Call
+                                    </a>
+                                  )}
+                                  {selectedOrder.sellerDetails.sellerInfo.email && (
+                                    <a
+                                      href={`mailto:${selectedOrder.sellerDetails.sellerInfo.email}?subject=Regarding Order ${selectedOrder.orderNumber || selectedOrder.orderId}`}
+                                      className="inline-flex items-center px-3 py-2 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-600 transition-colors duration-200"
+                                    >
+                                      ✉️ Email
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Payment History */}
+                      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                          <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                            📋
+                          </div>
+                          Payment History
+                        </h3>
+
+                        <div className="space-y-4">
+                          {/* Deposit Payment */}
+                          {selectedOrder.depositPaymentDetails && (
+                            <div className="border border-green-200 rounded-lg p-4 bg-green-50">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center space-x-2">
+                                  <CheckCircleIcon className="h-5 w-5 text-green-600" />
+                                  <span className="font-semibold text-green-800">Deposit Payment</span>
+                                </div>
+                                <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                                  {selectedOrder.depositPaymentDetails.paymentStatus || 'Completed'}
+                                </span>
+                              </div>
+                              <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-green-700">Amount:</span>
+                                  <span className="font-semibold text-green-800">
+                                    ₫{selectedOrder.depositPaymentDetails.amount ? selectedOrder.depositPaymentDetails.amount.toLocaleString('vi-VN') : 'N/A'}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-green-700">Method:</span>
+                                  <span className="text-green-800">{selectedOrder.depositPaymentDetails.paymentMethod || 'N/A'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-green-700">Date:</span>
+                                  <span className="text-green-800">
+                                    {selectedOrder.depositPaymentDetails.dateOfPayment ? new Date(selectedOrder.depositPaymentDetails.dateOfPayment).toLocaleDateString('vi-VN') : 'N/A'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Full Payment */}
+                          {selectedOrder.fullPaymentDetails ? (
+                            <div className="border border-green-200 rounded-lg p-4 bg-green-50">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center space-x-2">
+                                  <CheckCircleIcon className="h-5 w-5 text-green-600" />
+                                  <span className="font-semibold text-green-800">Full Payment</span>
+                                </div>
+                                <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                                  {selectedOrder.fullPaymentDetails.paymentStatus || 'Completed'}
+                                </span>
+                              </div>
+                              <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-green-700">Amount:</span>
+                                  <span className="font-semibold text-green-800">
+                                    ₫{selectedOrder.fullPaymentDetails.amount ? selectedOrder.fullPaymentDetails.amount.toLocaleString('vi-VN') : 'N/A'}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-green-700">Method:</span>
+                                  <span className="text-green-800">{selectedOrder.fullPaymentDetails.paymentMethod || 'N/A'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-green-700">Date:</span>
+                                  <span className="text-green-800">
+                                    {selectedOrder.fullPaymentDetails.dateOfPayment ? new Date(selectedOrder.fullPaymentDetails.dateOfPayment).toLocaleDateString('vi-VN') : 'N/A'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            /* Remaining Payment */
+                            selectedOrder.remainingBalance > 0 && (
+                              <div className="border border-orange-200 rounded-lg p-4 bg-orange-50">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center space-x-2">
+                                    <ClockIcon className="h-5 w-5 text-orange-600" />
+                                    <span className="font-semibold text-orange-800">Remaining Payment</span>
+                                  </div>
+                                  <span className="text-sm text-orange-600 bg-orange-100 px-2 py-1 rounded-full">
+                                    Pending
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-orange-700">Amount Due:</span>
+                                  <span className="font-bold text-xl text-orange-800">
+                                    {selectedOrder.remainingBalance.toLocaleString('vi-VN')} ₫
+                                  </span>
+                                </div>
+                                {selectedOrder.expectedDeliveryDate && (
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-orange-700">Payment Due Date:</span>
+                                    <span className="font-semibold text-orange-800">
+                                      {
+                                        // Calculate and format the date: Expected Delivery Date - 1 day
+                                        new Date(new Date(selectedOrder.expectedDeliveryDate).setDate(new Date(selectedOrder.expectedDeliveryDate).getDate() - 1)).toLocaleDateString('vi-VN')
+                                      }
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          )}
+                        </div>
                       </div>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-green-700">Amount:</span>
-                          <span className="font-semibold text-green-800">
-                            ₫{selectedOrder.fullPaymentDetails.amount ? selectedOrder.fullPaymentDetails.amount.toLocaleString('vi-VN') : 'N/A'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-green-700">Method:</span>
-                          <span className="text-green-800">{selectedOrder.fullPaymentDetails.paymentMethod || 'N/A'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-green-700">Status:</span>
-                          <span className="text-green-800">{selectedOrder.fullPaymentDetails.paymentStatus || 'N/A'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-green-700">Date:</span>
-                          <span className="text-green-800">
-                            {selectedOrder.fullPaymentDetails.dateOfPayment ? new Date(selectedOrder.fullPaymentDetails.dateOfPayment).toLocaleDateString('en-US') : 'N/A'}
-                          </span>
-                        </div>
+
+                      {/* Delivery Information */}
+                      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                          <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center mr-3">
+                            🚚
+                          </div>
+                          Delivery Information
+                        </h3>
+
+                        {selectedOrder.shippingAddressDetails ? (
+                          <div className="space-y-4">
+                            <div className="bg-gray-50 rounded-lg p-4">
+                              <div className="grid grid-cols-1 gap-3 text-sm">
+                                <div className="flex items-center space-x-2">
+                                  <UserIcon className="h-4 w-4 text-gray-500" />
+                                  <span className="text-gray-600">Recipient:</span>
+                                  <span className="font-medium text-gray-900">{selectedOrder.shippingAddressDetails.recipientName || 'N/A'}</span>
+                                </div>
+                                <div className="flex items-start space-x-2">
+                                  <MapPinIcon className="h-4 w-4 text-gray-500 mt-0.5" />
+                                  <div>
+                                    <span className="text-gray-600">Address:</span>
+                                    <p className="font-medium text-gray-900">
+                                      {selectedOrder.shippingAddressDetails.address || 'N/A'}<br />
+                                      {selectedOrder.shippingAddressDetails.city}, {selectedOrder.shippingAddressDetails.state} {selectedOrder.shippingAddressDetails.zipCode}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <CalendarDaysIcon className="h-4 w-4 text-gray-500" />
+                                  <span className="text-gray-600">Expected Delivery:</span>
+                                  <span className="font-medium text-gray-900">
+                                    {selectedOrder.expectedDeliveryDate ? new Date(selectedOrder.expectedDeliveryDate).toLocaleDateString('vi-VN') : 'N/A'}
+                                  </span>
+                                </div>
+                                {selectedOrder.actualDeliveryDate && (
+                                  <div className="flex items-center space-x-2">
+                                    <CheckCircleIcon className="h-4 w-4 text-green-500" />
+                                    <span className="text-gray-600">Actual Delivery:</span>
+                                    <span className="font-medium text-green-700">
+                                      {new Date(selectedOrder.actualDeliveryDate).toLocaleDateString('vi-VN')}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ) : selectedOrder.pickupLocationDetails ? (
+                          <div className="space-y-4">
+                            <div className="bg-gray-50 rounded-lg p-4">
+                              <div className="grid grid-cols-1 gap-3 text-sm">
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-gray-600">Option:</span>
+                                  <span className="font-medium text-gray-900">{selectedOrder.deliveryOption || 'Pickup'}</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-gray-600">Location:</span>
+                                  <span className="font-medium text-gray-900">{selectedOrder.pickupLocationDetails.name || 'N/A'}</span>
+                                </div>
+                                <div className="flex items-start space-x-2">
+                                  <MapPinIcon className="h-4 w-4 text-gray-500 mt-0.5" />
+                                  <span className="font-medium text-gray-900">{selectedOrder.pickupLocationDetails.address || 'N/A'}</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <CalendarDaysIcon className="h-4 w-4 text-gray-500" />
+                                  <span className="text-gray-600">Expected Pickup:</span>
+                                  <span className="font-medium text-gray-900">
+                                    {selectedOrder.expectedDeliveryDate ? new Date(selectedOrder.expectedDeliveryDate).toLocaleDateString('vi-VN') : 'N/A'}
+                                  </span>
+                                </div>
+                                {selectedOrder.actualDeliveryDate && (
+                                  <div className="flex items-center space-x-2">
+                                    <CheckCircleIcon className="h-4 w-4 text-green-500" />
+                                    <span className="text-gray-600">Actual Pickup:</span>
+                                    <span className="font-medium text-green-700">
+                                      {new Date(selectedOrder.actualDeliveryDate).toLocaleDateString('vi-VN')}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center py-6">
+                            <ExclamationTriangleIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                            <p className="text-gray-600">No delivery/pickup information available.</p>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )}
-                </div>
-
-
-                <div className="bg-gray-50 rounded-xl p-6 mb-6 border border-gray-200">
-                  <div className="flex items-center mb-4">
-                    <TruckIcon className="h-5 w-5 text-gray-600 mr-2" />
-                    <h4 className="font-semibold text-gray-800">Delivery/Pickup Information</h4>
                   </div>
-
-                  {selectedOrder.shippingAddressDetails ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="flex items-center mb-2">
-                          <span className="font-medium text-gray-600 w-20">Option:</span>
-                          <span className="text-gray-800">{selectedOrder.deliveryOption || 'Delivery'}</span>
-                        </p>
-                        <p className="flex items-center mb-2">
-                          <span className="font-medium text-gray-600 w-20">Recipient:</span>
-                          <span className="text-gray-800">{selectedOrder.shippingAddressDetails.recipientName || 'N/A'}</span>
-                        </p>
-                        <p className="flex items-start mb-2">
-                          <MapPinIcon className="h-4 w-4 text-gray-400 mr-2 mt-0.5" />
-                          <span className="text-gray-800">
-                            {`${selectedOrder.shippingAddressDetails.address}, ${selectedOrder.shippingAddressDetails.city}, ${selectedOrder.shippingAddressDetails.state} ${selectedOrder.shippingAddressDetails.zipCode}`}
-                          </span>
-                        </p>
-                        <p className="flex items-center">
-                          <span className="font-medium text-gray-600 w-20">Phone:</span>
-                          <span className="text-gray-800">{selectedOrder.shippingAddressDetails.phoneNumber || 'N/A'}</span>
-                        </p>
-                      </div>
-                      <div>
-                        <p className="flex items-center mb-2">
-                          <CalendarDaysIcon className="h-4 w-4 text-gray-400 mr-2" />
-                          <span className="font-medium text-gray-600 mr-2">Expected:</span>
-                          <span className="text-gray-800">
-                            {selectedOrder.expectedDeliveryDate ? new Date(selectedOrder.expectedDeliveryDate).toLocaleDateString('en-US') : 'N/A'}
-                          </span>
-                        </p>
-                        <p className="flex items-center">
-                          <CheckCircleIcon className="h-4 w-4 text-gray-400 mr-2" />
-                          <span className="font-medium text-gray-600 mr-2">Actual:</span>
-                          <span className="text-gray-800">
-                            {selectedOrder.actualDeliveryDate ? new Date(selectedOrder.actualDeliveryDate).toLocaleDateString('en-US') : 'Not Delivered Yet'}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                  ) : selectedOrder.pickupLocationDetails ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="flex items-center mb-2">
-                          <span className="font-medium text-gray-600 w-20">Option:</span>
-                          <span className="text-gray-800">{selectedOrder.deliveryOption || 'Pickup'}</span>
-                        </p>
-                        <p className="flex items-center mb-2">
-                          <span className="font-medium text-gray-600 w-20">Location:</span>
-                          <span className="text-gray-800">{selectedOrder.pickupLocationDetails.name || 'N/A'}</span>
-                        </p>
-                        <p className="flex items-start mb-2">
-                          <MapPinIcon className="h-4 w-4 text-gray-400 mr-2 mt-0.5" />
-                          <span className="text-gray-800">{selectedOrder.pickupLocationDetails.address || 'N/A'}</span>
-                        </p>
-                        <p className="flex items-center">
-                          <span className="font-medium text-gray-600 w-20">Phone:</span>
-                          <span className="text-gray-800">{selectedOrder.pickupLocationDetails.phoneNumber || 'N/A'}</span>
-                        </p>
-                      </div>
-                      <div>
-                        <p className="flex items-center mb-2">
-                          <CalendarDaysIcon className="h-4 w-4 text-gray-400 mr-2" />
-                          <span className="font-medium text-gray-600 mr-2">Expected:</span>
-                          <span className="text-gray-800">
-                            {selectedOrder.expectedDeliveryDate ? new Date(selectedOrder.expectedDeliveryDate).toLocaleDateString('en-US') : 'N/A'}
-                          </span>
-                        </p>
-                        <p className="flex items-center">
-                          <CheckCircleIcon className="h-4 w-4 text-gray-400 mr-2" />
-                          <span className="font-medium text-gray-600 mr-2">Actual:</span>
-                          <span className="text-gray-800">
-                            {selectedOrder.actualDeliveryDate ? new Date(selectedOrder.actualDeliveryDate).toLocaleDateString('en-US') : 'Not Picked Up Yet'}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-4">
-                      <ExclamationTriangleIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-gray-600">No detailed delivery/pickup information available.</p>
-                    </div>
-                  )}
                 </div>
+              </div>
 
-                {/* Action Buttons */}
-                <div className="flex justify-end space-x-4">
+              {/* Footer Actions */}
+              <div className="bg-gray-50 border-t border-gray-200 px-8 py-6 flex justify-between items-center">
+                <div className="text-sm text-gray-600">
+                  Order placed on {selectedOrder.orderDate ? new Date(selectedOrder.orderDate).toLocaleDateString('vi-VN', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  }) : 'N/A'}
+                </div>
+                <div className="flex space-x-4">
                   {selectedOrder.currentSaleStatus === "Deposit Paid" && selectedOrder.remainingBalance > 0 && (
                     <button
                       onClick={handlePayRemaining}
-                      className="bg-gradient-to-r from-[#3452e1] to-[#253887] text-white px-8 py-3 rounded-xl flex items-center gap-3 hover:shadow-lg transform hover:scale-105 transition-all duration-200 font-semibold"
+                      className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-xl flex items-center gap-3 hover:shadow-lg transform hover:scale-105 transition-all duration-200 font-semibold"
                     >
                       <WalletIcon className="h-5 w-5" />
-                      <span>Pay Remaining</span>
-                      <span className="bg-white bg-opacity-20 px-2 py-1 rounded-lg text-sm">
+                      <span>Pay Remaining Balance</span>
+                      <span className="bg-white bg-opacity-20 px-3 py-1 rounded-lg text-sm">
                         ₫{selectedOrder.remainingBalance.toLocaleString('vi-VN')}
                       </span>
                     </button>
                   )}
                   <button
                     onClick={handleCloseDetailModal}
-                    className="bg-gray-100 text-gray-700 px-6 py-3 rounded-xl hover:bg-gray-200 transition-colors duration-200 font-medium"
+                    className="bg-gray-200 text-gray-700 px-6 py-3 rounded-xl hover:bg-gray-300 transition-colors duration-200 font-medium"
                   >
                     Close
                   </button>
@@ -582,8 +927,7 @@ export default function OrdersPage() {
         show={showSignInModal}
         onClose={() => setShowSignInModal(false)}
         onLoginSuccess={() => {
-          setShowSignInModal(false);
-          
+
         }}
       />
     </div>

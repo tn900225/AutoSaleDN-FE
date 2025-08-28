@@ -47,6 +47,7 @@ const formInit = {
 
 export default function Cars() {
   // State for showroom allocation modal
+
   const [showroomModal, setShowroomModal] = useState({ open: false, car: null, selectedShowroomId: null });
   // State for viewing car details modal
   const [viewCarDetailsModal, setViewCarDetailsModal] = useState({ open: false, car: null });
@@ -804,8 +805,8 @@ export default function Cars() {
                               </button>
                               <button
                                 className={`p-2 rounded-lg shadow-sm transition-all duration-200 group ${car.status === 'Hidden'
-                                    ? 'bg-gradient-to-r from-gray-500 to-gray-600 text-white hover:from-gray-600 hover:to-gray-700'
-                                    : 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600'
+                                  ? 'bg-gradient-to-r from-gray-500 to-gray-600 text-white hover:from-gray-600 hover:to-gray-700'
+                                  : 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600'
                                   }`}
                                 // onClick={() => toggleHideCar(car)} // This function is not defined in the provided code snippet
                                 title={car.status === 'Hidden' ? 'Show Vehicle' : 'Hide Vehicle'}
@@ -865,8 +866,8 @@ export default function Cars() {
                   <button
                     key={i}
                     className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${page === i + 1
-                        ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg"
-                        : "border border-gray-200 text-gray-700 bg-white hover:bg-gray-50"
+                      ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg"
+                      : "border border-gray-200 text-gray-700 bg-white hover:bg-gray-50"
                       }`}
                     onClick={() => setPage(i + 1)}
                   >
@@ -1079,7 +1080,16 @@ function ViewCarDetailsModal({ car, onClose }) {
               <div className="space-y-3 text-gray-700">
                 <p><span className="font-semibold">Registration Fee:</span> {car.registrationFee ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(car.registrationFee) : 'N/A'}</p>
                 <p><span className="font-semibold">Tax Rate:</span> {car.taxRate ? `${car.taxRate}%` : 'N/A'}</p>
-                <p><span className="font-semibold">Description:</span> {car.description || 'No description provided.'}</p>
+              </div>
+            </div>
+
+            <div className="lg:col-span-2 bg-gray-50 rounded-xl p-6 shadow-sm">
+              <h3 className="text-xl font-bold text-gray-800 mb-4">Description</h3>
+              <div className="space-y-3 text-gray-700">
+                <p><div
+                  className="prose max-w-none"
+                  dangerouslySetInnerHTML={{ __html: car.description || 'No description provided.' }}
+                /></p>
               </div>
             </div>
 
