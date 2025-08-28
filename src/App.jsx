@@ -34,6 +34,8 @@ import PrePurchasePage from "./pages/PrePurchasePage";
 import OrdersPage from "./pages/OrdersPage";
 import SellerOrderManagement from "./pages/admin/SellerOrderManagement";
 
+import SellerDashboard from "./pages/seller/SellerDashboard";
+
 const useTalkJS = (customerInfor, isCustomerInfoLoaded, hasCustomerInfoError, targetStaff = null) => {
   const [talkjsPopup, setTalkjsPopup] = useState(null);
   const [isTalkjsLoaded, setIsTalkjsLoaded] = useState(false);
@@ -404,7 +406,7 @@ function App() {
         <Route
           path="/admin/*"
           element={
-            <RequireRole allow={["Admin", "Seller"]}>
+            <RequireRole allow={["Admin"]}>
               <DashboardLayout>
                 <Routes>
                   <Route path="dashboard" element={<Dashboard />} />
@@ -460,7 +462,23 @@ function App() {
             </RequireRole>
           }
         />
-
+        <Route
+          path="/seller/*"
+          element={
+            <RequireRole allow={["Seller"]}>
+              <DashboardLayout>
+                <Routes>
+                  <Route path="dashboard" element={<SellerDashboard />} />
+                  {/* <Route path="showroom" element={<SellerShowroom />} />
+                  <Route path="cars" element={<SellerCarManagement />} />
+                  <Route path="orders" element={<SellerOrderManagement />} />
+                  <Route path="messages" element={<SellerMessages />} />
+                  <Route path="" element={<Navigate to="dashboard" replace />} /> */}
+                </Routes>
+              </DashboardLayout>
+            </RequireRole>
+          }
+        />
         {/* Catch-all route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

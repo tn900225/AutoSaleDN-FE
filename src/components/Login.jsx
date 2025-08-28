@@ -59,7 +59,7 @@ export default function Login({ show, onClose }) {
           const { token, role } = await resp.json();
           localStorage.setItem('token', token);
           localStorage.setItem('role', role);
-
+        
           if (role === "Admin") {
             navigate('/admin/dashboard');
             Swal.fire({
@@ -67,10 +67,20 @@ export default function Login({ show, onClose }) {
               title: "Login Successful",
               text: "Welcome Admin!"
             });
-            onClose(); // Close the login modal after successful admin login and navigation
+            onClose();
             return;
           }
-
+        
+          if (role === "Seller") {
+            navigate('/seller/dashboard');
+            Swal.fire({
+              icon: "success",
+              title: "Login Successful",
+              text: "Welcome Seller!"
+            });
+            onClose();
+            return;
+          }
           const userInfoResp = await fetch('/api/User/me', {
             headers: {
               'Authorization': `Bearer ${token}`
@@ -78,14 +88,15 @@ export default function Login({ show, onClose }) {
           });
           const userInfo = await userInfoResp.json();
           setUser(userInfo);
-
+        
           onClose();
           Swal.fire({
             icon: "success",
             title: "Login Successful",
             text: "Welcome back!"
           });
-        } else if (resp.status === 401) {
+        }
+        else if (resp.status === 401) {
           const errorText = await resp.text(); // Get the error message from the response body
 
           if (errorText === "Your account has been deactivated by the administrator.") {
