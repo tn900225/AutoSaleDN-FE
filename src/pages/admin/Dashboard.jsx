@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Chart from "react-apexcharts";
 import { useState, useEffect } from "react";
 import { TrendingUp, TrendingDown, Calendar, BarChart3, DollarSign, Car, Star, MapPin, Package, Users, Activity, Target, Eye, Award,ArrowRight, AlertTriangle } from "lucide-react";
+import { getApiBaseUrl } from "../../../util/apiconfig";
 
 const fetchRevenueData = async () => {
   const token = localStorage.getItem('token');
@@ -12,7 +13,7 @@ const fetchRevenueData = async () => {
   // Get monthly data for current year
   const monthlyData = [];
   for (let month = 1; month <= 12; month++) {
-    const url = `/api/Admin/reports/revenue/monthly?year=${currentYear}&month=${month}`;
+    const url = `${API_BASE}/api/Admin/reports/revenue/monthly?year=${currentYear}&month=${month}`;
     const res = await fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -30,7 +31,7 @@ const fetchRevenueData = async () => {
   // Get yearly data for comparison
   const yearlyData = [];
   for (let year = currentYear - 2; year <= currentYear; year++) {
-    const url = `/api/Admin/reports/revenue/yearly?year=${year}`;
+    const url = `${API_BASE}/api/Admin/reports/revenue/yearly?year=${year}`;
     const res = await fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -60,12 +61,12 @@ const fetchRevenueData = async () => {
 const fetchDashboardData = async () => {
   const token = localStorage.getItem('token');
   try {
-    const topCarsRes = await fetch('/api/Admin/reports/top-selling-cars', {
+    const topCarsRes = await fetch(`${API_BASE}/api/Admin/reports/top-selling-cars`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     const topCars = await topCarsRes.json();
 
-    const showroomRes = await fetch('/api/Admin/reports/cars-in-showroom', {
+    const showroomRes = await fetch(`${API_BASE}/api/Admin/reports/cars-in-showroom`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     const showroomInventory = await showroomRes.json();
@@ -83,6 +84,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const API_BASE = getApiBaseUrl();
 
   const handleShowroomDetail = (showroomId) => {
     navigate(`/showroom/${showroomId}`);
@@ -471,7 +473,7 @@ export default function AdminDashboard() {
                     <div className="flex-shrink-0">
                       <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-200">
                         <img
-                          src={car.imageUrl || '/api/placeholder/64/64'}
+                          src={car.imageUrl || `${API_BASE}/api/placeholder/64/64`}
                           alt={car.modelName}
                           className="w-full h-full object-cover"
                           onError={(e) => {
@@ -588,7 +590,7 @@ export default function AdminDashboard() {
                               <div className="flex items-center">
                                 <div className="w-8 h-8 bg-gray-200 rounded-md overflow-hidden mr-3">
                                   <img
-                                    src={model.imageUrl || '/api/placeholder/32/32'}
+                                    src={model.imageUrl || `${API_BASE}/api/placeholder/32/32`}
                                     alt={model.modelName}
                                     className="w-full h-full object-cover"
                                     onError={(e) => {

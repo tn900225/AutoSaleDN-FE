@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-// import PrePurchaseFormModal from "../components/PrePurchaseFormModal"; // Không cần import modal nữa
+import { getApiBaseUrl } from "../../util/apiconfig";
 
 const formatCurrency = (num) =>
   new Intl.NumberFormat("en-US", {
@@ -18,13 +18,13 @@ export default function PurchaseTermsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false); // New state for checkbox
-  // const [showPrePurchaseModal, setShowPrePurchaseModal] = useState(false); // Không cần state này nữa
+  const API_BASE = getApiBaseUrl();
 
   useEffect(() => {
     const fetchCarDetails = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`/api/User/cars/${carId}`);
+        const response = await fetch(`${API_BASE}/api/User/cars/${carId}`);
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }

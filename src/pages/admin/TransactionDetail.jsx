@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import html2pdf from 'html2pdf.js'; // Import html2pdf
 import AdminSidebar from "../../components/admin/AdminSidebar";
-
+import { getApiBaseUrl } from "../../../util/apiconfig";
 const formatDate = (date) => {
   if (!date) return '-';
   try {
@@ -20,7 +20,7 @@ export default function TransactionDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const contractRef = useRef(null); // Create a ref for the contract content
-
+  const API_BASE = getApiBaseUrl();
   useEffect(() => {
     console.log('Component mounted, transaction ID:', id);
     fetchTransactionDetails();
@@ -33,7 +33,7 @@ export default function TransactionDetail() {
       const token = localStorage.getItem('token');
       console.log('Token exists:', !!token);
       
-      const response = await fetch(`/api/Admin/transactions/${id}`, {
+      const response = await fetch(`${API_BASE}/api/Admin/transactions/${id}`, {
         headers: { 
           Authorization: `Bearer ${token}` 
         }

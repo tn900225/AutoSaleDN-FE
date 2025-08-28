@@ -1,16 +1,18 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getApiBaseUrl } from "../../../util/apiconfig";
 
 const UserContext = createContext(null);
 
 export function UserProvider({ children }) {
   const [user, setUser] = useState(null);
+  const API_BASE = getApiBaseUrl();
 
   useEffect(() => {
     // Check for token on component mount
     const token = localStorage.getItem('token');
     if (token) {
       // Fetch user info from API
-      fetch('/api/User/me', {
+      fetch(`${API_BASE}/api/User/me`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

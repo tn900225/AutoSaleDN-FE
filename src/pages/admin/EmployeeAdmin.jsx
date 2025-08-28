@@ -4,6 +4,7 @@ import AdminTopbar from "../../components/admin/AdminTopbar";
 import { FaEdit, FaTrash, FaTimes, FaSearch, FaFilter, FaEye, FaCheckCircle, FaExclamationCircle, FaUserCheck, FaUserSlash } from "react-icons/fa";
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
+import { getApiBaseUrl } from "../../../util/apiconfig";
 
 const inputClass =
   "w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg bg-white text-gray-700 text-base focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-violet-500 transition-colors placeholder-gray-400 shadow-sm";
@@ -65,7 +66,7 @@ export default function EmployeeAdmin() {
   const [loading, setLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-
+  const API_BASE = getApiBaseUrl();
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState("info");
@@ -84,7 +85,7 @@ export default function EmployeeAdmin() {
   useEffect(() => {
     const fetchShowrooms = async () => {
       try {
-        const response = await fetch('/api/Admin/showrooms', {
+        const response = await fetch(`${API_BASE}/api/Admin/showrooms`, {
           headers: { Authorization: `Bearer ${getToken()}` }
         });
 
@@ -101,7 +102,7 @@ export default function EmployeeAdmin() {
   const fetchSellers = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/Admin/sellers', {
+      const response = await fetch(`${API_BASE}/api/Admin/sellers`, {
         headers: {
           'Authorization': `Bearer ${getToken()}`
         }
@@ -109,7 +110,7 @@ export default function EmployeeAdmin() {
       if (!response.ok) throw new Error('Failed to fetch sellers');
       const data = await response.json();
 
-      const showroomsResponse = await fetch('/api/Admin/showrooms', {
+      const showroomsResponse = await fetch(`${API_BASE}/api/Admin/showrooms`, {
         headers: {
           'Authorization': `Bearer ${getToken()}`
         }
@@ -187,7 +188,7 @@ export default function EmployeeAdmin() {
     e.preventDefault();
     try {
       setLoading(true);
-      const response = await fetch('/api/Admin/sellers', {
+      const response = await fetch(`${API_BASE}/api/Admin/sellers`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -228,7 +229,7 @@ export default function EmployeeAdmin() {
     e.preventDefault();
     try {
       setLoading(true);
-      const response = await fetch(`/api/Admin/sellers/${editingId}`, {
+      const response = await fetch(`${API_BASE}/api/Admin/sellers/${editingId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -269,7 +270,7 @@ export default function EmployeeAdmin() {
   const handleToggleStatus = async (seller, currentStatus) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/Admin/sellers/toggle-status/${seller.userId}`, {
+      const response = await fetch(`${API_BASE}/api/Admin/sellers/toggle-status/${seller.userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

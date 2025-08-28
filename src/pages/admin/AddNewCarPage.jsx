@@ -3,7 +3,7 @@ import Swal from "sweetalert2";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminTopbar from "../../components/admin/AdminTopbar";
 import VehiclePhotosUpload from "../../components/admin/VehiclePhotosUpload";
-
+import { getApiBaseUrl } from "../../../util/apiconfig";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 
@@ -81,6 +81,8 @@ export default function AddNewCarPage() {
   const [features, setFeatures] = useState([]);
   const [storeLocationsWithUsers, setStoreLocationsWithUsers] = useState([]);
 
+  const API_BASE = getApiBaseUrl();
+
   const selectedFileNames = imagePreviews.map(item => item.name).join(", ");
 
 
@@ -88,7 +90,7 @@ export default function AddNewCarPage() {
     const fetchFormData = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch("/api/admin/cars/add-form-data", {
+        const response = await fetch(`${API_BASE}/api/admin/cars/add-form-data`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -113,7 +115,7 @@ export default function AddNewCarPage() {
     const fetchStoreLocations = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch("/api/admin/storelocations", {
+        const response = await fetch(`${API_BASE}/api/admin/storelocations`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -205,7 +207,7 @@ export default function AddNewCarPage() {
       console.log("Sending data:", dataToSend);
 
       const token = localStorage.getItem("token");
-      const response = await fetch("/api/admin/cars/add", {
+      const response = await fetch(`${API_BASE}/api/admin/cars/add`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

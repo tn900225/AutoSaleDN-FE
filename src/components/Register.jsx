@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Swal from "sweetalert2";
-
+import { getApiBaseUrl } from "../../util/apiconfig";
 // Mock data: 63 provinces/cities and postal codes
 const provincePostalList = [
     { name: "An Giang", postal: "88000" },
@@ -92,6 +92,8 @@ export default function Register({ show, onClose, onShowLogin }) {
     const [errors, setErrors] = useState({});
     if (!show) return null;
 
+    const API_BASE = getApiBaseUrl();
+
     // Validate postal code: must match province & be 5 digits
     const validatePostal = (province, postal) => {
         if (!postal) return false;
@@ -157,7 +159,7 @@ export default function Register({ show, onClose, onShowLogin }) {
           Province: form.province
         };
         console.log("Register DTO:", registerDto);
-        const resp = await fetch("/api/User/register", {
+        const resp = await fetch(`${API_BASE}/api/User/register`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"

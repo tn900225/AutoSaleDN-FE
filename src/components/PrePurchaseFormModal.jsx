@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Swal from 'sweetalert2';
 
+import { getApiBaseUrl } from "../../util/apiconfig";
+
 const formatCurrency = (num) =>
   new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -13,6 +15,8 @@ export default function PrePurchasePage() {
   const { carId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const API_BASE = getApiBaseUrl();
 
   const initialShowrooms = location.state?.showrooms || [];
   const carFromState = location.state?.car || null;
@@ -45,7 +49,7 @@ export default function PrePurchasePage() {
             setLoadingUser(true);
             setErrorUser('');
             try {
-                const response = await fetch(`/api/User/cars/${carId}`);
+                const response = await fetch(`${API_BASE}/api/User/cars/${carId}`);
                 if (!response.ok) {
                     throw new Error(`Failed to fetch car data: ${response.statusText}`);
                 }
@@ -109,7 +113,7 @@ export default function PrePurchasePage() {
           headers['Authorization'] = `Bearer ${token}`;
         }
 
-        const response = await fetch("/api/User/me", { headers });
+        const response = await fetch(`${API_BASE}/api/User/me`, { headers });
         if (!response.ok) {
             if (response.status === 401) {
                 throw new Error('Authentication failed. Please log in again.');
@@ -143,7 +147,7 @@ export default function PrePurchasePage() {
             headers['Authorization'] = `Bearer ${token}`;
           }
 
-          const apiUrl = `/api/Customer/${selectedShowroom}/seller`;
+          const apiUrl = `${API_BASE}/api/Customer/${selectedShowroom}/seller`;
           const response = await fetch(apiUrl, { headers });
 
           if (!response.ok) {

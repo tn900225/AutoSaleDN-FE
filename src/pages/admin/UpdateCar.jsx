@@ -8,6 +8,7 @@ import "react-quill-new/dist/quill.snow.css";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminTopbar from "../../components/admin/AdminTopbar";
 import VehiclePhotosUpload from "../../components/admin/VehiclePhotosUpload";
+import { getApiBaseUrl } from "../../../util/apiconfig";
 
 // Helper constants for select options from AddNewCarPage.jsx
 const YEAR_OPTIONS = Array.from({ length: 76 }, (_, i) => 2025 - i);
@@ -74,6 +75,7 @@ const initialFormState = {
 };
 
 function UpdateCar() {
+  const API_BASE = getApiBaseUrl();
   const { listingId } = useParams();
   const navigate = useNavigate();
   const [form, setForm] = useState(initialFormState);
@@ -96,7 +98,7 @@ function UpdateCar() {
           Accept: "application/json",
         };
 
-        const carResponse = await fetch(`/api/admin/cars/${listingId}`, { headers });
+        const carResponse = await fetch(`${API_BASE}/api/admin/cars/${listingId}`, { headers });
         if (carResponse.status === 401) {
           Swal.fire({ icon: "error", title: "Unauthorized", text: "Please log in again." });
           navigate("/login");
@@ -107,7 +109,7 @@ function UpdateCar() {
         }
         const carData = await carResponse.json();
 
-        const formDataResponse = await fetch("/api/admin/cars/add-form-data", { headers });
+        const formDataResponse = await fetch(`${API_BASE}/api/admin/cars/add-form-data`, { headers });
         if (!formDataResponse.ok) {
           throw new Error("Failed to load form data");
         }
@@ -116,7 +118,7 @@ function UpdateCar() {
         setCarColors(formData.colors || []);
         setFeatures(formData.features || []);
 
-        const storeLocationsResponse = await fetch("/api/admin/storelocations", { headers });
+        const storeLocationsResponse = await fetch(`${API_BASE}/api/admin/storelocations`, { headers });
         if (!storeLocationsResponse.ok) {
           throw new Error("Failed to fetch store locations.");
         }
@@ -233,7 +235,7 @@ function UpdateCar() {
       };
 
       const token = localStorage.getItem("token");
-      const response = await fetch(`/api/admin/cars/${listingId}`, {
+      const response = await fetch(`${API_BASE}/api/admin/cars/${listingId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

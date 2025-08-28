@@ -1,12 +1,15 @@
 import React, { useEffect, useState, useCallback } from "react";
 import CarFilterSidebar from "../components/CarFilterSidebar";
 import CarPageMain from "../components/CarPageMain";
+import { getApiBaseUrl } from "../../util/apiconfig";
+
 
 const PER_PAGE = 5;
 
 async function fetchCars(filters = {}, page = 1, perPage = PER_PAGE) {
   const token = localStorage.getItem("token");
   const queryParams = new URLSearchParams();
+  const API_BASE = getApiBaseUrl();
 
   if (filters.keyword) queryParams.append("keyword", filters.keyword);
   if (filters.paymentType) queryParams.append("paymentType", filters.paymentType);
@@ -37,7 +40,7 @@ async function fetchCars(filters = {}, page = 1, perPage = PER_PAGE) {
   queryParams.append("perPage", perPage.toString());
 
   const queryString = queryParams.toString();
-  const url = `/api/User/cars${queryString ? `?${queryString}` : ""}`;
+  const url = `${API_BASE}/api/User/cars${queryString ? `?${queryString}` : ""}`;
 
   try {
     const res = await fetch(url, {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Swal from 'sweetalert2';
+import { getApiBaseUrl } from "../../util/apiconfig";
 
 const formatCurrency = (num) =>
   new Intl.NumberFormat("en-US", {
@@ -13,6 +14,8 @@ export default function PrePurchasePage() {
   const { carId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const API_BASE = getApiBaseUrl();
 
   const initialShowrooms = location.state?.showrooms || [];
   const carFromState = location.state?.car || null;
@@ -66,7 +69,7 @@ export default function PrePurchasePage() {
         setLoadingUser(true);
         setErrorUser('');
         try {
-          const response = await fetch(`/api/User/cars/${carId}`);
+          const response = await fetch(`${API_BASE}/api/User/cars/${carId}`);
           if (!response.ok) {
             throw new Error(`Failed to fetch car data: ${response.statusText}`);
           }
@@ -140,7 +143,7 @@ export default function PrePurchasePage() {
             headers['Authorization'] = `Bearer ${token}`;
           }
 
-          const response = await fetch("/api/User/me", { headers });
+          const response = await fetch(`${API_BASE}/api/User/me`, { headers });
           if (!response.ok) {
             if (response.status === 401) {
               throw new Error('Authentication failed. Please log in again.');
@@ -175,7 +178,7 @@ export default function PrePurchasePage() {
             headers['Authorization'] = `Bearer ${token}`;
           }
 
-          const apiUrl = `/api/Customer/${selectedShowroom}/seller`;
+          const apiUrl = `${API_BASE}/api/Customer/${selectedShowroom}/seller`;
           const response = await fetch(apiUrl, { headers });
 
           if (!response.ok) {
@@ -249,7 +252,7 @@ export default function PrePurchasePage() {
           accessKey: momoAccessKey
         };
 
-        fetch('/api/Momo/momo_ipn', {
+        fetch(`${API_BASE}/api/Momo/momo_ipn`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -386,7 +389,7 @@ export default function PrePurchasePage() {
         returnUrl: window.location.origin + window.location.pathname + window.location.search,
       };
 
-      const response = await fetch('/api/Momo/create_payment_url', {
+      const response = await fetch(`${API_BASE}/api/Momo/create_payment_url`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -472,7 +475,7 @@ export default function PrePurchasePage() {
       };
 
       if (depositPaymentMethod === 'e_wallet_momo_test') {
-        const createOrderResponse = await fetch('/api/Customer/orders/deposit', {
+        const createOrderResponse = await fetch(`${API_BASE}/api/Customer/orders/deposit`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -490,7 +493,7 @@ export default function PrePurchasePage() {
 
         await initiateMomoPayment(orderConfirmation.orderId, depositAmount, 'deposit');
       } else {
-        const response = await fetch('/api/Customer/orders/deposit', {
+        const response = await fetch(`${API_BASE}/api/Customer/orders/deposit`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -609,7 +612,7 @@ const handleFullPayment = async () => {
       };
 
       // First create the order with deposit structure
-      const createOrderResponse = await fetch('/api/Customer/orders/deposit', {
+      const createOrderResponse = await fetch(`${API_BASE}/api/Customer/orders/deposit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -635,7 +638,7 @@ const handleFullPayment = async () => {
 
       if (paymentMethod === 'e_wallet_momo_test') {
         // For Momo, we need to process full payment first, then redirect
-        const fullPaymentResponse = await fetch(`/api/Customer/orders/full-payment?orderId=${orderId}`, {
+        const fullPaymentResponse = await fetch(`${API_BASE}/api/Customer/orders/full-payment?orderId=${orderId}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -653,7 +656,7 @@ const handleFullPayment = async () => {
         await initiateMomoPayment(orderId, calculateTotalPrice(), 'full_payment');
       } else {
         // Handle non-gateway payment methods
-        const fullPaymentResponse = await fetch(`/api/Customer/orders/full-payment?orderId=${orderId}`, {
+        const fullPaymentResponse = await fetch(`${API_BASE}/api/Customer/orders/full-payment?orderId=${orderId}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -700,7 +703,7 @@ const handleFullPayment = async () => {
 
       if (paymentMethod === 'e_wallet_momo_test') {
         // Process full payment first, then redirect to Momo
-        const fullPaymentResponse = await fetch(`/api/Customer/orders/full-payment?orderId=${orderIdToUse}`, {
+        const fullPaymentResponse = await fetch(`${API_BASE}/api/Customer/orders/full-payment?orderId=${orderIdToUse}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -718,7 +721,7 @@ const handleFullPayment = async () => {
         await initiateMomoPayment(orderIdToUse, remainingBalance, 'full_payment');
       } else {
         // Handle non-gateway payment methods
-        const fullPaymentResponse = await fetch(`/api/Customer/orders/full-payment?orderId=${orderIdToUse}`, {
+        const fullPaymentResponse = await fetch(`${API_BASE}/api/Customer/orders/full-payment?orderId=${orderIdToUse}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

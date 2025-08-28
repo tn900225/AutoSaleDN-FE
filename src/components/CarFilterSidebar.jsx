@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useCallback } from "react";
-import SelectMakePopup from "./SelectMakePopup"; // Ensure correct path
+import SelectMakePopup from "./SelectMakePopup";
+import { getApiBaseUrl } from "../../util/apiconfig";
+
 
 export default function CarFilterSidebar({ onFilter, currentFilters }) {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [paymentType, setPaymentType] = useState(currentFilters.paymentType || "cash");
   const [transmission, setTransmission] = useState(currentFilters.transmission || "");
   const [keyword, setKeyword] = useState(currentFilters.keyword || "");
+
+   const API_BASE = getApiBaseUrl();
 
   // Convert currentFilters.priceFrom and priceTo back to the format for selectedPriceRange
   const getInitialPriceRange = (filters) => {
@@ -61,7 +65,7 @@ export default function CarFilterSidebar({ onFilter, currentFilters }) {
   useEffect(() => {
     const fetchFilterOptions = async () => {
       try {
-        const yearsRes = await fetch('/api/User/cars/years');
+        const yearsRes = await fetch(`${API_BASE}/api/User/cars/years`);
         if (yearsRes.ok) {
           const yearsData = await yearsRes.json();
           const options = [{ value: "", label: "Any Year" }];
@@ -73,35 +77,30 @@ export default function CarFilterSidebar({ onFilter, currentFilters }) {
           setRegistrationYearOptions(options);
         }
 
-        const mileageRes = await fetch('/api/User/cars/mileage-ranges');
+        const mileageRes = await fetch(`${API_BASE}/api/User/cars/mileage-ranges`);
         if (mileageRes.ok) {
           const mileageData = await mileageRes.json();
           setMileageOptions([{ value: "", label: "Any Mileage" }, ...mileageData]);
         }
 
-        const priceRes = await fetch('/api/User/cars/price-ranges');
+        const priceRes = await fetch(`${API_BASE}/api/User/cars/price-ranges`);
         if (priceRes.ok) {
           const priceData = await priceRes.json();
           setPriceRangeOptions([{ value: "", label: "Any Price" }, ...priceData]);
         }
 
-        const featuresRes = await fetch('/api/User/cars/features');
+        const featuresRes = await fetch(`${API_BASE}/api/User/cars/features`);
         if (featuresRes.ok) {
           const featuresData = await featuresRes.json();
           setAllFeaturesOptions(featuresData);
         }
 
-        const vehicleTypeRes = await fetch('/api/User/cars/vehicle-types');
+        const vehicleTypeRes = await fetch(`${API_BASE}/api/User/cars/vehicle-types`);
         if (vehicleTypeRes.ok) {
           const vehicleTypesData = await vehicleTypeRes.json();
           setVehicleTypeOptions(vehicleTypesData.map(type => ({ value: type, label: type })));
         }
-        // const fuelTypeRes = await fetch('/api/User/cars/fuel-types');
-        // if (fuelTypeRes.ok) {
-        //   const fuelTypesData = await fuelTypeRes.json();
-        //   setFuelTypeOptions([{ value: "", label: "All Fuel Types" }, ...fuelTypesData.map(type => ({ value: type, label: type }))]);
-        // }
-        const fuelTypeRes = await fetch('/api/User/cars/fuel-types');
+        const fuelTypeRes = await fetch(`${API_BASE}/api/User/cars/fuel-types`);
         if (fuelTypeRes.ok) {
           const fuelTypesData = await fuelTypeRes.json();
           // Remove the "All Fuel Types" entry from here

@@ -21,11 +21,13 @@ import AdminTopbar from "../../components/admin/AdminTopbar";
 import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, Tooltip } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import Swal from 'sweetalert2';
+import { getApiBaseUrl } from "../../../util/apiconfig";
 
 // Register Chart.js components
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
 
 export default function ShowroomManagement() {
+  const API_BASE = getApiBaseUrl();
   const [selectedShowroom, setSelectedShowroom] = useState(null);
   const [viewMode, setViewMode] = useState('overview');
   const [dateFilter, setDateFilter] = useState('thisMonth');
@@ -40,7 +42,7 @@ export default function ShowroomManagement() {
   const fetchShowrooms = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/Admin/showrooms', {
+      const response = await fetch(`${API_BASE}/api/Admin/showrooms`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -60,7 +62,7 @@ export default function ShowroomManagement() {
 
   const fetchCarListings = async (showroomId) => {
     try {
-      const response = await fetch(`/api/Admin/showrooms/${showroomId}/car-listings`, {
+      const response = await fetch(`${API_BASE}/api/Admin/showrooms/${showroomId}/car-listings`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -79,16 +81,16 @@ export default function ShowroomManagement() {
     try {
       setLoading(true);
       const [showroomRes, salesRes, inventoryRes, brandsRes] = await Promise.all([
-        fetch(`/api/Admin/showrooms/${showroomId}`, {
+        fetch(`${API_BASE}/api/Admin/showrooms/${showroomId}`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch(`/api/Admin/showrooms/${showroomId}/sales`, {
+        fetch(`${API_BASE}/api/Admin/showrooms/${showroomId}/sales`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch(`/api/Admin/showrooms/${showroomId}/inventory`, {
+        fetch(`${API_BASE}/api/Admin/showrooms/${showroomId}/inventory`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch(`/api/Admin/showrooms/${showroomId}/brands`, {
+        fetch(`${API_BASE}/api/Admin/showrooms/${showroomId}/brands`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
@@ -166,7 +168,7 @@ export default function ShowroomManagement() {
 
   const handleExportReport = async (showroomId) => {
     try {
-      const response = await fetch(`/api/Admin/showrooms/export`, {
+      const response = await fetch(`${API_BASE}/api/Admin/showrooms/export`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -186,7 +188,7 @@ export default function ShowroomManagement() {
 
   const handleImportStock = async () => {
     try {
-      const response = await fetch(`/api/Admin/showrooms/${selectedShowroom.id}/inventory/import`, {
+      const response = await fetch(`${API_BASE}/api/Admin/showrooms/${selectedShowroom.id}/inventory/import`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

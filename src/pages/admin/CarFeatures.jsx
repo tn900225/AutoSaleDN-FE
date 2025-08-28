@@ -23,6 +23,7 @@ import {
     FaAngleDoubleLeft,
     FaAngleDoubleRight
 } from "react-icons/fa";
+import { getApiBaseUrl } from "../../../util/apiconfig";
 
 export default function CarFeaturesManagementPage() {
     const [features, setFeatures] = useState([]);
@@ -33,7 +34,7 @@ export default function CarFeaturesManagementPage() {
     const [currentFeature, setCurrentFeature] = useState(null);
     const [featureNameInput, setFeatureNameInput] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
-
+    const API_BASE = getApiBaseUrl();
     // Filter states
     const [statusFilter, setStatusFilter] = useState("all"); // all, active, inactive
     const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
@@ -50,7 +51,7 @@ export default function CarFeaturesManagementPage() {
         setError(null);
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch("/api/features", {
+            const response = await fetch(`${API_BASE}/api/features`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
@@ -209,7 +210,7 @@ export default function CarFeaturesManagementPage() {
         setLoading(true);
         try {
             const token = localStorage.getItem("token");
-            let apiEndpoint = "/api/features";
+            let apiEndpoint = `${API_BASE}/api/features`;
             let httpMethod = "POST";
             let successMessage = "Feature added successfully!";
             let errorMessage = "Failed to add feature.";
@@ -218,7 +219,7 @@ export default function CarFeaturesManagementPage() {
 
             if (currentFeature) {
                 httpMethod = "PUT";
-                apiEndpoint = `/api/features/${currentFeature.featureId}`;
+                apiEndpoint = `${API_BASE}/api/features/${currentFeature.featureId}`;
                 bodyData = {
                     featureId: currentFeature.featureId,
                     Name: featureNameInput
@@ -295,7 +296,7 @@ export default function CarFeaturesManagementPage() {
                 setLoading(true);
                 try {
                     const token = localStorage.getItem("token");
-                    const response = await fetch(`/api/features/${featureId}/toggle-status`, {
+                    const response = await fetch(`${API_BASE}/api/features/${featureId}/toggle-status`, {
                         method: "PUT",
                         headers: {
                             "Content-Type": "application/json",

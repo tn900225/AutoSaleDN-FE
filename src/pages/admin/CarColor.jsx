@@ -23,6 +23,7 @@ import {
     FaAngleDoubleLeft,
     FaAngleDoubleRight
 } from "react-icons/fa";
+import { getApiBaseUrl } from "../../../util/apiconfig";
 
 export default function CarColorsManagementPage() {
     const [colors, setColors] = useState([]);
@@ -34,7 +35,7 @@ export default function CarColorsManagementPage() {
     const [colorNameInput, setColorNameInput] = useState("");
     // Removed hexCodeInput state as per user's input
     const [searchTerm, setSearchTerm] = useState("");
-
+    const API_BASE = getApiBaseUrl();
     // Filter states
     const [statusFilter, setStatusFilter] = useState("all"); // all, active, inactive
     const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
@@ -51,7 +52,7 @@ export default function CarColorsManagementPage() {
         setError(null);
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch("/api/colors", {
+            const response = await fetch(`${API_BASE}/api/colors`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
@@ -216,7 +217,7 @@ export default function CarColorsManagementPage() {
         setLoading(true);
         try {
             const token = localStorage.getItem("token");
-            let apiEndpoint = "/api/colors";
+            let apiEndpoint = `${API_BASE}/api/colors`;
             let httpMethod = "POST";
             let successMessage = "Color added successfully!";
             let errorMessage = "Failed to add color.";
@@ -225,7 +226,7 @@ export default function CarColorsManagementPage() {
 
             if (currentColor) {
                 httpMethod = "PUT";
-                apiEndpoint = `/api/colors/${currentColor.colorId}`;
+                apiEndpoint = `${API_BASE}/api/colors/${currentColor.colorId}`;
                 bodyData = {
                     colorId: currentColor.colorId,
                     Name: colorNameInput,
@@ -303,7 +304,7 @@ export default function CarColorsManagementPage() {
                 setLoading(true);
                 try {
                     const token = localStorage.getItem("token");
-                    const response = await fetch(`/api/colors/${colorId}/toggle-status`, {
+                    const response = await fetch(`${API_BASE}/api/colors/${colorId}/toggle-status`, {
                         method: "PUT",
                         headers: {
                             "Content-Type": "application/json",

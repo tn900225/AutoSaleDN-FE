@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import Swal from "sweetalert2";
 import Login from "../components/Login";
-// import PrePurchaseFormModal from "../components/PrePurchaseFormModal"; // Không cần import ở đây nữa
+import { getApiBaseUrl } from "../../util/apiconfig";
 
 const formatCurrency = (num) =>
   new Intl.NumberFormat("vi-VN", {
@@ -110,13 +110,15 @@ export default function CarDetailPage({ carId: propCarId }) {
   const [isCarSold, setIsCarSold] = useState(false);
   const [saleInfoText, setSaleInfoText] = useState("");
 
+  const API_BASE = getApiBaseUrl();
+
   useEffect(() => {
     const fetchCarData = async () => {
       setLoading(true);
       setError("");
       try {
         // Fetch car details
-        const carResponse = await fetch(`/api/User/cars/${carId}`);
+        const carResponse = await fetch(`${API_BASE}/api/User/cars/${carId}`);
         if (!carResponse.ok) {
           throw new Error(`HTTP error! Status: ${carResponse.status}`);
         }
@@ -216,7 +218,7 @@ export default function CarDetailPage({ carId: propCarId }) {
         setCar(mappedCar);
 
         // Fetch similar cars
-        const similarCarsResponse = await fetch(`/api/User/cars/${carId}/similar`);
+        const similarCarsResponse = await fetch(`${API_BASE}/api/User/cars/${carId}/similar`);
         if (!similarCarsResponse.ok) {
           throw new Error(`HTTP error! Status: ${similarCarsResponse.status}`);
         }
@@ -331,7 +333,7 @@ export default function CarDetailPage({ carId: propCarId }) {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const userResponse = await fetch("/api/User/me", {
+      const userResponse = await fetch(`${API_BASE}/api/User/me`, {
         method: 'GET',
         headers: headers,
       });

@@ -4,6 +4,7 @@ import AdminTopbar from "../../components/admin/AdminTopbar";
 import { FaEdit, FaTrash, FaTimes, FaSearch, FaFilter, FaEye, FaCheckCircle, FaExclamationCircle, FaUserCheck, FaUserSlash } from "react-icons/fa"; // Import new icons
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
+import { getApiBaseUrl } from "../../../util/apiconfig";
 
 const inputClass =
   "w-full px-4 py-2 border-2 border-gray-200 rounded-lg bg-white text-gray-700 text-base focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-violet-500 transition placeholder-gray-400";
@@ -60,7 +61,7 @@ export default function Customers() {
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
-
+  const API_BASE = getApiBaseUrl();
   // Alert states
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
@@ -204,7 +205,7 @@ export default function Customers() {
 
   const fetchCustomers = async () => {
     try {
-      const r = await fetch("/api/Admin/customers", {
+      const r = await fetch(`${API_BASE}/api/Admin/customers`, {
         headers: { Authorization: `Bearer ${getToken()}` }
       });
 
@@ -260,7 +261,7 @@ export default function Customers() {
     setViewUser(null);
     setViewHistory([]);
     try {
-      const res = await fetch(`/api/Admin/customers/${cus.userId || cus.user_id}`, {
+      const res = await fetch(`${API_BASE}/api/Admin/customers/${cus.userId || cus.user_id}`, {
         headers: { Authorization: `Bearer ${getToken()}` }
       });
       if (res.status === 200) {
@@ -295,8 +296,8 @@ export default function Customers() {
     setLoading(true);
     const method = editingId ? "PUT" : "POST";
     const url = editingId
-      ? `/api/Admin/customers/${editingId}`
-      : "/api/Admin/customers";
+      ? `${API_BASE}/api/Admin/customers/${editingId}`
+      : `${API_BASE}/api/Admin/customers`;
 
     const body = {
       fullName: form.fullName,
@@ -346,7 +347,7 @@ export default function Customers() {
     if (!window.confirm(`Are you sure you want to ${action} this customer's account?`)) return;
 
     try {
-      const response = await fetch(`/api/Admin/toggle-status/${user.userId || user.user_id}`, {
+      const response = await fetch(`${API_BASE}/api/Admin/toggle-status/${user.userId || user.user_id}`, {
         method: "PUT", // Assuming a PUT endpoint for toggling status
         headers: {
           "Content-Type": "application/json",

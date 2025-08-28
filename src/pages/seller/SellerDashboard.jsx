@@ -4,14 +4,16 @@ import { useNavigate } from 'react-router-dom';
 import Chart from "react-apexcharts";
 import { useState, useEffect } from "react";
 import { TrendingUp, TrendingDown, Calendar, BarChart3, DollarSign, Car, Star, MapPin, Package, Users, Activity, Target, Eye, Award,ArrowRight, AlertTriangle } from "lucide-react";
+import { getApiBaseUrl } from "../../../util/apiconfig";
 
 const fetchRevenueData = async () => {
   const token = localStorage.getItem('token');
   const currentYear = new Date().getFullYear();
+  const API_BASE = getApiBaseUrl();
 
   const monthlyData = [];
   for (let month = 1; month <= 12; month++) {
-    const url = `/api/Seller/reports/revenue/monthly?year=${currentYear}&month=${month}`;
+    const url = `${API_BASE}/Seller/reports/revenue/monthly?year=${currentYear}&month=${month}`;
     const res = await fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -29,8 +31,7 @@ const fetchRevenueData = async () => {
   // Get yearly data for comparison for the seller's showroom
   const yearlyData = [];
   for (let year = currentYear - 2; year <= currentYear; year++) {
-    // Giả định có endpoint API riêng cho seller
-    const url = `/api/Seller/reports/revenue/yearly?year=${year}`;
+    const url = `${API_BASE}/Seller/reports/revenue/yearly?year=${year}`;
     const res = await fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -60,13 +61,14 @@ const fetchRevenueData = async () => {
 // Giả định có endpoint API để lấy dữ liệu dashboard của riêng seller
 const fetchSellerDashboardData = async () => {
   const token = localStorage.getItem('token');
+  const API_BASE = getApiBaseUrl();
   try {
-    const topCarsRes = await fetch('/api/Seller/reports/top-selling-cars', {
+    const topCarsRes = await fetch(`${API_BASE}/Seller/reports/top-selling-cars`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     const topCars = await topCarsRes.json();
 
-    const showroomRes = await fetch('/api/Seller/reports/my-showroom-inventory', {
+    const showroomRes = await fetch(`${API_BASE}/Seller/reports/my-showroom-inventory`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     const showroomInventory = await showroomRes.json();
@@ -479,7 +481,7 @@ export default function SellerDashboard() {
                     <div className="flex-shrink-0">
                       <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-200">
                         <img
-                          src={car.imageUrl || '/api/placeholder/64/64'}
+                          src={car.imageUrl || `${API_BASE}/api/placeholder/64/64`}
                           alt={car.modelName}
                           className="w-full h-full object-cover"
                           onError={(e) => {

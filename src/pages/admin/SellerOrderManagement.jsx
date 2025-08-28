@@ -13,6 +13,8 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 import Swal from 'sweetalert2';
+import { getApiBaseUrl } from "../../../util/apiconfig";
+
 
 const statusMap = {
   1: { name: 'Pending Deposit', color: 'bg-yellow-100 text-yellow-800', icon: ClockIcon },
@@ -36,6 +38,7 @@ const getLastStatus = (order) => {
 };
 
 const SellerOrderManagement = () => {
+  const API_BASE = getApiBaseUrl();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -107,7 +110,7 @@ const SellerOrderManagement = () => {
     setLoading(true);
     try {
       const token = getToken();
-      const response = await fetch('/api/Seller/orders', {
+      const response = await fetch(`${API_BASE}/api/Seller/orders`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -140,7 +143,7 @@ const SellerOrderManagement = () => {
   const handleViewDetails = async (order) => {
     try {
       const token = getToken();
-      const response = await fetch(`/api/Seller/orders/${order.orderId || order.saleId}`, {
+      const response = await fetch(`${API_BASE}/api/Seller/orders/${order.orderId || order.saleId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -189,7 +192,7 @@ const SellerOrderManagement = () => {
         notes: updateData.notes
       };
 
-      const response = await fetch(`/api/Seller/orders/${selectedOrder.orderId || selectedOrder.saleId}/status`, {
+      const response = await fetch(`${API_BASE}/api/Seller/orders/${selectedOrder.orderId || selectedOrder.saleId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

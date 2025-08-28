@@ -6,6 +6,7 @@ import { FaSearch, FaChevronLeft, FaChevronRight, FaEdit, FaTrash, FaPlus, FaTim
 import { X, Plus, Trash2, Car, MapPin, Check } from 'lucide-react';
 import { HiUserGroup } from "react-icons/hi";
 import Swal from "sweetalert2";
+import { getApiBaseUrl } from "../../../util/apiconfig";
 
 const PAGE_SIZE_OPTIONS = [4, 8, 12];
 
@@ -56,6 +57,8 @@ export default function Cars() {
   const [showroomList, setShowroomList] = useState([]);
   const [loadingShowrooms, setLoadingShowrooms] = useState(false);
 
+  const API_BASE = getApiBaseUrl();
+
   // Add the form state here (for edit modal, though we are moving edit to a new page)
   const [form, setForm] = useState(formInit);
 
@@ -66,7 +69,7 @@ export default function Cars() {
       const token = localStorage.getItem('token');
       console.log('Fetching showrooms with token:', token ? 'Token exists' : 'No token');
 
-      const response = await fetch('/api/Admin/showrooms', {
+      const response = await fetch(`${API_BASE}/api/Admin/showrooms`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -148,7 +151,7 @@ export default function Cars() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/allocations', {
+      const response = await fetch(`${API_BASE}/api/admin/allocations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -186,7 +189,7 @@ export default function Cars() {
       if (result.isConfirmed) {
         try {
           const token = localStorage.getItem('token');
-          const response = await fetch(`/api/admin/allocations/${showroom.inventoryId}`, {
+          const response = await fetch(`${API_BASE}/api/admin/allocations/${showroom.inventoryId}`, {
             method: 'DELETE',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -226,7 +229,7 @@ export default function Cars() {
     setLoading(true);
     try {
       console.log('Fetching cars with params:', { page, search });
-      const response = await fetch(`/api/admin/cars?page=${page}&pageSize=10&search=${search}`, {
+      const response = await fetch(`${API_BASE}/api/admin/cars?page=${page}&pageSize=10&search=${search}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -298,7 +301,7 @@ export default function Cars() {
       let fetchOptions = {};
 
       if (modalType === "delete") {
-        url = `/api/admin/cars/${modalCar.listingId}`;
+        url = `${API_BASE}/api/admin/cars/${modalCar.listingId}`;
         method = "DELETE";
         fetchOptions = {
           method,
@@ -535,7 +538,7 @@ export default function Cars() {
 
       console.log('Request body:', requestBody);
 
-      const response = await fetch('/api/Admin/allocations', {
+      const response = await fetch(`${API_BASE}/api/Admin/allocations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

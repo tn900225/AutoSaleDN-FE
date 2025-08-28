@@ -4,6 +4,8 @@ import Swal from "sweetalert2"; // Ensure Swal is imported
 import { useUserContext } from "./context/UserContext";
 import { useNavigate } from 'react-router-dom';
 
+import { getApiBaseUrl } from "../../util/apiconfig";
+
 export default function Login({ show, onClose }) {
   const navigate = useNavigate();
   const { setUser } = useUserContext();
@@ -14,6 +16,8 @@ export default function Login({ show, onClose }) {
     password: ""
   });
   const [errors, setErrors] = useState({});
+
+  const API_BASE = getApiBaseUrl();
 
   const validateForm = () => {
     const err = {};
@@ -47,7 +51,7 @@ export default function Login({ show, onClose }) {
           Password: form.password
         };
 
-        const resp = await fetch("/api/User/login", {
+        const resp = await fetch(`${API_BASE}/api/User/login`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
@@ -81,7 +85,7 @@ export default function Login({ show, onClose }) {
             onClose();
             return;
           }
-          const userInfoResp = await fetch('/api/User/me', {
+          const userInfoResp = await fetch(`${API_BASE}/api/User/me`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }

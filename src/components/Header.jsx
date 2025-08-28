@@ -5,6 +5,8 @@ import AccountMenu from "./AccountMenu";
 import HeaderUserDropdown from "./HeaderUserDropDown";
 import { useUserContext } from "./context/UserContext";
 
+import { getApiBaseUrl } from "../../util/apiconfig";
+
 const navLinks = [
   { label: "Buy", to: "/cars" },
   { label: "How it works", to: "/how-auto-works" },
@@ -27,11 +29,13 @@ export default function Header() {
   const [showServices, setShowServices] = useState(false);
   const [showSignInModal, setShowSignInModal] = useState(false);
 
+  const API_BASE = getApiBaseUrl();
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
       // Fetch user info from API using token
-      fetch('/api/User/me', {
+      fetch(`${API_BASE}/api/User/me`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

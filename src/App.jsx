@@ -36,6 +36,8 @@ import SellerOrderManagement from "./pages/admin/SellerOrderManagement";
 
 import SellerDashboard from "./pages/seller/SellerDashboard";
 
+import { getApiBaseUrl } from "../util/apiconfig";
+
 const useTalkJS = (customerInfor, isCustomerInfoLoaded, hasCustomerInfoError, targetStaff = null) => {
   const [talkjsPopup, setTalkjsPopup] = useState(null);
   const [isTalkjsLoaded, setIsTalkjsLoaded] = useState(false);
@@ -176,6 +178,8 @@ function UserLayout({ children }) {
   const [isCustomerInfoLoaded, setIsCustomerInfoLoaded] = useState(false);
   const [hasCustomerInfoError, setHasCustomerInfoError] = useState(false);
 
+  const API_BASE = getApiBaseUrl();
+
   // Thêm state cho thông tin admin showroom nếu có
   const [showroomAdminInfo, setShowroomAdminInfo] = useState(null);
 
@@ -185,7 +189,7 @@ function UserLayout({ children }) {
       setHasCustomerInfoError(false);
       setIsCustomerInfoLoaded(false);
 
-      fetch('/api/User/me', {
+      fetch(`${API_BASE}/api/User/me`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

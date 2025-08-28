@@ -20,7 +20,7 @@ import {
   BanknotesIcon,
   ShoppingCartIcon,
 } from '@heroicons/react/24/outline';
-
+import { getApiBaseUrl } from "../../util/apiconfig";
 
 export default function OrdersPage() {
   const navigate = useNavigate();
@@ -32,6 +32,8 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [isProcessingGateway, setIsProcessingGateway] = useState(false);
+
+  const API_BASE = getApiBaseUrl();
 
   // States for search and filter
   const [searchTerm, setSearchTerm] = useState('');
@@ -85,7 +87,7 @@ export default function OrdersPage() {
           accessKey: momoAccessKey
         };
 
-        fetch('/api/Momo/momo_ipn', {
+        fetch(`${API_BASE}/api/Momo/momo_ipn`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -191,7 +193,7 @@ export default function OrdersPage() {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const ordersResponse = await fetch("/api/Customer/orders", {
+      const ordersResponse = await fetch(`${API_BASE}/api/Customer/orders`, {
         method: 'GET',
         headers: headers,
       });
@@ -384,7 +386,7 @@ export default function OrdersPage() {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const detailResponse = await fetch(`/api/Customer/orders/${order.orderId || order.saleId}`, {
+      const detailResponse = await fetch(`${API_BASE}/api/Customer/orders/${order.orderId || order.saleId}`, {
         method: 'GET',
         headers: headers,
       });
@@ -442,7 +444,7 @@ export default function OrdersPage() {
         returnUrl: window.location.origin + window.location.pathname + window.location.search,
       };
 
-      const response = await fetch('/api/Momo/create_payment_url', {
+      const response = await fetch(`${API_BASE}/api/Momo/create_payment_url`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -526,7 +528,7 @@ export default function OrdersPage() {
           actualDeliveryDate: selectedOrder.expectedDeliveryDate || new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
         };
 
-        const fullPaymentResponse = await fetch(`/api/Customer/orders/full-payment?orderId=${orderId}`, {
+        const fullPaymentResponse = await fetch(`${API_BASE}/api/Customer/orders/full-payment?orderId=${orderId}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -583,7 +585,7 @@ export default function OrdersPage() {
               actualDeliveryDate: selectedOrder.expectedDeliveryDate || new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
             };
 
-            const response = await fetch(`/api/Customer/orders/full-payment?orderId=${orderId}`, {
+            const response = await fetch(`${API_BASE}/api/Customer/orders/full-payment?orderId=${orderId}`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
