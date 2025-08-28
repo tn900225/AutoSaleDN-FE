@@ -13,7 +13,7 @@ const fetchRevenueData = async () => {
 
   const monthlyData = [];
   for (let month = 1; month <= 12; month++) {
-    const url = `${API_BASE}/Seller/reports/revenue/monthly?year=${currentYear}&month=${month}`;
+    const url = `${API_BASE}/api/Seller/reports/revenue/monthly?year=${currentYear}&month=${month}`;
     const res = await fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -31,7 +31,7 @@ const fetchRevenueData = async () => {
   // Get yearly data for comparison for the seller's showroom
   const yearlyData = [];
   for (let year = currentYear - 2; year <= currentYear; year++) {
-    const url = `${API_BASE}/Seller/reports/revenue/yearly?year=${year}`;
+    const url = `${API_BASE}/api/Seller/reports/revenue/yearly?year=${year}`;
     const res = await fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -63,12 +63,12 @@ const fetchSellerDashboardData = async () => {
   const token = localStorage.getItem('token');
   const API_BASE = getApiBaseUrl();
   try {
-    const topCarsRes = await fetch(`${API_BASE}/Seller/reports/top-selling-cars`, {
+    const topCarsRes = await fetch(`${API_BASE}/api/Seller/reports/top-selling-cars`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     const topCars = await topCarsRes.json();
 
-    const showroomRes = await fetch(`${API_BASE}/Seller/reports/my-showroom-inventory`, {
+    const showroomRes = await fetch(`${API_BASE}/api/Seller/reports/my-showroom-inventory`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     const showroomInventory = await showroomRes.json();

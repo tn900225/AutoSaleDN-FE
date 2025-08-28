@@ -73,7 +73,7 @@ export default function CarManufacturersAndModelsManagementPage() {
         setError(null);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${API_BASE_URL}/CarManufacturers`, {
+            const response = await fetch(`${API_BASE_URL}/api/CarManufacturers`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -84,7 +84,7 @@ export default function CarManufacturersAndModelsManagementPage() {
             }
             const data = await response.json();
             setManufacturers(data);
-            setFilteredManufacturers(data); // Initialize filtered with all manufacturers
+            setFilteredManufacturers(data);
         } catch (err) {
             setError(err.message);
             Swal.fire('Error', err.message, 'error');
@@ -98,7 +98,7 @@ export default function CarManufacturersAndModelsManagementPage() {
         setError(null);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${API_BASE_URL}/CarModels`, {
+            const response = await fetch(`${API_BASE_URL}/api/CarModels`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -190,7 +190,7 @@ export default function CarManufacturersAndModelsManagementPage() {
 
             if (currentManufacturer) {
                 // Update existing manufacturer
-                response = await fetch(`${API_BASE_URL}/CarManufacturers/${currentManufacturer.manufacturerId}`, {
+                response = await fetch(`${API_BASE_URL}/api/CarManufacturers/${currentManufacturer.manufacturerId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -200,7 +200,7 @@ export default function CarManufacturersAndModelsManagementPage() {
                 });
             } else {
                 // Add new manufacturer
-                response = await fetch(`${API_BASE_URL}/CarManufacturers`, {
+                response = await fetch(`${API_BASE_URL}/api/CarManufacturers`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -267,7 +267,7 @@ export default function CarManufacturersAndModelsManagementPage() {
 
             if (currentModel) {
                 // Update existing model
-                response = await fetch(`${API_BASE_URL}/CarModels/${currentModel.modelId}`, {
+                response = await fetch(`${API_BASE_URL}/api/CarModels/${currentModel.modelId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -277,7 +277,7 @@ export default function CarManufacturersAndModelsManagementPage() {
                 });
             } else {
                 // Add new model
-                response = await fetch(`${API_BASE_URL}/CarModels`, {
+                response = await fetch(`${API_BASE_URL}/api/CarModels`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -335,7 +335,7 @@ export default function CarManufacturersAndModelsManagementPage() {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${API_BASE_URL}/CarModels/${model.modelId}/toggle-status`, {
+            const response = await fetch(`${API_BASE_URL}/api/CarModels/${model.modelId}/toggle-status`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
