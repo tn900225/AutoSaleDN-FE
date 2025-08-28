@@ -402,7 +402,7 @@ export default function PrePurchasePage() {
                             />
                             <span className="ml-3">Pick up at Showroom</span>
                         </label>
-                        <label className="flex items-center text-gray-700 font-medium cursor-pointer">
+                        {/* <label className="flex items-center text-gray-700 font-medium cursor-pointer">
                             <input
                                 type="radio"
                                 name="deliveryOption"
@@ -412,7 +412,7 @@ export default function PrePurchasePage() {
                                 className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
                             />
                             <span className="ml-3">Ship to Address (+$<span className="font-semibold">{SHIPPING_COST}</span>)</span>
-                        </label>
+                        </label> */}
                     </div>
 
                     {deliveryOption === 'pickup' && (

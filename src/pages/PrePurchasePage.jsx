@@ -1032,7 +1032,7 @@ const handleFullPayment = async () => {
                       />
                       <span className="ml-3">Pick up at Showroom</span>
                     </label>
-                    <label className="flex items-center text-gray-700 font-medium cursor-pointer">
+                    {/* <label className="flex items-center text-gray-700 font-medium cursor-pointer">
                       <input
                         type="radio"
                         name="deliveryOption"
@@ -1042,7 +1042,7 @@ const handleFullPayment = async () => {
                         className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
                       />
                       <span className="ml-3">Ship to Address (+$<span className="font-semibold">{formatCurrency(SHIPPING_COST)}</span>)</span>
-                    </label>
+                    </label> */}
                   </div>
 
                   {deliveryOption === 'shipping' && (
@@ -1261,7 +1261,7 @@ const handleFullPayment = async () => {
                   />
                   <span className="ml-3">Deposit First, Then Full Payment</span>
                 </label>
-                <label className="flex items-center text-gray-700 font-medium cursor-pointer">
+                {/* <label className="flex items-center text-gray-700 font-medium cursor-pointer">
                   <input
                     type="radio"
                     name="purchaseType"
@@ -1271,7 +1271,7 @@ const handleFullPayment = async () => {
                     className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
                   />
                   <span className="ml-3">Full Payment Now</span>
-                </label>
+                </label> */}
               </div>
             </div>
 
