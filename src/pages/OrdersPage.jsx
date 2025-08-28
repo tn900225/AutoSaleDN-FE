@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Login from "../components/Login";
 import Swal from 'sweetalert2';
 import {
@@ -18,28 +18,172 @@ import {
   UserIcon,
   DocumentTextIcon,
   BanknotesIcon,
-  ShoppingCartIcon
+  ShoppingCartIcon,
 } from '@heroicons/react/24/outline';
 
 
 export default function OrdersPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [isProcessingGateway, setIsProcessingGateway] = useState(false);
 
   // States for search and filter
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('All'); // Default to show all statuses
+  const [filterStatus, setFilterStatus] = useState('All');
 
-  const fetchOrders = async () => { // Moved fetchOrders into a separate function
+  const getToken = () => localStorage.getItem('token');
+
+  // MoMo callback handler - Using the same pattern as PrePurchasePage
+  useEffect(() => {
+    console.log("--- useEffect for Momo callback initiated (Orders Page) ---");
+    const query = new URLSearchParams(location.search);
+
+    const momopartnerCode = query.get('partnerCode');
+    const momoOrderId = query.get('orderId');
+    const momoExtraData = query.get('extraData');
+    const momorequestId = query.get('requestId');
+    const momoResultCode = query.get('errorCode');
+    const momoAmount = query.get('amount');
+    const momoTransId = query.get('transId');
+    const momoOrderInfo = query.get('orderInfo');
+    const momoOrderType = query.get('orderType');
+    const momoMessage = query.get('message');
+    const momoLocalMessage = query.get('localMessage');
+    const momoResponseTime = query.get('responseTime');
+    const momoPayType = query.get('payType');
+    const momoSignature = query.get('signature');
+    const momoAccessKey = query.get('accessKey');
+
+    if (momoResultCode !== null) {
+      console.log("--- Momo callback parameters detected, processing... ---");
+      setIsProcessingGateway(true);
+
+      if (momoResultCode === "0") {
+        console.log("Momo Payment SUCCESS! Sending data to server...");
+
+        const payload = {
+          partnerCode: momopartnerCode,
+          orderId: momoOrderId,
+          extraData: momoExtraData,
+          requestId: momorequestId,
+          resultCode: momoResultCode,
+          amount: momoAmount,
+          transId: momoTransId,
+          orderInfo: momoOrderInfo,
+          orderType: momoOrderType,
+          message: momoMessage,
+          localMessage: momoLocalMessage,
+          responseTime: momoResponseTime,
+          payType: momoPayType,
+          signature: momoSignature,
+          accessKey: momoAccessKey
+        };
+
+        fetch('/api/Momo/momo_ipn', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        })
+          .then(res => {
+            if (!res.ok) {
+              return res.json().then(err => { throw new Error(err.message || 'Server error occurred'); });
+            }
+            return res.json();
+          })
+          .then(data => {
+            console.log("✅ Data sent successfully:", data);
+
+            if (data.resultCode === "0") {
+              // Determine payment purpose from extraData
+              let paymentPurposeText = "remaining payment";
+              if (momoExtraData) {
+                try {
+                  const decodedExtraData = atob(momoExtraData);
+                  const parts = decodedExtraData.split('|');
+                  if (parts.length > 1) {
+                    paymentPurposeText = parts[1] === "deposit" ? "deposit" : "remaining payment";
+                  }
+                } catch (e) {
+                  console.error("Error decoding extraData:", e);
+                }
+              }
+
+              Swal.fire({
+                icon: "success",
+                title: "Payment Successful!",
+                html: `Your ${paymentPurposeText} has been processed successfully.<br/>Please check your email; we've sent the detailed invoice there.`,
+                confirmButtonText: "Complete",
+                confirmButtonColor: "#10B981",
+              }).then(() => {
+                // Clean up URL and refresh orders
+                window.history.replaceState({}, document.title, window.location.pathname);
+                fetchOrders();
+              });
+            } else {
+              Swal.fire({
+                icon: "error",
+                title: "Payment Verification Failed!",
+                text: `There was an issue verifying your payment on our system. Please contact support. (Error Code: ${data.resultCode})`,
+                confirmButtonText: "Try Again",
+                confirmButtonColor: "#EF4444",
+              }).then(() => {
+                window.history.replaceState({}, document.title, window.location.pathname);
+                fetchOrders();
+              });
+            }
+          })
+          .catch(error => {
+            console.error("❌ Failed to send data to /api/Momo/momo_ipn:", error);
+            Swal.fire({
+              icon: "error",
+              title: "Connection Error!",
+              text: `Could not connect to the server to verify your payment. Please try again.`,
+              confirmButtonText: "Try Again",
+              confirmButtonColor: "#EF4444",
+            }).then(() => {
+              window.history.replaceState({}, document.title, window.location.pathname);
+              fetchOrders();
+            });
+          })
+          .finally(() => {
+            setIsProcessingGateway(false);
+            console.log("--- useEffect for Momo callback finished ---");
+          });
+
+      } else {
+        console.log(`Momo Payment FAILED! Result Code: ${momoResultCode}, Message: ${momoMessage}`);
+        Swal.fire({
+          icon: "error",
+          title: "Payment Failed!",
+          text: `Your transaction could not be completed. Reason: ${momoMessage || 'Unknown error.'} (MoMo Code: ${momoResultCode})`,
+          confirmButtonText: "Try Again",
+          confirmButtonColor: "#EF4444",
+        }).then(() => {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        });
+        setIsProcessingGateway(false);
+        console.log("--- useEffect for Momo callback finished ---");
+      }
+
+    } else {
+      console.log("No MoMo callback parameters (errorCode) found in URL. Skipping MoMo callback processing.");
+    }
+  }, [location.search]);
+
+  const fetchOrders = async () => {
     setLoading(true);
     setShowSignInModal(false);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getToken();
       const headers = {
         'Content-Type': 'application/json',
       };
@@ -54,7 +198,15 @@ export default function OrdersPage() {
 
       if (ordersResponse.ok) {
         const data = await ordersResponse.json();
-        setOrders(data);
+
+        console.log('Raw orders data:', data);
+        console.log('Sample order structure:', data[0]);
+
+        const uniqueOrders = getUniqueOrdersByLatestStatus(data);
+
+        console.log('Unique orders after processing:', uniqueOrders);
+
+        setOrders(uniqueOrders);
       } else if (ordersResponse.status === 401) {
         setShowSignInModal(true);
       } else {
@@ -79,56 +231,197 @@ export default function OrdersPage() {
     }
   };
 
+  const getUniqueOrdersByLatestStatus = (ordersList) => {
+    const carMap = new Map();
+
+    ordersList.forEach(order => {
+      const possibleKeys = [
+        order.carDetails?.carId,
+        order.carId,
+        order.vehicleId,
+        `${order.carDetails?.make}-${order.carDetails?.model}-${order.carDetails?.year}`,
+        order.orderNumber,
+        order.orderId
+      ].filter(Boolean);
+
+      const carKey = possibleKeys[0];
+
+      if (!carKey) return;
+
+      const orderDate = new Date(order.orderDate || order.createdAt || order.updatedAt || Date.now());
+      const currentOrder = carMap.get(carKey);
+
+      if (!currentOrder) {
+        carMap.set(carKey, order);
+      } else {
+        const currentDate = new Date(currentOrder.orderDate || currentOrder.createdAt || currentOrder.updatedAt || 0);
+
+        // Updated status priority with the new status names
+        const statusPriority = {
+          'Pending Deposit': 1,
+          'Deposit Paid': 2,
+          'Pending Full Payment': 3,
+          'Payment Complete': 4,
+          'Ready for Delivery': 5,
+          'Delivered': 6,
+          'Cancelled': 7,
+          'Refunded': 8,
+          'Sold': 4, // 'Sold' is an alias for 'Payment Complete'
+          'On Hold': 2, // 'On Hold' is an alias for 'Pending Full Payment'
+          'Available': 1, // 'Available' is an alias for 'Pending Deposit'
+        };
+
+        const currentPriority = statusPriority[currentOrder.currentSaleStatus] || 0;
+        const newPriority = statusPriority[order.currentSaleStatus] || 0;
+
+        if (orderDate > currentDate || (orderDate.getTime() === currentDate.getTime() && newPriority > currentPriority)) {
+          carMap.set(carKey, order);
+        }
+      }
+    });
+
+    const result = Array.from(carMap.values());
+    console.log('Processed unique orders:', result.length, 'from original:', ordersList.length);
+    return result;
+  };
+
   useEffect(() => {
-    fetchOrders(); // Initial fetch
-  }, []); // Empty dependency array means it runs once on mount
+    fetchOrders();
+  }, []);
 
   const getStatusConfig = (status) => {
     switch (status) {
-      case "Sold":
-        return {
-          bgColor: 'bg-gradient-to-r from-green-500 to-green-600',
-          textColor: 'text-green-700',
-          icon: CheckCircleIcon,
-          borderColor: 'border-green-200'
-        };
-      case "On Hold":
-        return {
-          bgColor: 'bg-gradient-to-r from-yellow-500 to-yellow-600',
-          textColor: 'text-yellow-700',
-          icon: ClockIcon,
-          borderColor: 'border-yellow-200'
-        };
-      case "Deposit Paid":
-        return {
-          bgColor: 'bg-gradient-to-r from-blue-500 to-blue-600',
-          textColor: 'text-blue-700',
-          icon: CreditCardIcon,
-          borderColor: 'border-blue-200'
-        };
+      case "Pending Deposit":
       case "Available":
         return {
-          bgColor: 'bg-gradient-to-r from-emerald-500 to-emerald-600',
-          textColor: 'text-emerald-700',
+          bgColor: 'bg-orange-500',
+          textColor: 'text-white',
+          icon: ClockIcon,
+          name: 'Pending Deposit',
+          dotColor: 'bg-orange-500'
+        };
+      case "Deposit Paid":
+      case "On Hold":
+        return {
+          bgColor: 'bg-cyan-500',
+          textColor: 'text-white',
+          icon: CreditCardIcon,
+          name: 'Deposit Paid',
+          dotColor: 'bg-cyan-500'
+        };
+      case "Pending Full Payment":
+        return {
+          bgColor: 'bg-blue-600',
+          textColor: 'text-white',
+          icon: CreditCardIcon,
+          name: 'Pending Full Payment',
+          dotColor: 'bg-blue-600'
+        };
+      case "Payment Complete":
+      case "Sold":
+        return {
+          bgColor: 'bg-green-600',
+          textColor: 'text-white',
           icon: CheckCircleIcon,
-          borderColor: 'border-emerald-200'
+          name: 'Payment Complete',
+          dotColor: 'bg-green-600'
+        };
+      case "Ready for Delivery":
+        return {
+          bgColor: 'bg-teal-500',
+          textColor: 'text-white',
+          icon: TruckIcon,
+          name: 'Ready for Delivery',
+          dotColor: 'bg-teal-500'
+        };
+      case "Delivered":
+        return {
+          bgColor: 'bg-emerald-600',
+          textColor: 'text-white',
+          icon: CheckCircleIcon,
+          name: 'Delivered',
+          dotColor: 'bg-emerald-600'
+        };
+      case "Cancelled":
+        return {
+          bgColor: 'bg-red-600',
+          textColor: 'text-white',
+          icon: ExclamationTriangleIcon,
+          name: 'Cancelled',
+          dotColor: 'bg-red-600'
+        };
+      case "Refunded":
+        return {
+          bgColor: 'bg-gray-500',
+          textColor: 'text-white',
+          icon: ExclamationTriangleIcon,
+          name: 'Refunded',
+          dotColor: 'bg-gray-500'
         };
       default:
         return {
-          bgColor: 'bg-gradient-to-r from-gray-500 to-gray-600',
-          textColor: 'text-gray-700',
+          bgColor: 'bg-gray-400',
+          textColor: 'text-white',
           icon: ExclamationTriangleIcon,
-          borderColor: 'border-gray-200'
+          name: 'Unknown Status',
+          dotColor: 'bg-gray-400'
         };
     }
   };
 
   const getStatusBadgeClass = (status) => {
-    return getStatusConfig(status).bgColor;
+    const config = getStatusConfig(status);
+    return `${config.bgColor} ${config.textColor}`;
   };
 
-  const handleViewDetails = (order) => {
-    setSelectedOrder(order);
+  const handleViewDetails = async (order) => {
+    try {
+      const token = getToken();
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const detailResponse = await fetch(`/api/Customer/orders/${order.orderId || order.saleId}`, {
+        method: 'GET',
+        headers: headers,
+      });
+
+      if (detailResponse.ok) {
+        const detailedOrder = await detailResponse.json();
+
+        // 🛠️ Mapping API response to expected data structure
+        const mappedOrder = {
+          ...detailedOrder,
+          carDetails: {
+            ...detailedOrder.carDetails,
+            make: detailedOrder.carDetails?.manufacturerName,
+            model: detailedOrder.carDetails?.modelName,
+            imageUrl: detailedOrder.carDetails?.imageUrls?.[0],
+          },
+          currentSaleStatus: detailedOrder.status,
+          pickupLocationDetails: detailedOrder.pickupLocation,
+          shippingAddressDetails: detailedOrder.shippingAddress,
+          depositPaymentDetails: detailedOrder.depositPayment,
+          fullPaymentDetails: detailedOrder.fullPayment,
+          StatusHistory: detailedOrder.statusHistory,
+          sellerDetails: {
+            storePhone: detailedOrder.sellerDetails?.storePhone,
+            storeEmail: detailedOrder.sellerDetails?.storeEmail,
+            sellerInfo: detailedOrder.sellerDetails?.sellerInfo || {},
+          },
+        };
+        setSelectedOrder(mappedOrder);
+      } else {
+        setSelectedOrder(order);
+      }
+    } catch (error) {
+      console.error("Error fetching order details:", error);
+      setSelectedOrder(order);
+    }
+
     setShowDetailModal(true);
   };
 
@@ -137,19 +430,144 @@ export default function OrdersPage() {
     setSelectedOrder(null);
   };
 
-   const handlePayRemaining = async () => {
-    if (selectedOrder) {
+  // Updated MoMo payment handler using the same pattern as PrePurchasePage
+  const initiateMomoPayment = async (saleId, amount, purpose) => {
+    setIsProcessingGateway(true);
+    try {
+      const token = getToken();
+      const payload = {
+        saleId: saleId,
+        amount: amount,
+        paymentPurpose: purpose,
+        returnUrl: window.location.origin + window.location.pathname + window.location.search,
+      };
+
+      const response = await fetch('/api/Momo/create_payment_url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to get Momo URL from server.');
+      }
+
+      const data = await response.json();
+      window.location.href = data.payUrl;
+    } catch (err) {
+      setIsProcessingGateway(false);
+      await Swal.fire({
+        icon: "error",
+        title: "Momo Initiation Failed",
+        text: `Unable to initiate Momo payment: ${err.message}`,
+        confirmButtonText: "Try Again",
+        confirmButtonColor: "#EF4444",
+      });
+    }
+  };
+
+  const handlePayRemaining = async () => {
+    if (!selectedOrder) return;
+
+    // Show payment method selection
+    const { value: paymentMethod } = await Swal.fire({
+      title: 'Select Payment Method',
+      html: `
+        <div class="text-left space-y-4">
+          <div class="p-4 border border-gray-200 rounded-lg bg-blue-50">
+            <p class="font-semibold mb-2">Order: #${selectedOrder.orderNumber || selectedOrder.orderId}</p>
+            <p class="text-lg font-bold text-blue-600">Remaining Amount: ₫${(selectedOrder.remainingBalance || 0).toLocaleString('vi-VN')}</p>
+          </div>
+          <p class="text-gray-600">Choose your preferred payment method:</p>
+        </div>
+      `,
+      input: 'radio',
+      inputOptions: {
+        'e_wallet_momo_test': '🏦 MoMo E-Wallet (Recommended)',
+        'bank_transfer': '💳 Bank Transfer',
+        'installment_plan': '💰 Installment Plan'
+      },
+      inputValidator: (value) => {
+        if (!value) {
+          return 'Please select a payment method!';
+        }
+      },
+      showCancelButton: true,
+      confirmButtonText: 'Continue',
+      cancelButtonText: 'Cancel',
+      customClass: {
+        popup: 'swal2-popup-custom'
+      }
+    });
+
+    if (!paymentMethod) return;
+
+    if (paymentMethod === 'e_wallet_momo_test') {
+      try {
+        setPaymentLoading(true);
+
+        const token = getToken();
+        if (!token) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Please log in again to proceed.',
+          });
+          return;
+        }
+
+        const orderId = selectedOrder.saleId || selectedOrder.orderId;
+        const fullPaymentPayload = {
+          paymentMethod: paymentMethod,
+          actualDeliveryDate: selectedOrder.expectedDeliveryDate || new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
+        };
+
+        const fullPaymentResponse = await fetch(`/api/Customer/orders/full-payment?orderId=${orderId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(fullPaymentPayload)
+        });
+
+        if (!fullPaymentResponse.ok) {
+          const errorData = await fullPaymentResponse.json();
+          throw new Error(errorData.message || 'Failed to process remaining payment.');
+        }
+
+        await initiateMomoPayment(orderId, selectedOrder.remainingBalance, 'full_payment');
+
+      } catch (error) {
+        console.error("Error processing MoMo payment:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Payment Error",
+          text: error.message || "Could not process MoMo payment. Please try again.",
+          confirmButtonText: "OK",
+        });
+      } finally {
+        setPaymentLoading(false);
+      }
+    } else {
+      const paymentMethodText = paymentMethod === 'bank_transfer' ? 'Bank Transfer' : 'Installment Plan';
+
       Swal.fire({
         icon: "info",
-        title: "Pay Remaining Amount",
-        text: `Do you want to pay ₫${selectedOrder.remainingBalance.toLocaleString('en-US')} for order #${selectedOrder.orderNumber}?`,
+        title: `${paymentMethodText} Payment`,
+        text: `Do you want to pay ₫${(selectedOrder.remainingBalance || 0).toLocaleString('vi-VN')} via ${paymentMethodText.toLowerCase()} for order #${selectedOrder.orderNumber}?`,
         showCancelButton: true,
         confirmButtonText: "Confirm",
         cancelButtonText: "Cancel",
       }).then(async (result) => {
         if (result.isConfirmed) {
           try {
-            const token = localStorage.getItem('token');
+            setPaymentLoading(true);
+            const token = getToken();
             if (!token) {
               Swal.fire({
                 icon: 'error',
@@ -159,13 +577,13 @@ export default function OrdersPage() {
               return;
             }
 
-            const orderId = selectedOrder.saleId;
+            const orderId = selectedOrder.saleId || selectedOrder.orderId;
             const fullPaymentPayload = {
-              paymentMethod: "Bank Transfer", // Assuming 'Bank Transfer' for a direct payment.
-              actualDeliveryDate: selectedOrder.expectedDeliveryDate, 
+              paymentMethod: paymentMethod,
+              actualDeliveryDate: selectedOrder.expectedDeliveryDate || new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
             };
 
-            const response = await fetch(`/api/Customer/orders/${orderId}/full-payment`, {
+            const response = await fetch(`/api/Customer/orders/full-payment?orderId=${orderId}`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -178,8 +596,8 @@ export default function OrdersPage() {
               const data = await response.json();
               Swal.fire({
                 icon: "success",
-                title: "Success!",
-                text: data.message,
+                title: "Payment Successful!",
+                text: `Your ${paymentMethodText.toLowerCase()} payment has been processed successfully.`,
                 confirmButtonText: "OK",
               }).then(() => {
                 handleCloseDetailModal();
@@ -189,30 +607,30 @@ export default function OrdersPage() {
               const errorData = await response.json();
               Swal.fire({
                 icon: "error",
-                title: "Error",
+                title: "Payment Failed",
                 text: errorData.message || `Failed to process payment: ${response.statusText}`,
                 confirmButtonText: "OK",
               });
             }
           } catch (error) {
-            console.error("Error processing full payment:", error);
+            console.error(`Error processing ${paymentMethodText} payment:`, error);
             Swal.fire({
               icon: "error",
               title: "Network Error",
               text: "Could not connect to the server to process payment. Please try again.",
               confirmButtonText: "OK",
             });
+          } finally {
+            setPaymentLoading(false);
           }
         }
       });
     }
   };
 
-  // Memoized filtered orders for performance
   const filteredOrders = useMemo(() => {
     let currentOrders = [...orders];
 
-    // Apply search term filter
     if (searchTerm) {
       const lowerCaseSearchTerm = searchTerm.toLowerCase();
       currentOrders = currentOrders.filter(order =>
@@ -222,7 +640,6 @@ export default function OrdersPage() {
       );
     }
 
-    // Apply status filter
     if (filterStatus !== 'All') {
       currentOrders = currentOrders.filter(order =>
         order.currentSaleStatus === filterStatus
@@ -232,17 +649,18 @@ export default function OrdersPage() {
     return currentOrders;
   }, [orders, searchTerm, filterStatus]);
 
-  if (loading) {
+  if (loading || isProcessingGateway) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex justify-center items-center">
         <div className="bg-white rounded-2xl shadow-xl p-8 flex flex-col items-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#3452e1]"></div>
-          <p className="text-[#3452e1] text-lg font-semibold">Loading your orders...</p>
+          <p className="text-[#3452e1] text-lg font-semibold">
+            {isProcessingGateway ? 'Processing payment...' : 'Loading your orders...'}
+          </p>
         </div>
       </div>
     );
   }
-
   const hasOrdersToShow = filteredOrders.length > 0;
 
   return (
@@ -273,10 +691,12 @@ export default function OrdersPage() {
                 onChange={(e) => setFilterStatus(e.target.value)}
               >
                 <option value="All">All Statuses</option>
-                <option value="Available">Available</option>
-                <option value="On Hold">On Hold</option>
                 <option value="Deposit Paid">Deposit Paid</option>
-                <option value="Sold">Sold</option>
+                <option value="Payment Complete">Payment Complete</option>
+                <option value="Ready for Delivery">Ready for Delivery</option>
+                <option value="Delivered">Delivered</option>
+                <option value="Cancelled">Cancelled</option>
+                <option value="Refunded">Refunded</option>
               </select>
             </div>
           </div>
@@ -308,7 +728,7 @@ export default function OrdersPage() {
                     <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Order</th>
                     <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Vehicle</th>
                     <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Due Date</th>
+                    {/* <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Due Date</th> */}
                     <th scope="col" className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
@@ -345,7 +765,7 @@ export default function OrdersPage() {
                           {order.currentSaleStatus}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {order.currentSaleStatus === "Deposit Paid" && order.remainingBalance > 0 ? (
                           <div className="flex items-center">
                             <CalendarDaysIcon className="h-4 w-4 text-gray-400 mr-1" />
@@ -356,7 +776,7 @@ export default function OrdersPage() {
                             {order.currentSaleStatus === "Sold" ? "Completed" : "N/A"}
                           </span>
                         )}
-                      </td>
+                      </td> */}
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <button
                           onClick={() => handleViewDetails(order)}
@@ -374,7 +794,6 @@ export default function OrdersPage() {
           </div>
         )}
 
-        {/* NEW REDESIGNED MODAL */}
         {showDetailModal && selectedOrder && (
           <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl mx-auto max-h-[95vh] overflow-hidden flex flex-col">
@@ -386,7 +805,7 @@ export default function OrdersPage() {
                     <DocumentTextIcon className="h-6 w-6 text-blue-600" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Order History</h2>
+                    <h2 className="text-2xl font-bold text-gray-900">Order Details & History</h2>
                     <p className="text-gray-600">Order #{selectedOrder.orderNumber || selectedOrder.orderId}</p>
                   </div>
                 </div>
@@ -545,41 +964,216 @@ export default function OrdersPage() {
                         </div>
                       </div>
 
-                      {/* Payment Summary */}
+                      {/* Enhanced Payment History */}
                       <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
                         <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                          <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                            💰
+                          <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                            📋
                           </div>
-                          Payment Summary
+                          Payment History
                         </h3>
 
                         <div className="space-y-4">
-                          <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
-                            <div className="flex justify-between items-center mb-2">
-                              <span className="text-blue-700 font-medium">Total Amount</span>
-                              <span className="text-2xl font-bold text-blue-900">
-                                ₫{selectedOrder.finalPrice ? selectedOrder.finalPrice.toLocaleString('vi-VN') : 'N/A'}
-                              </span>
-                            </div>
+                          {/* Payment Timeline */}
+                          <div className="relative">
+                            {/* Deposit Payment */}
+                            {selectedOrder.depositPaymentDetails && (
+                              <div className="relative pl-8 pb-6">
+                                <div className="absolute left-0 top-2 w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow"></div>
+                                <div className="absolute left-1.5 top-5 w-0.5 h-full bg-gray-200"></div>
+                                <div className="border border-green-200 rounded-lg p-4 bg-green-50 ml-4">
+                                  <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center space-x-2">
+                                      <CheckCircleIcon className="h-5 w-5 text-green-600" />
+                                      <span className="font-semibold text-green-800">Deposit Payment</span>
+                                    </div>
+                                    <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                                      Completed ✓
+                                    </span>
+                                  </div>
+                                  <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                      <span className="text-green-700">Amount:</span>
+                                      <span className="font-semibold text-green-800">
+                                        ₫{selectedOrder.depositPaymentDetails.amount ? selectedOrder.depositPaymentDetails.amount.toLocaleString('vi-VN') : 'N/A'}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-green-700">Method:</span>
+                                      <span className="text-green-800">{selectedOrder.depositPaymentDetails.paymentMethod || 'N/A'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-green-700">Date:</span>
+                                      <span className="text-green-800">
+                                        {selectedOrder.depositPaymentDetails.dateOfPayment ? new Date(selectedOrder.depositPaymentDetails.dateOfPayment).toLocaleDateString('vi-VN') : 'N/A'}
+                                      </span>
+                                    </div>
+                                    {selectedOrder.depositPaymentDetails.transactionId && (
+                                      <div className="flex justify-between">
+                                        <span className="text-green-700">Transaction ID:</span>
+                                        <span className="text-green-800 font-mono text-xs">{selectedOrder.depositPaymentDetails.transactionId}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Full Payment or Remaining Payment */}
+                            {selectedOrder.fullPaymentDetails ? (
+                              <div className="relative pl-8">
+                                <div className="absolute left-0 top-2 w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow"></div>
+                                <div className="border border-green-200 rounded-lg p-4 bg-green-50 ml-4">
+                                  <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center space-x-2">
+                                      <CheckCircleIcon className="h-5 w-5 text-green-600" />
+                                      <span className="font-semibold text-green-800">Full Payment</span>
+                                    </div>
+                                    <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                                      Completed ✓
+                                    </span>
+                                  </div>
+                                  <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                      <span className="text-green-700">Amount:</span>
+                                      <span className="font-semibold text-green-800">
+                                        ₫{selectedOrder.fullPaymentDetails.amount ? selectedOrder.fullPaymentDetails.amount.toLocaleString('vi-VN') : 'N/A'}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-green-700">Method:</span>
+                                      <span className="text-green-800">{selectedOrder.fullPaymentDetails.paymentMethod || 'N/A'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-green-700">Date:</span>
+                                      <span className="text-green-800">
+                                        {selectedOrder.fullPaymentDetails.dateOfPayment ? new Date(selectedOrder.fullPaymentDetails.dateOfPayment).toLocaleDateString('vi-VN') : 'N/A'}
+                                      </span>
+                                    </div>
+                                    {selectedOrder.fullPaymentDetails.transactionId && (
+                                      <div className="flex justify-between">
+                                        <span className="text-green-700">Transaction ID:</span>
+                                        <span className="text-green-800 font-mono text-xs">{selectedOrder.fullPaymentDetails.transactionId}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              /* Remaining Payment */
+                              selectedOrder.remainingBalance > 0 && (
+                                <div className="relative pl-8">
+                                  <div className="absolute left-0 top-2 w-3 h-3 bg-orange-400 rounded-full border-2 border-white shadow animate-pulse"></div>
+                                  <div className="border border-orange-200 rounded-lg p-4 bg-orange-50 ml-4">
+                                    <div className="flex items-center justify-between mb-3">
+                                      <div className="flex items-center space-x-2">
+                                        <ClockIcon className="h-5 w-5 text-orange-600" />
+                                        <span className="font-semibold text-orange-800">Remaining Payment</span>
+                                      </div>
+                                      <span className="text-sm text-orange-600 bg-orange-100 px-2 py-1 rounded-full animate-pulse">
+                                        Pending ⏳
+                                      </span>
+                                    </div>
+                                    <div className="space-y-2 text-sm">
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-orange-700">Amount Due:</span>
+                                        <span className="font-bold text-xl text-orange-800">
+                                          ₫{selectedOrder.remainingBalance.toLocaleString('vi-VN')}
+                                        </span>
+                                      </div>
+                                      {selectedOrder.expectedDeliveryDate && (
+                                        <div className="flex justify-between items-center">
+                                          <span className="text-orange-700">Payment Due Date:</span>
+                                          <span className="font-semibold text-orange-800">
+                                            {
+                                              new Date(new Date(selectedOrder.expectedDeliveryDate).setDate(new Date(selectedOrder.expectedDeliveryDate).getDate() - 1)).toLocaleDateString('vi-VN')
+                                            }
+                                          </span>
+                                        </div>
+                                      )}
+                                      <div className="mt-3 p-3 bg-orange-100 rounded-lg border border-orange-200">
+                                        <p className="text-orange-800 text-xs font-medium">
+                                          💡 Payment Methods Available: MoMo E-Wallet, Bank Transfer
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            )}
                           </div>
 
-                          <div className="space-y-3">
-                            <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                              <span className="text-gray-600">Deposit Paid</span>
-                              <span className="font-semibold text-green-600">
-                                ₫{selectedOrder.depositPaymentDetails?.amount ? selectedOrder.depositPaymentDetails.amount.toLocaleString('vi-VN') : '0'}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center py-2">
-                              <span className="text-gray-600">Remaining Balance</span>
-                              <span className="font-semibold text-red-600">
-                                ₫{selectedOrder.remainingBalance ? selectedOrder.remainingBalance.toLocaleString('vi-VN') : '0'}
-                              </span>
+                          {/* Payment Summary Stats */}
+                          <div className="mt-6 p-4 bg-gradient-to-r from-slate-50 to-blue-50 rounded-lg border">
+                            <h4 className="font-semibold text-gray-800 mb-3">Payment Summary</h4>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div className="text-center p-2 bg-white rounded border">
+                                <p className="text-gray-600">Total Paid</p>
+                                <p className="font-bold text-green-600">
+                                  ₫{((selectedOrder.depositPaymentDetails?.amount || 0) + (selectedOrder.fullPaymentDetails?.amount || 0)).toLocaleString('vi-VN')}
+                                </p>
+                              </div>
+                              <div className="text-center p-2 bg-white rounded border">
+                                <p className="text-gray-600">Remaining</p>
+                                <p className="font-bold text-red-600">
+                                  ₫{(selectedOrder.remainingBalance || 0).toLocaleString('vi-VN')}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
+
+                      {/* New section for Order Status History */}
+                      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                            🕒
+                          </div>
+                          Order Status History
+                        </h3>
+                        <div className="relative">
+                          <div className="absolute left-2 top-0 bottom-0 w-0.5 bg-gray-200 ml-1"></div>
+                          {selectedOrder.statusHistory && selectedOrder.statusHistory.length > 0 ? (
+                            selectedOrder.statusHistory.map((history, index) => {
+                              const statusConfig = getStatusConfig(history.name);
+                              const StatusIcon = statusConfig.icon;
+                              return (
+                                <div key={index} className="flex items-start mb-6 last:mb-0">
+                                  <div className={`w-6 h-6 rounded-full flex items-center justify-center relative z-10 ${statusConfig.dotColor} text-white`}>
+                                    <StatusIcon className="h-3 w-3" />
+                                  </div>
+                                  <div className="ml-6 flex-1 pt-0.5">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className="font-semibold text-gray-900">
+                                        {history.name}
+                                      </span>
+                                      <span className="text-xs text-gray-500">
+                                        {history.date ? new Date(history.date).toLocaleString('vi-VN', {
+                                          year: 'numeric',
+                                          month: 'numeric',
+                                          day: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        }) : 'N/A'}
+                                      </span>
+                                    </div>
+                                    {history.notes && (
+                                      <p className="text-sm text-gray-600 mt-1">
+                                        Notes: {history.notes}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <p className="text-gray-600 text-sm pl-8">No status history available.</p>
+                          )}
+                        </div>
+                      </div>
+
+
                     </div>
 
                     {/* Order & Delivery Information */}
@@ -604,12 +1198,12 @@ export default function OrdersPage() {
                               <div className="grid grid-cols-1 gap-2 text-sm">
                                 <div className="flex justify-between">
                                   <span className="text-orange-700">Store Name:</span>
-                                  <span className="font-medium text-orange-900">{selectedOrder.pickupLocationDetails.name || 'N/A'}</span>
+                                  <span className="font-medium text-orange-900">{selectedOrder.pickupLocationDetails?.name || 'N/A'}</span>
                                 </div>
                                 <div className="flex items-start justify-between">
                                   <span className="text-orange-700">Address:</span>
                                   <span className="font-medium text-orange-900 text-right max-w-xs">
-                                    {selectedOrder.pickupLocationDetails.address || 'N/A'}
+                                    {selectedOrder.pickupLocationDetails?.address || 'N/A'}
                                   </span>
                                 </div>
                                 {selectedOrder.sellerDetails.storePhone && (
@@ -683,116 +1277,42 @@ export default function OrdersPage() {
                           </div>
                         </div>
                       )}
-
-                      {/* Payment History */}
+                      {/* Payment Summary */}
                       <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
                         <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                          <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
-                            📋
+                          <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                            💰
                           </div>
-                          Payment History
+                          Payment Summary
                         </h3>
 
                         <div className="space-y-4">
-                          {/* Deposit Payment */}
-                          {selectedOrder.depositPaymentDetails && (
-                            <div className="border border-green-200 rounded-lg p-4 bg-green-50">
-                              <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center space-x-2">
-                                  <CheckCircleIcon className="h-5 w-5 text-green-600" />
-                                  <span className="font-semibold text-green-800">Deposit Payment</span>
-                                </div>
-                                <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded-full">
-                                  {selectedOrder.depositPaymentDetails.paymentStatus || 'Completed'}
-                                </span>
-                              </div>
-                              <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                  <span className="text-green-700">Amount:</span>
-                                  <span className="font-semibold text-green-800">
-                                    ₫{selectedOrder.depositPaymentDetails.amount ? selectedOrder.depositPaymentDetails.amount.toLocaleString('vi-VN') : 'N/A'}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-green-700">Method:</span>
-                                  <span className="text-green-800">{selectedOrder.depositPaymentDetails.paymentMethod || 'N/A'}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-green-700">Date:</span>
-                                  <span className="text-green-800">
-                                    {selectedOrder.depositPaymentDetails.dateOfPayment ? new Date(selectedOrder.depositPaymentDetails.dateOfPayment).toLocaleDateString('vi-VN') : 'N/A'}
-                                  </span>
-                                </div>
-                              </div>
+                          <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-blue-700 font-medium">Total Amount</span>
+                              <span className="text-2xl font-bold text-blue-900">
+                                ₫{selectedOrder.finalPrice ? selectedOrder.finalPrice.toLocaleString('vi-VN') : 'N/A'}
+                              </span>
                             </div>
-                          )}
+                          </div>
 
-                          {/* Full Payment */}
-                          {selectedOrder.fullPaymentDetails ? (
-                            <div className="border border-green-200 rounded-lg p-4 bg-green-50">
-                              <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center space-x-2">
-                                  <CheckCircleIcon className="h-5 w-5 text-green-600" />
-                                  <span className="font-semibold text-green-800">Full Payment</span>
-                                </div>
-                                <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded-full">
-                                  {selectedOrder.fullPaymentDetails.paymentStatus || 'Completed'}
-                                </span>
-                              </div>
-                              <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                  <span className="text-green-700">Amount:</span>
-                                  <span className="font-semibold text-green-800">
-                                    ₫{selectedOrder.fullPaymentDetails.amount ? selectedOrder.fullPaymentDetails.amount.toLocaleString('vi-VN') : 'N/A'}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-green-700">Method:</span>
-                                  <span className="text-green-800">{selectedOrder.fullPaymentDetails.paymentMethod || 'N/A'}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-green-700">Date:</span>
-                                  <span className="text-green-800">
-                                    {selectedOrder.fullPaymentDetails.dateOfPayment ? new Date(selectedOrder.fullPaymentDetails.dateOfPayment).toLocaleDateString('vi-VN') : 'N/A'}
-                                  </span>
-                                </div>
-                              </div>
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                              <span className="text-gray-600">Deposit Paid</span>
+                              <span className="font-semibold text-green-600">
+                                ₫{selectedOrder.depositPaymentDetails?.amount ? selectedOrder.depositPaymentDetails.amount.toLocaleString('vi-VN') : '0'}
+                              </span>
                             </div>
-                          ) : (
-                            /* Remaining Payment */
-                            selectedOrder.remainingBalance > 0 && (
-                              <div className="border border-orange-200 rounded-lg p-4 bg-orange-50">
-                                <div className="flex items-center justify-between mb-3">
-                                  <div className="flex items-center space-x-2">
-                                    <ClockIcon className="h-5 w-5 text-orange-600" />
-                                    <span className="font-semibold text-orange-800">Remaining Payment</span>
-                                  </div>
-                                  <span className="text-sm text-orange-600 bg-orange-100 px-2 py-1 rounded-full">
-                                    Pending
-                                  </span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-orange-700">Amount Due:</span>
-                                  <span className="font-bold text-xl text-orange-800">
-                                    {selectedOrder.remainingBalance.toLocaleString('vi-VN')} ₫
-                                  </span>
-                                </div>
-                                {selectedOrder.expectedDeliveryDate && (
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-orange-700">Payment Due Date:</span>
-                                    <span className="font-semibold text-orange-800">
-                                      {
-                                        // Calculate and format the date: Expected Delivery Date - 1 day
-                                        new Date(new Date(selectedOrder.expectedDeliveryDate).setDate(new Date(selectedOrder.expectedDeliveryDate).getDate() - 1)).toLocaleDateString('vi-VN')
-                                      }
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          )}
+                            <div className="flex justify-between items-center py-2">
+                              <span className="text-gray-600">Remaining Balance</span>
+                              <span className="font-semibold text-red-600">
+                                ₫{selectedOrder.remainingBalance ? selectedOrder.remainingBalance.toLocaleString('vi-VN') : '0'}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
+
 
                       {/* Delivery Information */}
                       <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
@@ -883,6 +1403,8 @@ export default function OrdersPage() {
                           </div>
                         )}
                       </div>
+
+
                     </div>
                   </div>
                 </div>
@@ -902,10 +1424,11 @@ export default function OrdersPage() {
                   {selectedOrder.currentSaleStatus === "Deposit Paid" && selectedOrder.remainingBalance > 0 && (
                     <button
                       onClick={handlePayRemaining}
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-xl flex items-center gap-3 hover:shadow-lg transform hover:scale-105 transition-all duration-200 font-semibold"
+                      disabled={paymentLoading}
+                      className={`bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-xl flex items-center gap-3 hover:shadow-lg transform hover:scale-105 transition-all duration-200 font-semibold ${paymentLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       <WalletIcon className="h-5 w-5" />
-                      <span>Pay Remaining Balance</span>
+                      <span>{paymentLoading ? 'Processing...' : 'Pay Remaining Balance'}</span>
                       <span className="bg-white bg-opacity-20 px-3 py-1 rounded-lg text-sm">
                         ₫{selectedOrder.remainingBalance.toLocaleString('vi-VN')}
                       </span>

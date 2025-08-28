@@ -32,6 +32,7 @@ import UpdateCar from "./pages/admin/UpdateCar";
 import PurchaseTermsPage from "./pages/PurchaseTermsPage";
 import PrePurchasePage from "./pages/PrePurchasePage";
 import OrdersPage from "./pages/OrdersPage";
+import SellerOrderManagement from "./pages/admin/SellerOrderManagement";
 
 const useTalkJS = (customerInfor, isCustomerInfoLoaded, hasCustomerInfoError, targetStaff = null) => {
   const [talkjsPopup, setTalkjsPopup] = useState(null);
@@ -393,7 +394,7 @@ function App() {
                 <Route path="cars/:carId/purchase-terms" element={<PurchaseTermsPage />} />
                 <Route path="cars/:carId/confirm-orders" element={<PrePurchasePage />} />
                 <Route path="cars/orders" element={<OrdersPage />} />
-                
+                <Route path="seller-order-management" element={<SellerOrderManagement />} />
               </Routes>
             </UserLayout>
           }
