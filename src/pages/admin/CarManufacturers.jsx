@@ -29,7 +29,7 @@ import {
 import { getApiBaseUrl } from "../../../util/apiconfig";
 
 export default function CarManufacturersAndModelsManagementPage() {
-    const API_BASE = getApiBaseUrl();
+    const API_BASE_URL = getApiBaseUrl();
     // Manufacturer States
     const [manufacturers, setManufacturers] = useState([]);
     const [filteredManufacturers, setFilteredManufacturers] = useState([]);
