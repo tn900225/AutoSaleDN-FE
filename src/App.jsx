@@ -400,7 +400,7 @@ function App() {
                 <Route path="cars/:carId/purchase-terms" element={<PurchaseTermsPage />} />
                 <Route path="cars/:carId/confirm-orders" element={<PrePurchasePage />} />
                 <Route path="cars/orders" element={<OrdersPage />} />
-                <Route path="seller-order-management" element={<SellerOrderManagement />} />
+
               </Routes>
             </UserLayout>
           }
@@ -473,11 +473,8 @@ function App() {
               <DashboardLayout>
                 <Routes>
                   <Route path="dashboard" element={<SellerDashboard />} />
-                  {/* <Route path="showroom" element={<SellerShowroom />} />
-                  <Route path="cars" element={<SellerCarManagement />} />
-                  <Route path="orders" element={<SellerOrderManagement />} />
-                  <Route path="messages" element={<SellerMessages />} />
-                  <Route path="" element={<Navigate to="dashboard" replace />} /> */}
+                  <Route path="order-management" element={<SellerOrderManagement />} />
+
                 </Routes>
               </DashboardLayout>
             </RequireRole>

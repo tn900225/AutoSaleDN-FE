@@ -618,9 +618,9 @@ export default function CarManufacturersAndModelsManagementPage() {
                                                                 </button>
                                                             </th>
                                                             <th className="px-5 py-3 text-left">
-                                                                <button onClick={() => handleSortModels('manufacturer.name')} className="flex items-center gap-1 hover:text-gray-900 transition-colors">
+                                                                <button onClick={() => handleSortModels('carManufacturer.name')} className="flex items-center gap-1 hover:text-gray-900 transition-colors">
                                                                     Manufacturer
-                                                                    {sortConfigModels.key === 'manufacturer.name' && (
+                                                                    {sortConfigModels.key === 'carManufacturer.name' && (
                                                                         sortConfigModels.direction === 'asc' ? <FaSortAlphaDown className="ml-1" /> : <FaSortAlphaUp className="ml-1" />
                                                                     )}
                                                                 </button>
