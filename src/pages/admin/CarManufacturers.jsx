@@ -26,7 +26,10 @@ import {
     FaListAlt, // Icon to view models
 } from "react-icons/fa";
 
+import { getApiBaseUrl } from "../../../util/apiconfig";
+
 export default function CarManufacturersAndModelsManagementPage() {
+    const API_BASE_URL = getApiBaseUrl();
     // Manufacturer States
     const [manufacturers, setManufacturers] = useState([]);
     const [filteredManufacturers, setFilteredManufacturers] = useState([]);
@@ -64,16 +67,13 @@ export default function CarManufacturersAndModelsManagementPage() {
     const [modelNameInput, setModelNameInput] = useState("");
     const [modelStatusInput, setModelStatusInput] = useState("Active");
 
-
-    const API_BASE_URL = "https://localhost:7170/api"; // Replace with your actual API base URL
-
     // --- Fetch Data Functions ---
     const fetchManufacturers = async () => {
         setLoading(true);
         setError(null);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${API_BASE_URL}/CarManufacturers`, {
+            const response = await fetch(`${API_BASE_URL}/api/CarManufacturers`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -84,7 +84,7 @@ export default function CarManufacturersAndModelsManagementPage() {
             }
             const data = await response.json();
             setManufacturers(data);
-            setFilteredManufacturers(data); // Initialize filtered with all manufacturers
+            setFilteredManufacturers(data);
         } catch (err) {
             setError(err.message);
             Swal.fire('Error', err.message, 'error');
@@ -98,7 +98,7 @@ export default function CarManufacturersAndModelsManagementPage() {
         setError(null);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${API_BASE_URL}/CarModels`, {
+            const response = await fetch(`${API_BASE_URL}/api/CarModels`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -151,8 +151,18 @@ export default function CarManufacturersAndModelsManagementPage() {
         // Apply sorting for models
         if (sortConfigModels.key) {
             currentFilteredModels.sort((a, b) => {
-                const aValue = a[sortConfigModels.key].toLowerCase();
-                const bValue = b[sortConfigModels.key].toLowerCase();
+                // Handle nested properties (e.g., 'carManufacturer.name')
+                const getNestedValue = (obj, path) => {
+                    return path.split('.').reduce((o, p) => (o && o[p] !== undefined ? o[p] : ''), obj) || '';
+                };
+                
+                let aValue = getNestedValue(a, sortConfigModels.key);
+                let bValue = getNestedValue(b, sortConfigModels.key);
+                
+                // Convert to string and handle case where value might be null/undefined
+                aValue = String(aValue || '').toLowerCase();
+                bValue = String(bValue || '').toLowerCase();
+                
                 if (aValue < bValue) return sortConfigModels.direction === 'asc' ? -1 : 1;
                 if (aValue > bValue) return sortConfigModels.direction === 'asc' ? 1 : -1;
                 return 0;
@@ -190,7 +200,7 @@ export default function CarManufacturersAndModelsManagementPage() {
 
             if (currentManufacturer) {
                 // Update existing manufacturer
-                response = await fetch(`${API_BASE_URL}/CarManufacturers/${currentManufacturer.manufacturerId}`, {
+                response = await fetch(`${API_BASE_URL}/api/CarManufacturers/${currentManufacturer.manufacturerId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -200,7 +210,7 @@ export default function CarManufacturersAndModelsManagementPage() {
                 });
             } else {
                 // Add new manufacturer
-                response = await fetch(`${API_BASE_URL}/CarManufacturers`, {
+                response = await fetch(`${API_BASE_URL}/api/CarManufacturers`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -267,7 +277,7 @@ export default function CarManufacturersAndModelsManagementPage() {
 
             if (currentModel) {
                 // Update existing model
-                response = await fetch(`${API_BASE_URL}/CarModels/${currentModel.modelId}`, {
+                response = await fetch(`${API_BASE_URL}/api/CarModels/${currentModel.modelId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -277,7 +287,7 @@ export default function CarManufacturersAndModelsManagementPage() {
                 });
             } else {
                 // Add new model
-                response = await fetch(`${API_BASE_URL}/CarModels`, {
+                response = await fetch(`${API_BASE_URL}/api/CarModels`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -335,7 +345,7 @@ export default function CarManufacturersAndModelsManagementPage() {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${API_BASE_URL}/CarModels/${model.modelId}/toggle-status`, {
+            const response = await fetch(`${API_BASE_URL}/api/CarModels/${model.modelId}/toggle-status`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -618,9 +628,9 @@ export default function CarManufacturersAndModelsManagementPage() {
                                                                 </button>
                                                             </th>
                                                             <th className="px-5 py-3 text-left">
-                                                                <button onClick={() => handleSortModels('manufacturer.name')} className="flex items-center gap-1 hover:text-gray-900 transition-colors">
+                                                                <button onClick={() => handleSortModels('carManufacturer.name')} className="flex items-center gap-1 hover:text-gray-900 transition-colors">
                                                                     Manufacturer
-                                                                    {sortConfigModels.key === 'manufacturer.name' && (
+                                                                    {sortConfigModels.key === 'carManufacturer.name' && (
                                                                         sortConfigModels.direction === 'asc' ? <FaSortAlphaDown className="ml-1" /> : <FaSortAlphaUp className="ml-1" />
                                                                     )}
                                                                 </button>
@@ -640,7 +650,9 @@ export default function CarManufacturersAndModelsManagementPage() {
                                                         {currentModels.map((model) => (
                                                             <tr key={model.modelId} className="border-b border-gray-100 hover:bg-gray-50 text-gray-800 transition-colors duration-150"> {/* Softer border, subtle hover */}
                                                                 <td className="px-5 py-4 text-sm">{model.name}</td>
-                                                                <td className="px-5 py-4 text-sm">{model.manufacturer?.name || 'N/A'}</td>
+                                                                <td className="px-5 py-4 text-sm">
+                                                                    {model.carManufacturer?.name || model.manufacturer?.name || 'N/A'}
+                                                                </td>
                                                                 <td className="px-5 py-4 text-sm">
                                                                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${model.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                                                         {model.status}

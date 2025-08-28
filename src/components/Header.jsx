@@ -77,30 +77,13 @@ export default function Header() {
           <Link to="/cars" className="text-[#253887] font-semibold text-base hover:text-[#3452e1] transition">Buy</Link>
           <Link to="/how-auto-works" className="text-[#253887] font-semibold text-base hover:text-[#3452e1] transition">How it works</Link>
           <Link to="/customer-reviews" className="text-[#253887] font-semibold text-base hover:text-[#3452e1] transition">Reviews</Link>
-          {/* Services Dropdown */}
-          <div
-            className="relative"
-            onMouseEnter={() => setShowServices(true)}
-            onMouseLeave={() => setShowServices(false)}
-          >
-            <button
-              className="flex items-center text-[#253887] font-semibold text-base hover:text-[#3452e1] transition"
-              type="button"
-            >
-              Services
-              <svg width={16} height={16} fill="none" className="ml-1">
-                <path d="M4 6l4 4 4-4" stroke="#253887" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-            {showServices && (
-              <div className="absolute left-0 top-full mt-2 w-40 bg-white border border-gray-200 shadow-md rounded z-50 animate-fade-in">
-                {servicesDropdown.map((item) => (
-                  <Link key={item.to} to={item.to} className="block px-4 py-2 text-[#253887] hover:bg-[#f6f8fd] text-sm">{item.label}</Link>
-                ))}
-              </div>
-            )}
-          </div>
-          <Link to="/electric-hybrid-vehicles" className="text-[#253887] font-semibold text-base hover:text-[#3452e1] transition">Electric &amp; Hybrid</Link>
+          <Link
+                    to="/blog"
+                    className="text-[#253887] font-semibold text-base hover:text-[#3452e1] transition"
+                >
+                    Blog
+                </Link>
+          {/* <Link to="/electric-hybrid-vehicles" className="text-[#253887] font-semibold text-base hover:text-[#3452e1] transition">Electric &amp; Hybrid</Link> */}
         </nav>
         {/* Actions */}
         <div className="flex items-center gap-7 ml-auto">

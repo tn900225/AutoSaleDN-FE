@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Login from "../components/Login";
 import Swal from 'sweetalert2';
+import { StarIcon } from '@heroicons/react/24/solid';
 import {
   InformationCircleIcon,
   WalletIcon,
@@ -32,6 +33,13 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [isProcessingGateway, setIsProcessingGateway] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewData, setReviewData] = useState({
+    carSaleId: '',
+    rating: 0,
+    content: ''
+  });
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   const API_BASE = getApiBaseUrl();
 
@@ -432,7 +440,80 @@ export default function OrdersPage() {
     setSelectedOrder(null);
   };
 
-  // Updated MoMo payment handler using the same pattern as PrePurchasePage
+  const handleOpenReviewModal = (order) => {
+    setReviewData({
+      rating: 0,
+      comment: '',
+      orderId: order.orderId || order.saleId
+    });
+    setShowReviewModal(true);
+  };
+
+  const handleReviewSubmit = async (e) => {
+    e.preventDefault();
+    if (!reviewData.rating || !reviewData.comment.trim()) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Incomplete Review',
+        text: 'Please provide both a rating and a comment.',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#3452e1',
+      });
+      return;
+    }
+  
+    setIsSubmittingReview(true);
+    try {
+      const token = getToken();
+      const response = await fetch(`${API_BASE}/api/Reviews`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          carSaleId: reviewData.orderId,
+          rating: reviewData.rating,
+          content: reviewData.comment,
+        })
+      });
+  
+      if (response.ok) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Thank You!',
+          text: 'Your review has been submitted successfully.',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#10B981',
+        });
+        setShowReviewModal(false);
+        fetchOrders();
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to submit review');
+      }
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Submission Failed',
+        text: error.message || 'There was an error submitting your review. Please try again.',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#EF4444',
+      });
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+  
+  const handleRatingChange = (rating) => {
+    setReviewData(prev => ({ ...prev, rating }));
+  };
+  
+  const handleCommentChange = (e) => {
+    setReviewData(prev => ({ ...prev, comment: e.target.value }));
+  };
+
   const initiateMomoPayment = async (saleId, amount, purpose) => {
     setIsProcessingGateway(true);
     try {
@@ -779,7 +860,7 @@ export default function OrdersPage() {
                           </span>
                         )}
                       </td> */}
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <td className="px-6 py-4 whitespace-nowrap text-center space-x-2">
                         <button
                           onClick={() => handleViewDetails(order)}
                           className="inline-flex items-center justify-center w-10 h-10 text-[#3452e1] hover:text-white hover:bg-[#3452e1] rounded-full transition-all duration-200 hover:shadow-md"
@@ -787,11 +868,92 @@ export default function OrdersPage() {
                         >
                           <InformationCircleIcon className="h-5 w-5" />
                         </button>
+                        {order.currentSaleStatus === 'Delivered' && (
+                          <button
+                            onClick={() => handleOpenReviewModal(order)}
+                            className="inline-flex items-center justify-center w-10 h-10 text-yellow-500 hover:text-white hover:bg-yellow-500 rounded-full transition-all duration-200 hover:shadow-md"
+                            title="Leave a Review"
+                          >
+                            <StarIcon className="h-5 w-5" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* Review Modal */}
+        {showReviewModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl transform transition-all">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-gray-900">Review & Feedback</h2>
+                <button
+                  onClick={() => setShowReviewModal(false)}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+
+              <form onSubmit={handleReviewSubmit}>
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Your Rating
+                  </label>
+                  <div className="flex">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => handleRatingChange(star)}
+                        className="focus:outline-none"
+                      >
+                        <StarIcon
+                          className={`h-10 w-10 ${star <= reviewData.rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-2">
+                    Your Review
+                  </label>
+                  <textarea
+                    id="comment"
+                    rows="4"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Share your experience with this order..."
+                    value={reviewData.comment}
+                    onChange={handleCommentChange}
+                    required
+                  />
+                </div>
+
+                <div className="flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowReviewModal(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    disabled={isSubmittingReview}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                    disabled={isSubmittingReview}
+                  >
+                    {isSubmittingReview ? 'Submitting...' : 'Submit Review'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
@@ -981,43 +1143,78 @@ export default function OrdersPage() {
                             {/* Deposit Payment */}
                             {selectedOrder.depositPaymentDetails && (
                               <div className="relative pl-8 pb-6">
-                                <div className="absolute left-0 top-2 w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow"></div>
-                                <div className="absolute left-1.5 top-5 w-0.5 h-full bg-gray-200"></div>
-                                <div className="border border-green-200 rounded-lg p-4 bg-green-50 ml-4">
-                                  <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center space-x-2">
-                                      <CheckCircleIcon className="h-5 w-5 text-green-600" />
-                                      <span className="font-semibold text-green-800">Deposit Payment</span>
-                                    </div>
-                                    <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded-full">
-                                      Completed ✓
-                                    </span>
-                                  </div>
-                                  <div className="space-y-2 text-sm">
-                                    <div className="flex justify-between">
-                                      <span className="text-green-700">Amount:</span>
-                                      <span className="font-semibold text-green-800">
-                                        ₫{selectedOrder.depositPaymentDetails.amount ? selectedOrder.depositPaymentDetails.amount.toLocaleString('vi-VN') : 'N/A'}
-                                      </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-green-700">Method:</span>
-                                      <span className="text-green-800">{selectedOrder.depositPaymentDetails.paymentMethod || 'N/A'}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-green-700">Date:</span>
-                                      <span className="text-green-800">
-                                        {selectedOrder.depositPaymentDetails.dateOfPayment ? new Date(selectedOrder.depositPaymentDetails.dateOfPayment).toLocaleDateString('vi-VN') : 'N/A'}
-                                      </span>
-                                    </div>
-                                    {selectedOrder.depositPaymentDetails.transactionId && (
-                                      <div className="flex justify-between">
-                                        <span className="text-green-700">Transaction ID:</span>
-                                        <span className="text-green-800 font-mono text-xs">{selectedOrder.depositPaymentDetails.transactionId}</span>
+                                {/* Trạng thái đã hoàn thành */}
+                                {selectedOrder.depositPaymentDetails.status === 'completed' ? (
+                                  <>
+                                    <div className="absolute left-0 top-2 w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow"></div>
+                                    <div className="absolute left-1.5 top-5 w-0.5 h-full bg-gray-200"></div>
+                                    <div className="border border-green-200 rounded-lg p-4 bg-green-50 ml-4">
+                                      <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center space-x-2">
+                                          {/* <CheckCircleIcon className="h-5 w-5 text-green-600" /> */}
+                                          <span className="font-semibold text-green-800">Deposit Payment</span>
+                                        </div>
+                                        <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                                          Completed ✓
+                                        </span>
                                       </div>
-                                    )}
-                                  </div>
-                                </div>
+                                      <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                          <span className="text-green-700">Amount:</span>
+                                          <span className="font-semibold text-green-800">
+                                            ₫{selectedOrder.depositPaymentDetails.amount ? selectedOrder.depositPaymentDetails.amount.toLocaleString('vi-VN') : 'N/A'}
+                                          </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span className="text-green-700">Method:</span>
+                                          <span className="text-green-800">{selectedOrder.depositPaymentDetails.paymentMethod || 'N/A'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span className="text-green-700">Date:</span>
+                                          <span className="text-green-800">
+                                            {selectedOrder.depositPaymentDetails.dateOfPayment ? new Date(selectedOrder.depositPaymentDetails.dateOfPayment).toLocaleDateString('vi-VN') : 'N/A'}
+                                          </span>
+                                        </div>
+                                        {selectedOrder.depositPaymentDetails.transactionId && (
+                                          <div className="flex justify-between">
+                                            <span className="text-green-700">Transaction ID:</span>
+                                            <span className="text-green-800 font-mono text-xs">{selectedOrder.depositPaymentDetails.transactionId}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </>
+                                ) : (
+                                  /* Trạng thái chờ xử lý (pending) */
+                                  <>
+                                    <div className="absolute left-0 top-2 w-3 h-3 bg-orange-400 rounded-full border-2 border-white shadow animate-pulse"></div>
+                                    <div className="absolute left-1.5 top-5 w-0.5 h-full bg-gray-200"></div>
+                                    <div className="border border-orange-200 rounded-lg p-4 bg-orange-50 ml-4">
+                                      <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center space-x-2">
+                                          {/* <ClockIcon className="h-5 w-5 text-orange-600" /> */}
+                                          <span className="font-semibold text-orange-800">Deposit Payment</span>
+                                        </div>
+                                        <span className="text-sm text-orange-600 bg-orange-100 px-2 py-1 rounded-full animate-pulse">
+                                          Pending ⏳
+                                        </span>
+                                      </div>
+                                      <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between items-center">
+                                          <span className="text-orange-700">Amount:</span>
+                                          <span className="font-bold text-xl text-orange-800">
+                                            ₫{selectedOrder.depositPaymentDetails.amount ? selectedOrder.depositPaymentDetails.amount.toLocaleString('vi-VN') : 'N/A'}
+                                          </span>
+                                        </div>
+                                        <div className="mt-3 p-3 bg-orange-100 rounded-lg border border-orange-200">
+                                          <p className="text-orange-800 text-xs font-medium">
+                                            💡 Payment is being processed. You will receive a confirmation shortly.
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </>
+                                )}
                               </div>
                             )}
 
@@ -1028,7 +1225,7 @@ export default function OrdersPage() {
                                 <div className="border border-green-200 rounded-lg p-4 bg-green-50 ml-4">
                                   <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center space-x-2">
-                                      <CheckCircleIcon className="h-5 w-5 text-green-600" />
+                                      {/* <CheckCircleIcon className="h-5 w-5 text-green-600" /> */}
                                       <span className="font-semibold text-green-800">Full Payment</span>
                                     </div>
                                     <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded-full">
@@ -1069,7 +1266,7 @@ export default function OrdersPage() {
                                   <div className="border border-orange-200 rounded-lg p-4 bg-orange-50 ml-4">
                                     <div className="flex items-center justify-between mb-3">
                                       <div className="flex items-center space-x-2">
-                                        <ClockIcon className="h-5 w-5 text-orange-600" />
+                                        {/* <ClockIcon className="h-5 w-5 text-orange-600" /> */}
                                         <span className="font-semibold text-orange-800">Remaining Payment</span>
                                       </div>
                                       <span className="text-sm text-orange-600 bg-orange-100 px-2 py-1 rounded-full animate-pulse">
@@ -1080,7 +1277,7 @@ export default function OrdersPage() {
                                       <div className="flex justify-between items-center">
                                         <span className="text-orange-700">Amount Due:</span>
                                         <span className="font-bold text-xl text-orange-800">
-                                          ₫{selectedOrder.remainingBalance.toLocaleString('vi-VN')}
+                                          ₫{(selectedOrder.remainingBalance || 0).toLocaleString('vi-VN')}
                                         </span>
                                       </div>
                                       {selectedOrder.expectedDeliveryDate && (
@@ -1104,7 +1301,6 @@ export default function OrdersPage() {
                               )
                             )}
                           </div>
-
                           {/* Payment Summary Stats */}
                           <div className="mt-6 p-4 bg-gradient-to-r from-slate-50 to-blue-50 rounded-lg border">
                             <h4 className="font-semibold text-gray-800 mb-3">Payment Summary</h4>
