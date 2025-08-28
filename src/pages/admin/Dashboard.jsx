@@ -84,6 +84,8 @@ export default function AdminDashboard() {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
   const navigate = useNavigate();
   const API_BASE = getApiBaseUrl();
 
@@ -321,33 +323,33 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {/* Total Revenue */}
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:shadow-md transition-shadow">
-  <div className="flex items-center justify-between mb-4">
-    <div className="flex items-center">
-      <div className="p-2 bg-green-100 rounded-lg">
-        <DollarSign className="h-6 w-6 text-green-600" />
-      </div>
-      <div className="ml-3">
-        <p className="text-sm font-medium text-gray-500">Total Revenue</p>
-        <p className="text-2xl font-bold text-gray-900">
-          {insights?.currentYearTotal
-            ? insights.currentYearTotal.toLocaleString("vi-VN", { style: "currency", currency: "VND" })
-            : (0).toLocaleString("vi-VN", { style: "currency", currency: "VND" })}
-        </p>
-      </div>
-    </div>
-  </div>
-  <div className="flex items-center">
-    {insights?.yearGrowth >= 0 ? (
-      <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-    ) : (
-      <TrendingDown className="h-4 w-4 text-red-500 mr-1" />
-    )}
-    <span className={`text-sm font-medium ${insights?.yearGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-      {insights?.yearGrowth || 0}%
-    </span>
-    <span className="text-sm text-gray-500 ml-2">vs last year</span>
-  </div>
-</div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <DollarSign className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-500">Total Revenue</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {insights?.currentYearTotal
+                        ? insights.currentYearTotal.toLocaleString("vi-VN", { style: "currency", currency: "VND" })
+                        : (0).toLocaleString("vi-VN", { style: "currency", currency: "VND" })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center">
+                {insights?.yearGrowth >= 0 ? (
+                  <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
+                ) : (
+                  <TrendingDown className="h-4 w-4 text-red-500 mr-1" />
+                )}
+                <span className={`text-sm font-medium ${insights?.yearGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {insights?.yearGrowth || 0}%
+                </span>
+                <span className="text-sm text-gray-500 ml-2">vs last year</span>
+              </div>
+            </div>
 
             {/* Monthly Average */}
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:shadow-md transition-shadow">
@@ -467,9 +469,39 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Top Selling Cars */}
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">Top Selling Cars</h3>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900">Top Selling Cars</h3>
+                {dashboardData?.topCars?.length > itemsPerPage && (
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="p-1 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                    <span className="text-sm text-gray-600">
+                      Page {currentPage} of {Math.ceil((dashboardData?.topCars?.length || 0) / itemsPerPage)}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil((dashboardData?.topCars?.length || 0) / itemsPerPage)))}
+                      disabled={currentPage * itemsPerPage >= (dashboardData?.topCars?.length || 0)}
+                      className="p-1 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+              </div>
               <div className="space-y-4">
-                {dashboardData?.topCars?.map((car, index) => (
+                {dashboardData?.topCars?.slice(
+                  (currentPage - 1) * itemsPerPage,
+                  currentPage * itemsPerPage
+                ).map((car, index) => (
                   <div key={car.ModelId} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                     <div className="flex-shrink-0">
                       <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-200">

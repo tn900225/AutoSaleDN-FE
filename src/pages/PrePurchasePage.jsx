@@ -40,6 +40,7 @@ export default function PrePurchasePage() {
   const [useUserProfileAddress, setUseUserProfileAddress] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState(''); // for full purchase
   const [depositPaymentMethod, setDepositPaymentMethod] = useState(''); // for deposit
+  const [paymentType, setPaymentType] = useState('full'); // 'full' or 'installment'
 
   // States for deposit and purchase type logic
   const [isDepositPaid, setIsDepositPaid] = useState(false);
@@ -56,8 +57,8 @@ export default function PrePurchasePage() {
   // State for the contract viewing modal
   const [contractModal, setContractModal] = useState({ open: false, content: '' });
 
-  const DEPOSIT_PERCENT = 0.3; // 30% deposit
-  const MIN_DEPOSIT = 10; // Minimum deposit amount in VND
+  const MIN_DEPOSIT = 5000000; // 5 million VND minimum deposit
+  const MAX_DEPOSIT = 10000000; // 10 million VND maximum deposit
   const SHIPPING_COST = 3500000; // Shipping cost in VND
 
   const getToken = () => localStorage.getItem('token');
@@ -128,7 +129,6 @@ export default function PrePurchasePage() {
       setLoadingUser(false);
     }
   }, [carId]);
-
 
   // Fetch user data
   useEffect(() => {
@@ -374,7 +374,13 @@ export default function PrePurchasePage() {
     return price + regFee + dealerFee + tax + shipping;
   };
 
-  const depositAmount = Math.max(MIN_DEPOSIT, Math.round(calculateTotalPrice() * DEPOSIT_PERCENT));
+  // Calculate deposit amount (fixed between 5-10 million VND)
+  const calculateDepositAmount = () => {
+    const tenPercent = Math.round(calculateTotalPrice() * 0.1);
+    return Math.min(MAX_DEPOSIT, Math.max(MIN_DEPOSIT, tenPercent));
+  };
+  
+  const depositAmount = calculateDepositAmount();
   const remainingBalance = calculateTotalPrice() - depositAmount;
 
   // Function to initiate Momo payment
@@ -548,220 +554,222 @@ export default function PrePurchasePage() {
       setIsProcessingDeposit(false);
     }
   };
-const handleFullPayment = async () => {
-  // 1. Validate required data before payment
-  if (!paymentMethod) {
-    Swal.fire({
-      icon: 'warning',
-      title: 'Payment Method Required',
-      text: 'Please select a payment method for the full order.',
-      confirmButtonText: 'OK',
-    });
-    return;
-  }
 
-  if (!car) {
-    Swal.fire({
-      icon: 'error',
-      title: 'Missing Car Data',
-      text: 'Car details are not loaded. Please try again.',
-      confirmButtonText: 'OK',
-    });
-    return;
-  }
-
-  if (!selectedShowroom) {
-    Swal.fire({
-      icon: 'warning',
-      title: 'Showroom Required',
-      text: 'Please select a showroom.',
-      confirmButtonText: 'OK',
-    });
-    return;
-  }
-
-  if (deliveryOption === 'shipping' && !useUserProfileAddress) {
-    if (!shippingAddressInfo.name || !shippingAddressInfo.address || !shippingAddressInfo.phone) {
+  const handleFullPayment = async () => {
+    // 1. Validate required data before payment
+    if (!paymentMethod) {
       Swal.fire({
         icon: 'warning',
-        title: 'Shipping Information Incomplete',
-        text: 'Please fill in all shipping address details.',
+        title: 'Payment Method Required',
+        text: 'Please select a payment method for the full order.',
         confirmButtonText: 'OK',
       });
       return;
     }
-  }
 
-  setIsProcessingFullPayment(true);
-
-  try {
-    const token = getToken();
-
-    if (purchaseType === 'full_payment') {
-      // Full payment from the start - need to create deposit order first, then process full payment
-      const depositPayload = {
-        listingId: car.id,
-        totalPrice: calculateTotalPrice(),
-        depositAmount: Math.max(MIN_DEPOSIT, Math.round(calculateTotalPrice() * DEPOSIT_PERCENT)),
-        deliveryOption: deliveryOption,
-        selectedShowroomId: deliveryOption === 'pickup' ? Number(selectedShowroom) : null,
-        useUserProfileAddress: deliveryOption === 'shipping' ? useUserProfileAddress : false,
-        shippingAddressInfo: deliveryOption === 'shipping' && !useUserProfileAddress ? shippingAddressInfo : null,
-        depositPaymentMethod: paymentMethod, // Use the same payment method selected for full payment
-        expectedDeliveryDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
-      };
-
-      // First create the order with deposit structure
-      const createOrderResponse = await fetch(`${API_BASE}/api/Customer/orders/deposit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(depositPayload)
+    if (!car) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Missing Car Data',
+        text: 'Car details are not loaded. Please try again.',
+        confirmButtonText: 'OK',
       });
+      return;
+    }
 
-      if (!createOrderResponse.ok) {
-        const errorData = await createOrderResponse.json();
-        throw new Error(errorData.message || 'Failed to create order for full payment.');
-      }
-      
-      const orderConfirmation = await createOrderResponse.json();
-      const orderId = orderConfirmation.orderId;
-      setCurrentOrderId(orderId);
+    if (!selectedShowroom) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Showroom Required',
+        text: 'Please select a showroom.',
+        confirmButtonText: 'OK',
+      });
+      return;
+    }
 
-      // Now process the full payment for this order
-      const fullPaymentPayload = {
-        paymentMethod: paymentMethod,
-        actualDeliveryDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
-      };
-
-      if (paymentMethod === 'e_wallet_momo_test') {
-        // For Momo, we need to process full payment first, then redirect
-        const fullPaymentResponse = await fetch(`${API_BASE}/api/Customer/orders/full-payment?orderId=${orderId}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(fullPaymentPayload)
-        });
-
-        if (!fullPaymentResponse.ok) {
-          const errorData = await fullPaymentResponse.json();
-          throw new Error(errorData.message || 'Failed to process full payment.');
-        }
-
-        // Then initiate Momo payment
-        await initiateMomoPayment(orderId, calculateTotalPrice(), 'full_payment');
-      } else {
-        // Handle non-gateway payment methods
-        const fullPaymentResponse = await fetch(`${API_BASE}/api/Customer/orders/full-payment?orderId=${orderId}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(fullPaymentPayload)
-        });
-
-        if (!fullPaymentResponse.ok) {
-          const errorData = await fullPaymentResponse.json();
-          throw new Error(errorData.message || 'Failed to process full payment.');
-        }
-
-        // Handle successful API response
-        await Swal.fire({
-          icon: "success",
-          title: "Purchase Complete!",
-          html: `<p>Thank you for your purchase! Your full payment has been processed.</p>
-          <p>Delivery is scheduled for: <strong>${new Date(fullPaymentPayload.actualDeliveryDate).toLocaleDateString()}</strong></p>
-          <p>A confirmation email has been sent to your email address.</p>`,
-          confirmButtonText: "OK",
-          confirmButtonColor: "#10B981",
-        }).then(() => {
-          navigate('/orders');
-        });
-      }
-    } else if (purchaseType === 'deposit') {
-      // Completing remaining payment after deposit
-      const orderIdToUse = currentOrderId || location.state?.orderId;
-      if (!orderIdToUse) {
+    if (deliveryOption === 'shipping' && !useUserProfileAddress) {
+      if (!shippingAddressInfo.name || !shippingAddressInfo.address || !shippingAddressInfo.phone) {
         Swal.fire({
-          icon: 'error',
-          title: 'Order ID Missing',
-          text: 'Cannot proceed with full payment. Please ensure a deposit has been placed first to create an order.',
+          icon: 'warning',
+          title: 'Shipping Information Incomplete',
+          text: 'Please fill in all shipping address details.',
           confirmButtonText: 'OK',
         });
         return;
       }
-
-      const fullPaymentPayload = {
-        paymentMethod: paymentMethod,
-        actualDeliveryDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
-      };
-
-      if (paymentMethod === 'e_wallet_momo_test') {
-        // Process full payment first, then redirect to Momo
-        const fullPaymentResponse = await fetch(`${API_BASE}/api/Customer/orders/full-payment?orderId=${orderIdToUse}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(fullPaymentPayload)
-        });
-
-        if (!fullPaymentResponse.ok) {
-          const errorData = await fullPaymentResponse.json();
-          throw new Error(errorData.message || 'Failed to process remaining payment.');
-        }
-
-        // Then initiate Momo payment for remaining balance
-        await initiateMomoPayment(orderIdToUse, remainingBalance, 'full_payment');
-      } else {
-        // Handle non-gateway payment methods
-        const fullPaymentResponse = await fetch(`${API_BASE}/api/Customer/orders/full-payment?orderId=${orderIdToUse}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(fullPaymentPayload)
-        });
-
-        if (!fullPaymentResponse.ok) {
-          const errorData = await fullPaymentResponse.json();
-          throw new Error(errorData.message || 'Failed to process remaining payment.');
-        }
-
-        // Handle successful API response
-        await Swal.fire({
-          icon: "success",
-          title: "Payment Complete!",
-          html: `<p>Thank you! Your remaining payment has been processed successfully.</p>
-          <p>Your order is now complete.</p>
-          <p>A confirmation email has been sent to your email address.</p>`,
-          confirmButtonText: "OK",
-          confirmButtonColor: "#10B981",
-        }).then(() => {
-          navigate('/orders');
-        });
-      }
     }
-  } catch (err) {
-    // Error handling
-    await Swal.fire({
-      icon: "error",
-      title: "Payment Failed",
-      text: `Unable to process payment: ${err.message}`,
-      confirmButtonText: "Try Again",
-      confirmButtonColor: "#EF4444",
-    });
-  } finally {
-    setIsProcessingFullPayment(false);
-  }
-};
+
+    setIsProcessingFullPayment(true);
+
+    try {
+      const token = getToken();
+
+      if (purchaseType === 'full_payment') {
+        // Full payment from the start - need to create deposit order first, then process full payment
+        const depositPayload = {
+          listingId: car.id,
+          totalPrice: calculateTotalPrice(),
+          depositAmount: Math.max(MIN_DEPOSIT, Math.round(calculateTotalPrice() * 0.1)),
+          deliveryOption: deliveryOption,
+          selectedShowroomId: deliveryOption === 'pickup' ? Number(selectedShowroom) : null,
+          useUserProfileAddress: deliveryOption === 'shipping' ? useUserProfileAddress : false,
+          shippingAddressInfo: deliveryOption === 'shipping' && !useUserProfileAddress ? shippingAddressInfo : null,
+          depositPaymentMethod: paymentMethod, // Use the same payment method selected for full payment
+          expectedDeliveryDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
+        };
+
+        // First create the order with deposit structure
+        const createOrderResponse = await fetch(`${API_BASE}/api/Customer/orders/deposit`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(depositPayload)
+        });
+
+        if (!createOrderResponse.ok) {
+          const errorData = await createOrderResponse.json();
+          throw new Error(errorData.message || 'Failed to create order for full payment.');
+        }
+        
+        const orderConfirmation = await createOrderResponse.json();
+        const orderId = orderConfirmation.orderId;
+        setCurrentOrderId(orderId);
+
+        // Now process the full payment for this order
+        const fullPaymentPayload = {
+          paymentMethod: paymentMethod,
+          actualDeliveryDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
+        };
+
+        if (paymentMethod === 'e_wallet_momo_test') {
+          // For Momo, we need to process full payment first, then redirect
+          const fullPaymentResponse = await fetch(`${API_BASE}/api/Customer/orders/full-payment?orderId=${orderId}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(fullPaymentPayload)
+          });
+
+          if (!fullPaymentResponse.ok) {
+            const errorData = await fullPaymentResponse.json();
+            throw new Error(errorData.message || 'Failed to process full payment.');
+          }
+
+          // Then initiate Momo payment
+          await initiateMomoPayment(orderId, calculateTotalPrice(), 'full_payment');
+        } else {
+          // Handle non-gateway payment methods
+          const fullPaymentResponse = await fetch(`${API_BASE}/api/Customer/orders/full-payment?orderId=${orderId}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(fullPaymentPayload)
+          });
+
+          if (!fullPaymentResponse.ok) {
+            const errorData = await fullPaymentResponse.json();
+            throw new Error(errorData.message || 'Failed to process full payment.');
+          }
+
+          // Handle successful API response
+          await Swal.fire({
+            icon: "success",
+            title: "Purchase Complete!",
+            html: `<p>Thank you for your purchase! Your full payment has been processed.</p>
+            <p>Delivery is scheduled for: <strong>${new Date(fullPaymentPayload.actualDeliveryDate).toLocaleDateString()}</strong></p>
+            <p>A confirmation email has been sent to your email address.</p>`,
+            confirmButtonText: "OK",
+            confirmButtonColor: "#10B981",
+          }).then(() => {
+            navigate('/orders');
+          });
+        }
+      } else if (purchaseType === 'deposit') {
+        // Completing remaining payment after deposit
+        const orderIdToUse = currentOrderId || location.state?.orderId;
+        if (!orderIdToUse) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Order ID Missing',
+            text: 'Cannot proceed with full payment. Please ensure a deposit has been placed first to create an order.',
+            confirmButtonText: 'OK',
+          });
+          return;
+        }
+
+        const fullPaymentPayload = {
+          paymentMethod: paymentMethod,
+          actualDeliveryDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
+        };
+
+        if (paymentMethod === 'e_wallet_momo_test') {
+          // Process full payment first, then redirect to Momo
+          const fullPaymentResponse = await fetch(`${API_BASE}/api/Customer/orders/full-payment?orderId=${orderIdToUse}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(fullPaymentPayload)
+          });
+
+          if (!fullPaymentResponse.ok) {
+            const errorData = await fullPaymentResponse.json();
+            throw new Error(errorData.message || 'Failed to process remaining payment.');
+          }
+
+          // Then initiate Momo payment for remaining balance
+          await initiateMomoPayment(orderIdToUse, remainingBalance, 'full_payment');
+        } else {
+          // Handle non-gateway payment methods
+          const fullPaymentResponse = await fetch(`${API_BASE}/api/Customer/orders/full-payment?orderId=${orderIdToUse}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(fullPaymentPayload)
+          });
+
+          if (!fullPaymentResponse.ok) {
+            const errorData = await fullPaymentResponse.json();
+            throw new Error(errorData.message || 'Failed to process remaining payment.');
+          }
+
+          // Handle successful API response
+          await Swal.fire({
+            icon: "success",
+            title: "Payment Complete!",
+            html: `<p>Thank you! Your remaining payment has been processed successfully.</p>
+            <p>Your order is now complete.</p>
+            <p>A confirmation email has been sent to your email address.</p>`,
+            confirmButtonText: "OK",
+            confirmButtonColor: "#10B981",
+          }).then(() => {
+            navigate('/orders');
+          });
+        }
+      }
+    } catch (err) {
+      // Error handling
+      await Swal.fire({
+        icon: "error",
+        title: "Payment Failed",
+        text: `Unable to process payment: ${err.message}`,
+        confirmButtonText: "Try Again",
+        confirmButtonColor: "#EF4444",
+      });
+    } finally {
+      setIsProcessingFullPayment(false);
+    }
+  };
+
   const handleShowroomChange = (e) => {
     setSelectedShowroom(e.target.value);
   };
@@ -857,7 +865,7 @@ const handleFullPayment = async () => {
       to be damaged, the Buyer has the right to reject the Goods.
 
       This agreement is made in two (02) copies of equal legal value, with each party retaining one (01) copy.
-      © ${new Date().getFullYear()} AutoSaleDN Company. All rights reserved.
+      ${new Date().getFullYear()} AutoSaleDN Company. All rights reserved.
     `;
   };
 
@@ -939,7 +947,7 @@ const handleFullPayment = async () => {
             <div className="bg-blue-50 p-6 rounded-xl border border-blue-200 shadow-sm mb-6">
               <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
                 <svg className="w-6 h-6 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 6l3 1m0 0l-3 9a5 5 0 000 1.986V19H4.276a1 1 0 00-.765 1.637l1.392 1.392A1 1 0 005.637 23H18a1 1 0 00.765-1.637l1.392-1.392A1 1 0 0019.724 19H17v-1.014a5 5 0 000-1.986l-3-9zm-9 0h12" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 6l3 1m0 0l-3 9a5 5 0 000 1.986V19H4.276a1 1 0 00-.765 1.637l1.392 1.392A1 1 0 005.637 23H18a1 1 0 012 2v8a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 00-2-2h10a2 2 0 012-2z" />
                 </svg>
                 Car Information
               </h3>
@@ -1242,37 +1250,47 @@ const handleFullPayment = async () => {
               </div>
             )}
 
+            {/* Payment Type Selection */}
             <div className="space-y-4 bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm mt-6">
               <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
                 <svg className="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Choose Purchase Type
+                Payment method
               </h3>
-              <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-6">
-                <label className="flex items-center text-gray-700 font-medium cursor-pointer">
-                  <input
-                    type="radio"
-                    name="purchaseType"
-                    value="deposit"
-                    checked={purchaseType === 'deposit'}
-                    onChange={handlePurchaseTypeChange}
-                    className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
-                  />
-                  <span className="ml-3">Deposit First, Then Full Payment</span>
-                </label>
-                {/* <label className="flex items-center text-gray-700 font-medium cursor-pointer">
-                  <input
-                    type="radio"
-                    name="purchaseType"
-                    value="full_payment"
-                    checked={purchaseType === 'full_payment'}
-                    onChange={handlePurchaseTypeChange}
-                    className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
-                  />
-                  <span className="ml-3">Full Payment Now</span>
-                </label> */}
+              <div className="space-y-4">
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      id="fullPayment"
+                      name="paymentType"
+                      value="full"
+                      checked={paymentType === 'full'}
+                      onChange={() => setPaymentType('full')}
+                      className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
+                    />
+                    <label htmlFor="fullPayment" className="ml-2 block text-sm font-medium text-gray-700">
+                      Full Payment
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      id="installment"
+                      name="paymentType"
+                      value="installment"
+                      checked={paymentType === 'installment'}
+                      onChange={() => setPaymentType('installment')}
+                      className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
+                    />
+                    <label htmlFor="installment" className="ml-2 block text-sm font-medium text-gray-700">
+                    Installment
+                    </label>
+                  </div>
+                </div>
               </div>
+
             </div>
 
             {purchaseType === 'deposit' && (
@@ -1285,7 +1303,7 @@ const handleFullPayment = async () => {
                 </h3>
                 <div className="space-y-2 text-lg">
                   <div className="flex justify-between items-center text-gray-700">
-                    <span>Expected Deposit Amount (30%):</span>
+                    <span>Deposit (5-10 million VND):</span>
                     <span className="font-semibold text-green-700">{formatCurrency(depositAmount)}</span>
                   </div>
                 </div>
@@ -1297,34 +1315,23 @@ const handleFullPayment = async () => {
                       <input
                         type="radio"
                         name="depositPaymentMethod"
-                        value="bank_transfer"
-                        checked={depositPaymentMethod === 'bank_transfer'}
-                        onChange={handleDepositPaymentMethodChange}
-                        className="h-5 w-5 text-green-600 border-gray-300 focus:ring-green-500"
-                      />
-                      <span className="ml-3 font-medium text-gray-700">Bank Transfer</span>
-                    </label>
-                    <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors duration-200">
-                      <input
-                        type="radio"
-                        name="depositPaymentMethod"
                         value="e_wallet_momo_test"
                         checked={depositPaymentMethod === 'e_wallet_momo_test'}
                         onChange={handleDepositPaymentMethodChange}
                         className="h-5 w-5 text-green-600 border-gray-300 focus:ring-green-500"
                       />
-                      <span className="ml-3 font-medium text-gray-700">E-Wallet (Momo Test)</span>
+                      <span className="ml-3 font-medium text-gray-700">MoMo</span>
                     </label>
                     <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors duration-200">
                       <input
                         type="radio"
                         name="depositPaymentMethod"
-                        value="installment_plan"
-                        checked={depositPaymentMethod === 'installment_plan'}
+                        value="qr"
+                        checked={depositPaymentMethod === 'qr'}
                         onChange={handleDepositPaymentMethodChange}
                         className="h-5 w-5 text-green-600 border-gray-300 focus:ring-green-500"
                       />
-                      <span className="ml-3 font-medium text-gray-700">Installment Plan</span>
+                      <span className="ml-3 font-medium text-gray-700">QR Payment</span>
                     </label>
                   </div>
                   {!depositPaymentMethod && (

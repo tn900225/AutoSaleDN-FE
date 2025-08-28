@@ -8,22 +8,17 @@ import {
     HiOutlineCog,
     HiOutlineLogout,
     HiOutlineUsers,
-    HiUserGroup
+    HiUserGroup,
+    HiOutlineDocumentText,
+    HiOutlineMail
 } from "react-icons/hi";
 import { FaWrench, FaCar, FaTools, FaPalette, FaBuilding } from "react-icons/fa"; // Added FaPalette and FaBuilding icons
 
 const sidebarItems = [
     { label: "Dashboard", icon: HiOutlineViewGrid, path: "/seller/dashboard" },
     { label: "ShowRoom", icon: HiOutlineBriefcase, path: "/seller/order-management" },
-    // { label: "Employee", icon: HiUserGroup, path: "/admin/employee" },
-    // { label: "Customers", icon: HiOutlineUsers, path: "/admin/customers" },
-    // { label: "Car", icon: FaCar, path: "/admin/cars" },
-    // { label: "Car Features", icon: FaTools, path: "/admin/car-features" },
-    // { label: "Car Colors", icon: FaPalette, path: "/admin/car-colors" },
-    // { label: "Manufacturers & Models", icon: FaBuilding, path: "/admin/car-manufacturers-models" },
-    // { label: "Services", icon: FaWrench, path: "/admin/services" },
-    // { label: "Calendar", icon: HiOutlineCalendar, path: "/admin/calendar" },
-    // { label: "Messages", icon: HiOutlineChat, path: "/admin/messages" }
+    { label: "Manage Posts", icon: HiOutlineDocumentText, path: "/seller/manage-posts" },
+    { label: "Messages", icon: HiOutlineMail, path: "/seller/manage-message" }
 ];
 
 export default function AdminSidebar() {

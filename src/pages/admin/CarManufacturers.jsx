@@ -151,8 +151,18 @@ export default function CarManufacturersAndModelsManagementPage() {
         // Apply sorting for models
         if (sortConfigModels.key) {
             currentFilteredModels.sort((a, b) => {
-                const aValue = a[sortConfigModels.key].toLowerCase();
-                const bValue = b[sortConfigModels.key].toLowerCase();
+                // Handle nested properties (e.g., 'carManufacturer.name')
+                const getNestedValue = (obj, path) => {
+                    return path.split('.').reduce((o, p) => (o && o[p] !== undefined ? o[p] : ''), obj) || '';
+                };
+                
+                let aValue = getNestedValue(a, sortConfigModels.key);
+                let bValue = getNestedValue(b, sortConfigModels.key);
+                
+                // Convert to string and handle case where value might be null/undefined
+                aValue = String(aValue || '').toLowerCase();
+                bValue = String(bValue || '').toLowerCase();
+                
                 if (aValue < bValue) return sortConfigModels.direction === 'asc' ? -1 : 1;
                 if (aValue > bValue) return sortConfigModels.direction === 'asc' ? 1 : -1;
                 return 0;
@@ -640,7 +650,9 @@ export default function CarManufacturersAndModelsManagementPage() {
                                                         {currentModels.map((model) => (
                                                             <tr key={model.modelId} className="border-b border-gray-100 hover:bg-gray-50 text-gray-800 transition-colors duration-150"> {/* Softer border, subtle hover */}
                                                                 <td className="px-5 py-4 text-sm">{model.name}</td>
-                                                                <td className="px-5 py-4 text-sm">{model.manufacturer?.name || 'N/A'}</td>
+                                                                <td className="px-5 py-4 text-sm">
+                                                                    {model.carManufacturer?.name || model.manufacturer?.name || 'N/A'}
+                                                                </td>
                                                                 <td className="px-5 py-4 text-sm">
                                                                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${model.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                                                         {model.status}

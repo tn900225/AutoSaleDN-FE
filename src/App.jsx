@@ -35,6 +35,10 @@ import OrdersPage from "./pages/OrdersPage";
 import SellerOrderManagement from "./pages/admin/SellerOrderManagement";
 
 import SellerDashboard from "./pages/seller/SellerDashboard";
+import ManagePosts from "./pages/seller/ManagePosts";
+import BlogIndex from "./pages/BlogIndex";
+import BlogPostDetail from "./pages/BlogPostDetail";
+import SellerMessage from "./pages/seller/SellerMessage";
 
 import { getApiBaseUrl } from "../util/apiconfig";
 
@@ -82,7 +86,7 @@ const useTalkJS = (customerInfor, isCustomerInfoLoaded, hasCustomerInfoError, ta
 
 
       const session = new Talk.Session({
-        appId: 'th2sJikw', // Thay thế bằng TalkJS App ID thực tế của bạn
+        appId: 'twWJndcJ', // Thay thế bằng TalkJS App ID thực tế của bạn
         me: user,
       });
 
@@ -114,8 +118,8 @@ const useTalkJS = (customerInfor, isCustomerInfoLoaded, hasCustomerInfoError, ta
             autoReplyTimeout = setTimeout(() => {
               console.log("Timeout triggered, sending auto-reply.");
               const staffSession = new Talk.Session({
-                appId: 'th2sJikw',
-                me: staffUser, // Staff user gửi tin nhắn
+                appId: 'twWJndcJ',
+                me: staffUser,
               });
               const staffConversation = staffSession.getOrCreateConversation(conversation.id);
               staffConversation.sendMessage("Hi! Our staff is currently unavailable. We've received your message and will get back to you as soon as possible!\n\nIf your matter is urgent, please call our number +84 38 3691293");
@@ -401,6 +405,9 @@ function App() {
                 <Route path="cars/:carId/confirm-orders" element={<PrePurchasePage />} />
                 <Route path="cars/orders" element={<OrdersPage />} />
 
+                <Route path="/blog" element={<BlogIndex />} />
+                <Route path="/blog/:slug" element={<BlogPostDetail />} />
+
               </Routes>
             </UserLayout>
           }
@@ -474,7 +481,8 @@ function App() {
                 <Routes>
                   <Route path="dashboard" element={<SellerDashboard />} />
                   <Route path="order-management" element={<SellerOrderManagement />} />
-
+                  <Route path="manage-posts" element={<ManagePosts />} />
+                  <Route path="manage-message" element={<SellerMessage />} />
                 </Routes>
               </DashboardLayout>
             </RequireRole>

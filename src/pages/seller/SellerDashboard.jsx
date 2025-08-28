@@ -87,6 +87,10 @@ export default function SellerDashboard() {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
+  // Pagination state for Top Selling Cars
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5); // Show 5 items per page
+
   const handleShowroomDetail = (showroomId) => {
     // Seller có thể xem chi tiết showroom của mình
     navigate(`/seller/showroom/${showroomId}`);
@@ -474,14 +478,21 @@ export default function SellerDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Top Selling Cars (Seller's showroom) */}
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">Top Selling Cars (My Showroom)</h3>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-semibold text-gray-900">Top Selling Cars (My Showroom)</h3>
+                <span className="text-sm text-gray-500">
+                  Page {currentPage} of {Math.ceil((dashboardData?.topCars?.length || 0) / itemsPerPage)}
+                </span>
+              </div>
               <div className="space-y-4">
-                {dashboardData?.topCars?.map((car, index) => (
+                {dashboardData?.topCars
+                  ?.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                  .map((car, index) => (
                   <div key={car.ModelId} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                     <div className="flex-shrink-0">
                       <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-200">
                         <img
-                          src={car.imageUrl || `${API_BASE}/api/placeholder/64/64`}
+                          src={car.imageUrl || `/api/placeholder/64/64`}
                           alt={car.modelName}
                           className="w-full h-full object-cover"
                           onError={(e) => {
@@ -514,143 +525,47 @@ export default function SellerDashboard() {
                     </div>
                   </div>
                 ))}
+                
+                {/* Pagination Controls */}
+                <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className={`px-3 py-1 rounded-md ${currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-blue-600 hover:bg-blue-50'}`}
+                  >
+                    Previous
+                  </button>
+                  
+                  <div className="flex space-x-1">
+                    {Array.from({ length: Math.ceil((dashboardData?.topCars?.length || 0) / itemsPerPage) }, (_, i) => i + 1).map((pageNum) => (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`w-8 h-8 rounded-md ${currentPage === pageNum 
+                          ? 'bg-blue-600 text-white' 
+                          : 'text-gray-600 hover:bg-gray-100'}`}
+                      >
+                        {pageNum}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  <button
+                    onClick={() => setCurrentPage(prev => 
+                      Math.min(prev + 1, Math.ceil((dashboardData?.topCars?.length || 0) / itemsPerPage)))
+                    }
+                    disabled={currentPage >= Math.ceil((dashboardData?.topCars?.length || 0) / itemsPerPage)}
+                    className={`px-3 py-1 rounded-md ${currentPage >= Math.ceil((dashboardData?.topCars?.length || 0) / itemsPerPage) 
+                      ? 'text-gray-400 cursor-not-allowed' 
+                      : 'text-blue-600 hover:bg-blue-50'}`}
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* My Showroom Inventory - Đã đơn giản hóa để hiển thị 1 showroom duy nhất */}
-            {sellerShowroom && (
-              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900">My Showroom Inventory</h3>
-                  <span className="text-sm text-gray-500">
-                    {sellerShowroom.totalCars} vehicles
-                  </span>
-                </div>
 
-                <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg p-5 border border-gray-200 hover:shadow-md transition-all duration-300">
-                  {/* Showroom Header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3">
-                        <MapPin className="h-5 w-5 text-white" />
-                      </div>
-                      <div>
-                        <h4 className="text-lg font-semibold text-gray-900">{sellerShowroom.location}</h4>
-                        <p className="text-sm text-gray-600">{sellerShowroom.totalCars} vehicles available</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleShowroomDetail(sellerShowroom.showroomId || sellerShowroom.location)}
-                      className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      View Details
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </button>
-                  </div>
-
-                  {/* Enhanced Brand and Model Display */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Top Brands */}
-                    <div className="bg-white rounded-lg p-4 border border-gray-100">
-                      <div className="flex items-center mb-3">
-                        <div className="w-2 h-2 bg-blue-600 rounded-full mr-2"></div>
-                        <h5 className="text-sm font-semibold text-gray-900">Top Brands</h5>
-                      </div>
-                      <div className="space-y-2">
-                        {sellerShowroom.brands?.slice(0, 3).map((brand, index) => (
-                          <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors">
-                            <div className="flex items-center">
-                              <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-md flex items-center justify-center mr-3">
-                                <span className="text-white text-xs font-bold">
-                                  {brand.brandName?.charAt(0)}
-                                </span>
-                              </div>
-                              <span className="text-sm font-medium text-gray-700">{brand.brandName}</span>
-                            </div>
-                            <div className="text-right">
-                              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                                {brand.count} cars
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                        {sellerShowroom.brands?.length > 3 && (
-                          <div className="text-center">
-                            <span className="text-xs text-gray-500">
-                              +{sellerShowroom.brands.length - 3} more brands
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Available Models */}
-                    <div className="bg-white rounded-lg p-4 border border-gray-100">
-                      <div className="flex items-center mb-3">
-                        <div className="w-2 h-2 bg-green-600 rounded-full mr-2"></div>
-                        <h5 className="text-sm font-semibold text-gray-900">Popular Models</h5>
-                      </div>
-                      <div className="space-y-2">
-                        {sellerShowroom.models?.slice(0, 3).map((model, index) => (
-                          <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors">
-                            <div className="flex items-center">
-                              <div className="w-8 h-8 bg-gray-200 rounded-md overflow-hidden mr-3">
-                                <img
-                                  src={model.imageUrl || '/api/placeholder/32/32'}
-                                  alt={model.modelName}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    e.target.style.display = 'none';
-                                    e.target.nextSibling.style.display = 'flex';
-                                  }}
-                                />
-                                <div className="w-full h-full bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center" style={{ display: 'none' }}>
-                                  <Car className="h-4 w-4 text-white" />
-                                </div>
-                              </div>
-                              <div>
-                                <span className="text-sm font-medium text-gray-700 block">{model.modelName}</span>
-                                <span className="text-xs text-gray-500">{model.brandName}</span>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                                {model.availableQuantity} units
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                        {sellerShowroom.models?.length > 3 && (
-                          <div className="text-center">
-                            <span className="text-xs text-gray-500">
-                              +{sellerShowroom.models.length - 3} more models
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Quick Stats */}
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center space-x-4">
-                        <span className="text-gray-600">
-                          <strong className="text-gray-900">{sellerShowroom.brands?.length || 0}</strong> brands
-                        </span>
-                        <span className="text-gray-600">
-                          <strong className="text-gray-900">{sellerShowroom.models?.length || 0}</strong> models
-                        </span>
-                      </div>
-                      <div className="flex items-center text-gray-500">
-                        <span className="text-xs">Last updated: {sellerShowroom.lastUpdated || 'Today'}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </main>
       </div>
