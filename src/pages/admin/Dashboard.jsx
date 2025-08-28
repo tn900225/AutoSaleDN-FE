@@ -9,7 +9,7 @@ import { getApiBaseUrl } from "../../../util/apiconfig";
 const fetchRevenueData = async () => {
   const token = localStorage.getItem('token');
   const currentYear = new Date().getFullYear();
-
+  const API_BASE = getApiBaseUrl();
   // Get monthly data for current year
   const monthlyData = [];
   for (let month = 1; month <= 12; month++) {
@@ -59,6 +59,7 @@ const fetchRevenueData = async () => {
 };
 
 const fetchDashboardData = async () => {
+  const API_BASE = getApiBaseUrl();
   const token = localStorage.getItem('token');
   try {
     const topCarsRes = await fetch(`${API_BASE}/api/Admin/reports/top-selling-cars`, {
