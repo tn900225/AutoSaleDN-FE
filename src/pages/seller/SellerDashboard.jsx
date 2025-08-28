@@ -1,5 +1,5 @@
-import AdminSidebar from "../../components/admin/AdminSidebar";
-import AdminTopbar from "../../components/admin/AdminTopbar";
+import SellerSidebar from "../../components/seller/SellerSidebar";
+import SellerTopbar from "../../components/seller/SellerTopbar";
 import { useNavigate } from 'react-router-dom';
 import Chart from "react-apexcharts";
 import { useState, useEffect } from "react";
@@ -257,9 +257,9 @@ export default function SellerDashboard() {
   if (loading) {
     return (
       <div className="flex h-screen bg-gray-50">
-        <AdminSidebar />
+        <SellerSidebar />
         <div className="flex-1 flex flex-col">
-          <AdminTopbar />
+          <SellerTopbar />
           <main className="flex-1 flex items-center justify-center">
             <div className="flex items-center space-x-4">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -274,9 +274,9 @@ export default function SellerDashboard() {
   if (error) {
     return (
       <div className="flex h-screen bg-gray-50">
-        <AdminSidebar />
+        <SellerSidebar />
         <div className="flex-1 flex flex-col">
-          <AdminTopbar />
+          <SellerTopbar />
           <main className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
@@ -293,9 +293,9 @@ export default function SellerDashboard() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <AdminSidebar />
+      <SellerSidebar />
       <div className="flex-1 flex flex-col min-h-screen">
-        <AdminTopbar />
+        <SellerTopbar />
         <main className="flex-1 p-6 overflow-y-auto">
           {/* Header */}
           <div className="mb-8">
