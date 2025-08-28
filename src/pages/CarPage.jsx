@@ -2,10 +2,10 @@ import React, { useEffect, useState, useCallback } from "react";
 import CarFilterSidebar from "../components/CarFilterSidebar";
 import CarPageMain from "../components/CarPageMain";
 
-const PER_PAGE = 5; // Number of cars per page
+const PER_PAGE = 5;
 
 async function fetchCars(filters = {}, page = 1, perPage = PER_PAGE) {
-  const token = localStorage.getItem("token"); // Ensure you have the token here
+  const token = localStorage.getItem("token");
   const queryParams = new URLSearchParams();
 
   if (filters.keyword) queryParams.append("keyword", filters.keyword);
@@ -32,7 +32,7 @@ async function fetchCars(filters = {}, page = 1, perPage = PER_PAGE) {
       queryParams.append("features", feature);
     });
   }
-  // REMOVED: filters.sortBy is no longer sent to the backend
+
   queryParams.append("page", page.toString());
   queryParams.append("perPage", perPage.toString());
 
@@ -49,21 +49,20 @@ async function fetchCars(filters = {}, page = 1, perPage = PER_PAGE) {
       const errorData = await res.json();
       throw new Error(errorData.message || "Failed to fetch cars");
     }
-    // Your API should return { cars: [], totalPages: N, totalResults: M }
+
     const data = await res.json();
 
-    // TEMPORARY: If your API only returns an array, you can simulate totalPages/totalResults
-    // However, the best approach is for the backend to return the correct format.
+
     if (Array.isArray(data)) {
         console.warn("API response is an array, not an object with totalPages/totalResults. Pagination will not work correctly without backend changes.");
         return {
             cars: data,
-            totalPages: Math.ceil(data.length / perPage) || 1, // Temporary estimate
-            totalResults: data.length // Temporary estimate
+            totalPages: Math.ceil(data.length / perPage) || 1,
+            totalResults: data.length
         };
     }
 
-    return data; // Expects data to be { cars: [], totalPages: N, totalResults: M }
+    return data;
   } catch (error) {
     console.error("Fetch error:", error);
     throw error;

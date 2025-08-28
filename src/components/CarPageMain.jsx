@@ -1,5 +1,7 @@
+// src/components/CarPageMain.jsx
+
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -55,6 +57,45 @@ export default function CarPageMain({
   sortBy,
   onSortChange,
 }) {
+
+  const getSaleStatusDisplay = (status) => {
+    if (!status) {
+      return "Available"; // Mặc định là "Available" nếu không có trạng thái
+    }
+    switch (status) {
+      case "Available":
+      case "Pending Deposit": // Thay đổi: Pending Deposit -> Available
+        return "Available";
+      case "Sold":
+        return "Sold";
+      case "On Hold":
+        return "On Hold";
+      case "Deposit Paid":
+      case "Pending Full Payment": // Thay đổi: Pending Full Payment -> Deposit Paid
+        return "Deposit Paid";
+      default:
+        return status;
+    }
+  };
+
+  const getStatusBadgeClass = (status) => {
+    // Sử dụng trạng thái gốc từ backend để quyết định màu sắc,
+    // hoặc có thể dùng statusToDisplay để đồng bộ màu với text
+    const displayStatus = getSaleStatusDisplay(status); // Lấy trạng thái đã được map
+
+    switch (displayStatus) {
+      case "Sold":
+        return 'bg-red-500'; // Màu đỏ cho trạng thái "Sold"
+      case "On Hold":
+      case "Deposit Paid":
+        return 'bg-orange-500'; // Màu cam cho các trạng thái tạm giữ/đã đặt cọc
+      case "Available":
+        return 'bg-green-500'; // Màu xanh cho trạng thái "Available"
+      default:
+        return 'bg-gray-500'; // Màu mặc định
+    }
+  };
+
   const navigate = useNavigate();
 
   if (loading) {
@@ -108,10 +149,11 @@ export default function CarPageMain({
 
       <div className="flex flex-col gap-8">
         {cars.map(car => {
-          // Lấy thông tin từ specification đầu tiên nếu có
           const firstSpec = car.specifications && car.specifications.length > 0 ? car.specifications[0] : {};
-          // Tính toán giá không VAT (giả sử taxRate là số tiền cố định để trừ)
           const priceWithoutVat = car.price - (car.pricing && car.pricing.length > 0 ? car.pricing[0].taxRate : 0);
+
+          const statusToDisplay = getSaleStatusDisplay(car.currentSaleStatus);
+          const statusBadgeClass = getStatusBadgeClass(car.currentSaleStatus); // Truyền trạng thái gốc để lấy màu
 
           return (
             <div key={car.listingId} data-testid="feature.car.card" className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 group flex flex-col md:flex-row">
@@ -144,8 +186,15 @@ export default function CarPageMain({
               <div className="flex-1 p-6 flex flex-col justify-between">
                 <div>
                   <div className="mb-4">
-                    <h4 className="text-[#253887] text-2xl font-extrabold" data-testid="feature.car.card_serp_row_title">
-                      {car.model.manufacturer.name} {car.model.name}
+                    <h4 className="text-[#253887] text-2xl font-extrabold flex items-center gap-2" data-testid="feature.car.card_serp_row_title">
+                      <Link to={`/cars/${car.listingId}`} className="hover:text-blue-600 transition-colors">
+                        {car.model.manufacturer.name} {car.model.name}
+                      </Link>
+                      {statusToDisplay && (
+                          <span className={`px-2 py-1 rounded-full text-white font-semibold text-xs ${statusBadgeClass}`}>
+                              {statusToDisplay}
+                          </span>
+                      )}
                     </h4>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-3 gap-x-6 text-[#253887] text-base font-medium mb-4">
@@ -213,7 +262,6 @@ export default function CarPageMain({
                     ₫{car.price.toLocaleString('vi-VN')}
                   </h4>
                   <div className="text-sm text-gray-500 font-medium">
-                    {/* Assuming taxRate is a fixed amount to subtract, not a percentage */}
                     ₫{priceWithoutVat.toLocaleString('vi-VN')} <span className="text-[#3452e1]">without VAT</span>
                   </div>
                 </div>

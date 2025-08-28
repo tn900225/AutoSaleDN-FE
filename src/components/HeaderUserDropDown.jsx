@@ -40,7 +40,7 @@ export default function HeaderUserDropdown({ onLoginClick }) {
             </svg>
             Favorite cars
           </a>
-          <a href="/orders-in-progress" className="flex items-center gap-3 py-2 text-[#253887] hover:bg-[#f6f8fd] rounded-lg transition font-medium text-base">
+          <a href="/cars/orders" className="flex items-center gap-3 py-2 text-[#253887] hover:bg-[#f6f8fd] rounded-lg transition font-medium text-base">
             {/* Car icon */}
             <svg width={22} height={22} fill="none" stroke="#3452e1" strokeWidth="1.6" viewBox="0 0 24 24">
               <rect x="3" y="11" width="18" height="6" rx="2"/><circle cx="7" cy="17" r="1.5"/><circle cx="17" cy="17" r="1.5"/><path d="M6 11V8a2 2 0 012-2h8a2 2 0 012 2v3"/>

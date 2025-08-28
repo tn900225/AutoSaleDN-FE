@@ -7,9 +7,9 @@ import Login from "../components/Login";
 // import PrePurchaseFormModal from "../components/PrePurchaseFormModal"; // Không cần import ở đây nữa
 
 const formatCurrency = (num) =>
-  new Intl.NumberFormat("en-US", {
+  new Intl.NumberFormat("vi-VN", {
     style: "currency",
-    currency: "USD",
+    currency: "VND",
     minimumFractionDigits: 0,
   }).format(num);
 
@@ -106,7 +106,9 @@ export default function CarDetailPage({ carId: propCarId }) {
   const [featureSearch, setFeatureSearch] = useState("");
   const heroRef = useRef(null);
   const [showSignInModal, setShowSignInModal] = useState(false);
-  // const [showPrePurchaseModal, setShowPrePurchaseModal] = useState(false); // Không cần state này ở đây nữa
+
+  const [isCarSold, setIsCarSold] = useState(false);
+  const [saleInfoText, setSaleInfoText] = useState("");
 
   useEffect(() => {
     const fetchCarData = async () => {
@@ -119,7 +121,6 @@ export default function CarDetailPage({ carId: propCarId }) {
           throw new Error(`HTTP error! Status: ${carResponse.status}`);
         }
         const carData = await carResponse.json();
-        console.log("carData", carData); // Debug the response
 
         let taxRateValue = 0.085; // Default value
 
@@ -131,6 +132,30 @@ export default function CarDetailPage({ carId: propCarId }) {
                 taxRateValue = taxRateValue / 100;
             }
         }
+        let carSoldStatus = false;
+        let saleText = "";
+
+        if (carData.currentSaleStatus === "Sold" ||
+            carData.currentSaleStatus === "On Hold" ||
+            carData.currentSaleStatus === "Pending Deposit" || // Thêm trạng thái Pending
+            carData.currentSaleStatus === "Pending Full Payment") // Thêm trạng thái Pending
+        {
+            carSoldStatus = true;
+            // Prefer currentPaymentStatus for detailed text if available, otherwise use currentSaleStatus
+            saleText = carData.currentPaymentStatus || carData.currentSaleStatus;
+            // You might want to refine saleText for "Pending" statuses
+            if (carData.currentSaleStatus === "Pending Deposit") {
+                saleText = "Pending Deposit";
+            } else if (carData.currentSaleStatus === "Pending Full Payment") {
+                saleText = "Pending Full Payment";
+            } else if (carData.currentSaleStatus === "On Hold" && saleText === "Deposit Made") {
+                saleText = "Deposit Placed"; // Match what's displayed on the button
+            } else if (carData.currentSaleStatus === "Sold" && saleText === "Full Payment Made") {
+                saleText = "Sold"; // Match what's displayed on the button
+            }
+        }
+        setIsCarSold(carSoldStatus);
+        setSaleInfoText(saleText);
 
         // Map API data to match the component's expected structure
         const mappedCar = {
@@ -187,6 +212,8 @@ export default function CarDetailPage({ carId: propCarId }) {
             address: s.address,
             phone: s.Phone || "+1 (555) 123-4567", // Fallback phone
           })) || [],
+          currentSaleStatus: carData.currentSaleStatus, // Pass new status from API
+          currentPaymentStatus: carData.currentPaymentStatus // Pass new status from API
         };
 
         setCar(mappedCar);
@@ -286,51 +313,55 @@ export default function CarDetailPage({ carId: propCarId }) {
       });
       return;
     }
+     if (isCarSold) {
+        Swal.fire({
+            icon: "info",
+            title: "Car Status",
+            // Use saleInfoText from state directly, as it's prepared from backend
+            text: `This car is currently ${saleInfoText.toLowerCase()}. It is not available for purchase.`,
+            confirmButtonText: "OK",
+        });
+        return;
+    }
+
 
     try {
-      const token = localStorage.getItem('token');
-      const headers = {
-        'Content-Type': 'application/json',
-      };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
+        const token = localStorage.getItem('token');
+        const headers = {
+          'Content-Type': 'application/json',
+        };
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
 
-      // Fetch user data to check if logged in
-      const userResponse = await fetch("/api/User/me", {
-        method: 'GET',
-        headers: headers,
-      });
+        const userResponse = await fetch("/api/User/me", {
+          method: 'GET',
+          headers: headers,
+        });
 
-      if (userResponse.ok) {
-        // Nếu đã đăng nhập, chuyển hướng thẳng đến trang điều khoản
-        navigate(`/cars/${car.id}/purchase-terms`);
-      } else if (userResponse.status === 401) {
-        // Nếu chưa đăng nhập, hiển thị modal đăng nhập
-        setShowSignInModal(true);
-      } else {
-        const errorData = await userResponse.json();
+        if (userResponse.ok) {
+          navigate(`/cars/${car.id}/purchase-terms`);
+        } else if (userResponse.status === 401) {
+          setShowSignInModal(true);
+        } else {
+          const errorData = await userResponse.json();
+          Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: `Failed to verify login status: ${errorData.message || userResponse.statusText}`,
+            confirmButtonText: "OK",
+          });
+        }
+      } catch (error) {
+        console.error("Error checking login status:", error);
         Swal.fire({
           icon: "error",
-          title: "Error",
-          text: `Failed to verify login status: ${errorData.message || userResponse.statusText}`,
+          title: "Network Error",
+          text: "Could not connect to the server to verify login status. Please try again.",
           confirmButtonText: "OK",
         });
       }
-    } catch (error) {
-      console.error("Error checking login status:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Network Error",
-        text: "Could not connect to the server to verify login status. Please try again.",
-        confirmButtonText: "OK",
-      });
-    }
   };
-
-  // Các hàm PrePurchaseModal không còn cần ở đây nữa
-  // const handlePrePurchaseConfirm = ({ showroom, userConfirmedData, sellerData }) => { ... };
-  // const handleClosePrePurchaseModal = () => { ... };
 
 
   if (loading) {
@@ -365,6 +396,7 @@ export default function CarDetailPage({ carId: propCarId }) {
     features = [],
     pricing = {},
     showrooms = [],
+    currentSaleStatus
   } = car;
 
   const spec = specification || {};
@@ -403,7 +435,9 @@ export default function CarDetailPage({ carId: propCarId }) {
             <div className="space-y-8">
               <div className="space-y-4">
                 <div className="flex items-center space-x-3 text-sm font-medium">
-                  <span className="bg-green-500 text-white px-3 py-1 rounded-full">{listingStatus}</span>
+                   <span className={`px-3 py-1 rounded-full ${isCarSold ? 'bg-red-500' : 'bg-green-500'} text-white`}>
+                    {isCarSold ? (saleInfoText) : (car.listingStatus || "Available")} 
+                  </span>
                   <span className="bg-blue-500 text-white px-3 py-1 rounded-full">{condition}</span>
                 </div>
                 <h1 className="text-4xl lg:text-6xl font-bold leading-tight">
@@ -427,12 +461,21 @@ export default function CarDetailPage({ carId: propCarId }) {
               <div className="space-y-4">
                 <div className="text-5xl font-bold text-green-400">{formatCurrency(price)}</div>
                 <div className="flex flex-wrap gap-4">
-                  <button
-                    className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold px-8 py-4 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200"
-                    onClick={handlePurchase}
-                  >
-                    Buy Now
-                  </button>
+                  {isCarSold ? (
+                    <button
+                      className="bg-gray-400 text-white font-bold px-8 py-4 rounded-xl shadow-lg cursor-not-allowed"
+                      disabled
+                    >
+                      {saleInfoText === "Deposit Made" ? "Deposit Placed" : (saleInfoText === "Full Payment Made" ? "Sold" : (saleInfoText || "Not Available"))}
+                    </button>
+                  ) : (
+                    <button
+                      className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold px-8 py-4 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200"
+                      onClick={handlePurchase}
+                    >
+                      Buy Now
+                    </button>
+                  )}
                   <button
                     className="border-2 border-white hover:bg-white hover:text-gray-900 font-bold px-8 py-4 rounded-xl transition-all duration-200"
                     onClick={() => handleTestDrive(showrooms[0] || {})}
@@ -983,12 +1026,22 @@ export default function CarDetailPage({ carId: propCarId }) {
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-              <button
-                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold px-12 py-4 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200 text-lg"
-                onClick={handlePurchase}
-              >
-                Buy Now - {formatCurrency(price)}
-              </button>
+              {isCarSold ? (
+                <button
+                  className="bg-gray-400 text-white font-bold px-12 py-4 rounded-xl shadow-lg cursor-not-allowed text-lg"
+                  disabled
+                >
+                  {saleInfoText === "Deposit Made" ? "Deposit Placed" : (saleInfoText === "Full Payment Made" ? "Sold" : (saleInfoText || "Not Available"))}
+                  {/* Cần điều chỉnh logic hiển thị saleInfoText cho các trạng thái chờ */}
+                </button>
+              ) : (
+                <button
+                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold px-12 py-4 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200 text-lg"
+                  onClick={handlePurchase}
+                >
+                  Buy Now - {formatCurrency(price)}
+                </button>
+              )}
               <button
                 className="border-2 border-white hover:bg-white hover:text-gray-900 font-bold px-12 py-4 rounded-xl transition-all duration-200 text-lg"
                 onClick={() => handleTestDrive(showrooms[0] || {})}
@@ -1016,6 +1069,7 @@ export default function CarDetailPage({ carId: propCarId }) {
           </div>
         </div>
       </div>
+      
     </div>
   );
 }

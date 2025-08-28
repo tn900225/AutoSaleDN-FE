@@ -110,7 +110,7 @@ const AccountMenu = ({ user, onLogout }) => {
         </Link>
 
         <Link 
-          to="/orders-in-progress" 
+          to="/cars/orders" 
           className="flex items-center gap-3 py-2 text-[#253887] hover:bg-[#f6f8fd] rounded-lg transition font-medium text-base"
         >
           <svg 
