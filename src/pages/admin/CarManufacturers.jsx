@@ -26,7 +26,10 @@ import {
     FaListAlt, // Icon to view models
 } from "react-icons/fa";
 
+import { getApiBaseUrl } from "../../../util/apiconfig";
+
 export default function CarManufacturersAndModelsManagementPage() {
+    const API_BASE = getApiBaseUrl();
     // Manufacturer States
     const [manufacturers, setManufacturers] = useState([]);
     const [filteredManufacturers, setFilteredManufacturers] = useState([]);
@@ -63,9 +66,6 @@ export default function CarManufacturersAndModelsManagementPage() {
     const [currentModel, setCurrentModel] = useState(null);
     const [modelNameInput, setModelNameInput] = useState("");
     const [modelStatusInput, setModelStatusInput] = useState("Active");
-
-
-    const API_BASE_URL = "https://localhost:7170/api"; // Replace with your actual API base URL
 
     // --- Fetch Data Functions ---
     const fetchManufacturers = async () => {
