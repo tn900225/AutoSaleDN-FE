@@ -3,7 +3,7 @@ import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminTopbar from "../../components/admin/AdminTopbar";
 
 // Base URL của Flask API
-const API_URL = 'http://autosaledn.store:5050';
+const API_URL = 'https://autosaledn.store';
 
 const CarPredictForm = () => {
     // State cho dữ liệu form
