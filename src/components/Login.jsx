@@ -63,7 +63,7 @@ export default function Login({ show, onClose }) {
           const { token, role } = await resp.json();
           localStorage.setItem('token', token);
           localStorage.setItem('role', role);
-        
+
           if (role === "Admin") {
             navigate('/admin/dashboard');
             Swal.fire({
@@ -74,7 +74,7 @@ export default function Login({ show, onClose }) {
             onClose();
             return;
           }
-        
+
           if (role === "Seller") {
             navigate('/seller/dashboard');
             Swal.fire({
@@ -92,12 +92,14 @@ export default function Login({ show, onClose }) {
           });
           const userInfo = await userInfoResp.json();
           setUser(userInfo);
-        
+
           onClose();
           Swal.fire({
             icon: "success",
             title: "Login Successful",
             text: "Welcome back!"
+          }).then(() => {
+            window.location.reload();
           });
         }
         else if (resp.status === 401) {
@@ -153,7 +155,7 @@ export default function Login({ show, onClose }) {
             aria-label="Close modal"
           >
             <svg width={20} height={20} fill="none" viewBox="0 0 16 16">
-              <path d="M4 4l8 8M12 4l-8 8" stroke="#253887" strokeWidth={2} strokeLinecap="round"/>
+              <path d="M4 4l8 8M12 4l-8 8" stroke="#253887" strokeWidth={2} strokeLinecap="round" />
             </svg>
           </button>
           <h4 className="text-xl font-bold text-[#253887] mb-2">Welcome back</h4>
@@ -234,8 +236,8 @@ export default function Login({ show, onClose }) {
               >
                 {/* Eye icon */}
                 <svg width={18} height={18} fill="none" viewBox="0 0 16 16">
-                  <path d="M1.333 8s2.667-4 6.667-4 6.667 4 6.667 4-2.667 4-6.667 4-6.667-4-6.667-4z" stroke="#3452e1" strokeWidth="1.5"/>
-                  <circle cx="8" cy="8" r="2" stroke="#3452e1" strokeWidth="1.5"/>
+                  <path d="M1.333 8s2.667-4 6.667-4 6.667 4 6.667 4-2.667 4-6.667 4-6.667-4-6.667-4z" stroke="#3452e1" strokeWidth="1.5" />
+                  <circle cx="8" cy="8" r="2" stroke="#3452e1" strokeWidth="1.5" />
                 </svg>
               </button>
             </div>

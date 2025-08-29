@@ -1,19 +1,15 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import Talk from 'talkjs';
 
+import { UserProvider, useUserContext } from "./components/context/UserContext";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Home from "./pages/Home";
-import './index.css'
-import CarDetailPage from "./pages/CarDetailPage"; // Giả định trang chi tiết xe có thể cung cấp thông tin admin showroom
+import CarDetailPage from "./pages/CarDetailPage";
 import CarPage from "./pages/CarPage";
 import HowAutoSaleWork from "./pages/HowAutoSaleWork";
 import CarReview from "./pages/CarReview";
 import ProfilePage from "./pages/ProfilePage";
-import { UserProvider } from "./components/context/UserContext";
-
-// Import admin pages
 import Dashboard from "./pages/admin/Dashboard";
 import Messages from "./pages/admin/Messages";
 import SellCars from "./pages/admin/SellCars";
@@ -32,7 +28,6 @@ import PurchaseTermsPage from "./pages/PurchaseTermsPage";
 import PrePurchasePage from "./pages/PrePurchasePage";
 import OrdersPage from "./pages/OrdersPage";
 import SellerOrderManagement from "./pages/admin/SellerOrderManagement";
-
 import SellerDashboard from "./pages/seller/SellerDashboard";
 import ManagePosts from "./pages/seller/ManagePosts";
 import BlogIndex from "./pages/BlogIndex";
@@ -40,337 +35,108 @@ import BlogPostDetail from "./pages/BlogPostDetail";
 import SellerMessage from "./pages/seller/SellerMessage";
 import CarPredict from "./pages/admin/CarPredict";
 import WishlistPage from "./pages/WishlistPage";
-
-import { getApiBaseUrl } from "../util/apiconfig";
-
-const useTalkJS = (customerInfor, isCustomerInfoLoaded, hasCustomerInfoError, targetStaff = null) => {
-  const [talkjsPopup, setTalkjsPopup] = useState(null);
-  const [isTalkjsLoaded, setIsTalkjsLoaded] = useState(false);
-
-  useEffect(() => {
-    Talk.ready.then(() => {
-      setIsTalkjsLoaded(true);
-    });
-  }, []);
-
-  const setupChat = useCallback(() => {
-    if (hasCustomerInfoError || !isTalkjsLoaded || !isCustomerInfoLoaded || !customerInfor?.email || !customerInfor?.customerName) {
-      console.log("TalkJS setup skipped: Customer info error, TalkJS not ready, or info incomplete/not loaded yet.");
-      return;
-    }
-
-    try {
-      console.log("Setting up TalkJS chat...");
-
-      const user = new Talk.User({
-        id: customerInfor.email,
-        name: customerInfor.customerName,
-        email: customerInfor.email,
-        photoUrl: 'https://img.freepik.com/premium-vector/default-avatar-profile-icon-social-media-user-image-gray-avatar-icon-blank-profile-silhouette-vector-illustration_561158-3467.jpg',
-        welcomeMessage: 'Hi!',
-      });
-
-      // Xác định staff user dựa trên targetStaff hoặc mặc định là admin chung
-      const staffUser = targetStaff ? new Talk.User({
-        id: targetStaff.id,
-        name: targetStaff.name,
-        email: targetStaff.email || `${targetStaff.id}@example.com`, // Email có thể là tùy chọn
-        photoUrl: targetStaff.photoUrl || 'https://talkjs.com/new-web/avatar-2.jpg', // Ảnh mặc định
-        welcomeMessage: `Hello! How can I assist you today, ${targetStaff.name}?`,
-      }) : new Talk.User({
-        id: 'admin-support-id',
-        name: 'Hỗ Trợ Khách Hàng',
-        email: 'support@example.com',
-        photoUrl: 'https://talkjs.com/new-web/avatar-2.jpg',
-        welcomeMessage: 'Chào bạn! Chúng tôi có thể giúp gì cho bạn hôm nay?',
-      });
-
-
-      const session = new Talk.Session({
-        appId: 'twWJndcJ', // Thay thế bằng TalkJS App ID thực tế của bạn
-        me: user,
-      });
-
-      // Conversation ID sẽ phụ thuộc vào user hiện tại và staff user
-      const conversation = session.getOrCreateConversation(Talk.oneOnOneId(user, staffUser));
-      conversation.setParticipant(user);
-      conversation.setParticipant(staffUser);
-
-      console.log("TalkJS Conversation created:", conversation.id);
-
-      // --- Logic Auto-reply vẫn giữ nguyên ---
-      let autoReplyTimeout;
-      let lastAutoReplyTime = 0;
-      const AUTO_REPLY_DELAY = 10000; // 10 giây
-      const AUTO_REPLY_COOLDOWN = 60000; // 1 phút
-
-      session.on('message', (event) => {
-        console.log("TalkJS Message event received:", event);
-
-        if (event.senderId === user.id) {
-          console.log("Message is from the user.");
-
-          if (autoReplyTimeout) {
-            clearTimeout(autoReplyTimeout);
-          }
-
-          const currentTime = Date.now();
-          if (currentTime - lastAutoReplyTime > AUTO_REPLY_COOLDOWN) {
-            autoReplyTimeout = setTimeout(() => {
-              console.log("Timeout triggered, sending auto-reply.");
-              const staffSession = new Talk.Session({
-                appId: 'twWJndcJ',
-                me: staffUser,
-              });
-              const staffConversation = staffSession.getOrCreateConversation(conversation.id);
-              staffConversation.sendMessage("Hi! Our staff is currently unavailable. We've received your message and will get back to you as soon as possible!\n\nIf your matter is urgent, please call our number +84 38 3691293");
-              lastAutoReplyTime = Date.now();
-              staffSession.destroy();
-            }, AUTO_REPLY_DELAY);
-          } else {
-            console.log("Auto-reply on cooldown.");
-          }
-        } else if (event.senderId === staffUser.id) {
-          console.log("Message is from the staff.");
-          if (autoReplyTimeout) {
-            clearTimeout(autoReplyTimeout);
-            console.log("Auto-reply timeout cleared due to staff reply.");
-          }
-        }
-      });
-      // --- End Logic Auto-reply ---
-
-      const popup = session.createPopup({ keepOpen: true });
-      popup.select(conversation);
-      setTalkjsPopup(popup);
-
-      return () => {
-        console.log("Destroying TalkJS session and popup.");
-        if (popup) {
-          popup.destroy();
-        }
-        if (session) {
-          session.destroy();
-        }
-      };
-
-    } catch (error) {
-      console.error("Error setting up TalkJS chat:", error);
-    }
-  }, [isTalkjsLoaded, customerInfor, isCustomerInfoLoaded, hasCustomerInfoError, targetStaff]); // Thêm targetStaff vào dependencies
-
-  useEffect(() => {
-    if (talkjsPopup) {
-      const container = document.getElementById("talkjs-popup");
-      if (container) {
-        talkjsPopup.mount(container);
-      }
-    }
-  }, [talkjsPopup]);
-
-  useEffect(() => {
-    if (isTalkjsLoaded && isCustomerInfoLoaded && customerInfor && !hasCustomerInfoError) {
-      setupChat();
-    }
-  }, [isTalkjsLoaded, isCustomerInfoLoaded, customerInfor, hasCustomerInfoError, setupChat]);
-
-  return { talkjsPopup, isTalkjsLoaded };
-};
-
+import './index.css';
 
 function UserLayout({ children }) {
-  const [customerInfor, setCustomerInfor] = useState(null);
-  const [isCustomerInfoLoaded, setIsCustomerInfoLoaded] = useState(false);
-  const [hasCustomerInfoError, setHasCustomerInfoError] = useState(false);
-
-  const API_BASE = getApiBaseUrl();
-
-  // Thêm state cho thông tin admin showroom nếu có
-  const [showroomAdminInfo, setShowroomAdminInfo] = useState(null);
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      setHasCustomerInfoError(false);
-      setIsCustomerInfoLoaded(false);
-
-      fetch(`${API_BASE}/api/User/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-      .then(resp => {
-        if (!resp.ok) {
-          if (resp.status === 401) {
-            console.warn('Unauthorized: User token invalid or expired. TalkJS will not be loaded.');
-          } else {
-            console.error(`Error fetching user info: Status ${resp.status}`);
-          }
-          setHasCustomerInfoError(true);
-          setCustomerInfor(null);
-          return null;
-        }
-        return resp.json();
-      })
-      .then(data => {
-        if (data) {
-          const customerData = {
-            email: data.email,
-            customerName: data.fullName || data.name,
-            phoneNumber: data.mobile,
-            address: data.province,
-            point: data.point
-          };
-          setCustomerInfor(customerData);
-          console.log("Customer Info updated in UserLayout:", customerData);
-        }
-      })
-      .catch(error => {
-        console.error('Network or parsing error fetching user info:', error);
-        setHasCustomerInfoError(true);
-        setCustomerInfor(null);
-      })
-      .finally(() => {
-        setIsCustomerInfoLoaded(true);
-      });
-    } else {
-      console.log('No token found. TalkJS will not be loaded.');
-      setHasCustomerInfoError(true);
-      setCustomerInfor(null);
-      setIsCustomerInfoLoaded(true);
-    }
-  }, []);
-
-  // Sử dụng custom hook useTalkJS
-  // Mặc định sẽ truyền null cho targetStaff để chat với admin chung
-  const { isTalkjsLoaded } = useTalkJS(customerInfor, isCustomerInfoLoaded, hasCustomerInfoError, showroomAdminInfo);
-
-
-  const shouldShowTalkJS = isTalkjsLoaded && isCustomerInfoLoaded && !hasCustomerInfoError && customerInfor;
+  const { user, isChatOpen, toggleChat } = useUserContext();
 
   return (
-    <UserProvider>
+    <>
       <Header />
       <main>{children}</main>
-      {shouldShowTalkJS && (
-        <div className="talkjs-container">
-          <div id="talkjs-popup" style={{ width: '100%', height: '100%' }}></div>
+
+      {user && (
+        <div className="chat-widget-container">
+          <div
+            className={`chat-backdrop ${isChatOpen ? 'backdrop-visible' : ''}`}
+            onClick={toggleChat}
+          />
+
+          <div id="talkjs-inbox-wrapper" className={isChatOpen ? 'chat-open' : 'chat-closed'}>
+            <div id="talkjs-inbox-container"></div>
+          </div>
+
+          <button id="custom-chat-button" className={isChatOpen ? 'chat-open' : ''} onClick={toggleChat} title="Mở Hộp thư">
+            <svg className="chat-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" className="icon-chat" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" className="icon-close" />
+            </svg>
+          </button>
         </div>
       )}
+
       <Footer />
       <style jsx>{`
-        #button-contact-vr {
+        #custom-chat-button {
           position: fixed;
-          right: 20px;
-          bottom: 120px;
-          z-index: 999;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 20px;
+          right: 25px; bottom: 25px; z-index: 1000;
+          width: 56px; height: 56px; border-radius: 50%;
+          background-color: #000; color: white;
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer; border: none;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
-        .talkjs-container {
+        #custom-chat-button:hover {
+          transform: scale(1.05);
+          box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+        }
+        .chat-icon {
+          width: 28px; height: 28px; position: absolute;
+          transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        .chat-icon .icon-close { opacity: 0; transform: rotate(-45deg) scale(0.5); }
+        .chat-icon .icon-chat { opacity: 1; transform: rotate(0deg) scale(1); }
+        #custom-chat-button.chat-open .icon-chat { opacity: 0; transform: rotate(45deg) scale(0.5); }
+        #custom-chat-button.chat-open .icon-close { opacity: 1; transform: rotate(0deg) scale(1); }
+        #talkjs-inbox-wrapper {
           position: fixed;
-          right: 20px;
-          bottom: 20px;
+          bottom: 95px; right: 25px;
+          width: 375px; height: 70vh; max-height: 700px;
+          border-radius: 16px; z-index: 999;
+          transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        #talkjs-inbox-container {
+            width: 100%; height: 100%;
+            border-radius: 16px; overflow: hidden;
+            box-shadow: 0px 10px 40px rgba(0, 0, 0, 0.2);
+            border: 1px solid #E5E7EB;
+        }
+        .chat-closed {
+          opacity: 0;
+          visibility: hidden;
+        }
+        .chat-open {
+          opacity: 1;
+          visibility: visible;
+        }
+        .chat-backdrop {
+          position: fixed;
+          top: 0; left: 0;
+          width: 100%; height: 100%;
           z-index: 998;
-          width: 100px;
-          height: 100px;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          pointer-events: none;
         }
-
-        .button-contact {
-          width: 60px;
-          height: 60px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 50%;
-          background-color: #0066ff;
-          cursor: pointer;
-          transition: all 0.3s ease;
+        .backdrop-visible {
+          opacity: 1;
         }
-
-        .button-contact:hover {
-          transform: scale(1.1);
-          box-shadow: 0 0 15px rgba(0, 102, 255, 0.5);
-        }
-
-        .phone-vr {
-          position: relative;
-        }
-
-        .phone-vr-circle-fill {
-          position: absolute;
-          width: 65px;
-          height: 65px;
-          top: 11.5px;
-          left: -2.5px;
-          background-color: rgba(0, 123, 255, 0.15);
-          border-radius: 50%;
-          animation: phone-vr-circle-fill 2.3s infinite ease-in-out;
-        }
-
-        .phone-vr-img-circle {
-          background-color: #0066ff;
-          width: 50px;
-          height: 50px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-          transition: all 0.3s ease;
-          top: 18px;
-          left: 5px;
-        }
-
-        .phone-vr-img-circle:hover {
-          background-color: #0052cc;
-        }
-
-        .zalo-button {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
-          transition: transform 0.3s ease;
-        }
-
-        .zalo-button:hover {
-          transform: scale(1.1);
-        }
-
-        @keyframes phone-vr-circle-fill {
-          0% {
-            transform: rotate(0) scale(1) skew(1deg);
+        @media (max-width: 480px) {
+          #talkjs-inbox-wrapper {
+            width: calc(100% - 20px); height: calc(100% - 95px);
+            max-height: 100%; right: 10px; bottom: 85px;
           }
-          10% {
-            transform: rotate(-25deg) scale(1) skew(1deg);
-          }
-          20% {
-            transform: rotate(25deg) scale(1) skew(1deg);
-          }
-          30% {
-            transform: rotate(-25deg) scale(1) skew(1deg);
-          }
-          40% {
-            transform: rotate(25deg) scale(1) skew(1deg);
-          }
-          50% {
-            transform: rotate(0) scale(1) skew(1deg);
-          }
-          100% {
-            transform: rotate(0) scale(1) skew(1deg);
+          #custom-chat-button {
+            right: 15px; bottom: 15px;
           }
         }
       `}</style>
-    </UserProvider>
+    </>
   );
 }
 
-// Layout chung cho Admin & Seller
+
 function DashboardLayout({ children }) {
   return (
     <div className="dashboard-layout">
@@ -379,121 +145,85 @@ function DashboardLayout({ children }) {
   );
 }
 
-// Component bảo vệ route theo role
 function RequireRole({ allow, children }) {
-  const role = localStorage.getItem("role"); // hoặc lấy từ context
-  if (!allow.includes(role)) return <Navigate to="/" replace />;
+  const role = localStorage.getItem("role");
+  if (!allow.includes(role)) {
+    return <Navigate to="/" replace />;
+  }
   return children;
 }
 
 function App() {
   return (
     <Router>
-      <Routes>
-        {/* User routes */}
-        <Route
-          path="/*"
-          element={
-            <UserLayout>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/cars" element={<CarPage />} />
-                <Route path="/how-auto-works" element={<HowAutoSaleWork />} />
-                <Route path="/customer-reviews" element={<CarReview />} />
-                <Route path="/cars/:id" element={<CarDetailPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="cars/:carId/purchase-terms" element={<PurchaseTermsPage />} />
-                <Route path="cars/:carId/confirm-orders" element={<PrePurchasePage />} />
-                <Route path="cars/orders" element={<OrdersPage />} />
-
-                <Route path="/blog" element={<BlogIndex />} />
-                <Route path="/blog/:slug" element={<BlogPostDetail />} />
-                <Route path="/wishlist" element={<WishlistPage />} />
-
-              </Routes>
-            </UserLayout>
-          }
-        />
-
-        {/* Admin routes */}
-        <Route
-          path="/admin/*"
-          element={
-            <RequireRole allow={["Admin"]}>
-              <DashboardLayout>
+      <UserProvider>
+        <Routes>
+          <Route
+            path="/*"
+            element={
+              <UserLayout>
                 <Routes>
-                  <Route path="dashboard" element={<Dashboard />} />
-                  <Route path="messages" element={<Messages />} />
-                  <Route path="sell-cars" element={<SellCars />} />
-                  <Route path="settings" element={<Settings />} />
-                  <Route path="showroom" element={<ShowroomManagement />} />
-                  <Route path="employee" element={<EmployeeAdmin />} />
-                  <Route path="car-features" element={<CarFeatures />} />
-                  <Route path="car-colors" element={<CarColor />} />
-                  <Route path="car-manufacturers-models" element={<CarManufacturers />} />
-                  <Route path="cars/edit/:listingId" element={<UpdateCar />} />
-                  <Route path="car-prediction" element={<CarPredict />} />
-                  
-
-                  {/* Admin-only routes */}
-                  <Route
-                    path="customers"
-                    element={
-                      <RequireRole allow={["Admin"]}>
-                        <CustomerAdmin />
-                      </RequireRole>
-                    }
-                  />
-                  <Route
-                    path="cars"
-                    element={
-                      <RequireRole allow={["Admin"]}>
-                        <CarAdmin />
-                      </RequireRole>
-                    }
-                  />
-                  <Route
-                    path="transactions/:id"
-                    element={
-                      <RequireRole allow={["Admin"]}>
-                        <TransactionDetail />
-                      </RequireRole>
-                    }
-                  />
-                  <Route
-                    path="add-new-car"
-                    element={
-                      <RequireRole allow={["Admin"]}>
-                        <AddNewCarPage />
-                      </RequireRole>
-                    }
-                  />
-
-                  {/* Default route for admin */}
-                  <Route path="" element={<Navigate to="dashboard" replace />} />
+                  <Route path="/" element={<Home />} />
+                  <Route path="/cars" element={<CarPage />} />
+                  <Route path="/how-auto-works" element={<HowAutoSaleWork />} />
+                  <Route path="/customer-reviews" element={<CarReview />} />
+                  <Route path="/cars/:id" element={<CarDetailPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="cars/:carId/purchase-terms" element={<PurchaseTermsPage />} />
+                  <Route path="cars/:carId/confirm-orders" element={<PrePurchasePage />} />
+                  <Route path="cars/orders" element={<OrdersPage />} />
+                  <Route path="/blog" element={<BlogIndex />} />
+                  <Route path="/blog/:slug" element={<BlogPostDetail />} />
+                  <Route path="/wishlist" element={<WishlistPage />} />
                 </Routes>
-              </DashboardLayout>
-            </RequireRole>
-          }
-        />
-        <Route
-          path="/seller/*"
-          element={
-            <RequireRole allow={["Seller"]}>
-              <DashboardLayout>
-                <Routes>
-                  <Route path="dashboard" element={<SellerDashboard />} />
-                  <Route path="order-management" element={<SellerOrderManagement />} />
-                  <Route path="manage-posts" element={<ManagePosts />} />
-                  <Route path="manage-message" element={<SellerMessage />} />
-                </Routes>
-              </DashboardLayout>
-            </RequireRole>
-          }
-        />
-        {/* Catch-all route */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+              </UserLayout>
+            }
+          />
+          <Route
+            path="/admin/*"
+            element={
+              <RequireRole allow={["Admin"]}>
+                <DashboardLayout>
+                  <Routes>
+                    <Route path="dashboard" element={<Dashboard />} />
+                    <Route path="messages" element={<Messages />} />
+                    <Route path="sell-cars" element={<SellCars />} />
+                    <Route path="settings" element={<Settings />} />
+                    <Route path="showroom" element={<ShowroomManagement />} />
+                    <Route path="employee" element={<EmployeeAdmin />} />
+                    <Route path="car-features" element={<CarFeatures />} />
+                    <Route path="car-colors" element={<CarColor />} />
+                    <Route path="car-manufacturers-models" element={<CarManufacturers />} />
+                    <Route path="cars/edit/:listingId" element={<UpdateCar />} />
+                    <Route path="car-prediction" element={<CarPredict />} />
+                    <Route path="customers" element={<CustomerAdmin />} />
+                    <Route path="cars" element={<CarAdmin />} />
+                    <Route path="transactions/:id" element={<TransactionDetail />} />
+                    <Route path="add-new-car" element={<AddNewCarPage />} />
+                    <Route path="" element={<Navigate to="dashboard" replace />} />
+                  </Routes>
+                </DashboardLayout>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/seller/*"
+            element={
+              <RequireRole allow={["Seller"]}>
+                <DashboardLayout>
+                  <Routes>
+                    <Route path="dashboard" element={<SellerDashboard />} />
+                    <Route path="order-management" element={<SellerOrderManagement />} />
+                    <Route path="manage-posts" element={<ManagePosts />} />
+                    <Route path="manage-message" element={<SellerMessage />} />
+                  </Routes>
+                </DashboardLayout>
+              </RequireRole>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </UserProvider>
     </Router>
   );
 }
