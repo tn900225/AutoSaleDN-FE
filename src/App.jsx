@@ -17,7 +17,6 @@ import { UserProvider } from "./components/context/UserContext";
 import Dashboard from "./pages/admin/Dashboard";
 import Messages from "./pages/admin/Messages";
 import SellCars from "./pages/admin/SellCars";
-import Services from "./pages/admin/Services";
 import Settings from "./pages/admin/Settings";
 import ShowroomManagement from "./pages/admin/ShowroomManagement";
 import EmployeeAdmin from "./pages/admin/EmployeeAdmin";
@@ -426,7 +425,6 @@ function App() {
                   <Route path="dashboard" element={<Dashboard />} />
                   <Route path="messages" element={<Messages />} />
                   <Route path="sell-cars" element={<SellCars />} />
-                  <Route path="services" element={<Services />} />
                   <Route path="settings" element={<Settings />} />
                   <Route path="showroom" element={<ShowroomManagement />} />
                   <Route path="employee" element={<EmployeeAdmin />} />
