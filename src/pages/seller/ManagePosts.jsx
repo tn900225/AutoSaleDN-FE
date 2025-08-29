@@ -8,7 +8,8 @@ import {
   HiOutlineFilter,
   HiOutlineChevronLeft,
   HiOutlineChevronRight,
-  HiOutlinePlus
+  HiOutlinePlus,
+  HiOutlineX
 } from 'react-icons/hi';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -27,6 +28,8 @@ const ManagePosts = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [viewingPost, setViewingPost] = useState(null);
   const [editingPost, setEditingPost] = useState(null);
   const [categories, setCategories] = useState([]);
   const [tags, setTags] = useState([]);
@@ -151,10 +154,8 @@ const ManagePosts = () => {
       const postData = await response.json();
       
       // Map TagIds to tag names for the modal's state
-      const selectedTagNames = postData.tagIds.map(tagId => {
-        const tag = tags.find(t => t.tagId === tagId);
-        return tag ? tag.name : null;
-      }).filter(Boolean);
+      const selectedTagNames = (postData.tags || []).map(tag => tag.name);
+
 
       setEditingPost({
         ...postData,
@@ -169,6 +170,25 @@ const ManagePosts = () => {
     }
   };
 
+  const handleView = async (postId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE}/api/seller/posts/${postId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch post details');
+      }
+      const postData = await response.json();
+      setViewingPost(postData);
+      setShowViewModal(true);
+    } catch (error) {
+      console.error('Error fetching post for view:', error);
+      toast.error('Failed to load post details. Please try again.');
+    }
+  };
 
   const handleDelete = async (postId) => {
     if (window.confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
@@ -240,13 +260,27 @@ const ManagePosts = () => {
 
       const method = isEdit ? 'PUT' : 'POST';
 
+      // Prepare the request body
+      const requestBody = {
+        ...formData,
+        // Ensure we're only sending the necessary fields
+        title: formData.title,
+        content: formData.content,
+        categoryId: formData.categoryId,
+        isPublished: formData.isPublished || false,
+        slug: formData.slug,
+        // Send both existing tag IDs and new tag names
+        tagIds: formData.tagIds || [],
+        newTagNames: formData.newTagNames || []
+      };
+
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
@@ -256,6 +290,7 @@ const ManagePosts = () => {
 
       toast.success(`Post ${isEdit ? 'updated' : 'created'} successfully`);
       setShowCreateModal(false);
+      setEditingPost(null);
       fetchPosts();
     } catch (error) {
       console.error('Error saving post:', error);
@@ -291,14 +326,6 @@ const ManagePosts = () => {
     } catch (error) {
       return 'Invalid date';
     }
-  };
-
-  const handleViewPost = (slug) => {
-    if (!slug) {
-      toast.error('Invalid post URL');
-      return;
-    }
-    window.open(`/blog/${slug}`, '_blank', 'noopener,noreferrer');
   };
 
   const handlePageChange = (page) => {
@@ -569,7 +596,7 @@ const ManagePosts = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
                           <button
-                            onClick={() => handleViewPost(post.slug)}
+                            onClick={() => handleView(post.postId)}
                             className="text-blue-600 hover:text-blue-900"
                             title="View"
                           >
@@ -631,8 +658,133 @@ const ManagePosts = () => {
           onSave={handleSavePost}
         />
       )}
+
+      {showViewModal && viewingPost && (
+        <PostViewModal
+          post={viewingPost}
+          onClose={() => {
+            setShowViewModal(false);
+            setViewingPost(null);
+          }}
+        />
+      )}
     </main>
     </div>
+    </div>
+  );
+};
+
+// Component Modal xem bài viết
+const PostViewModal = ({ post, onClose }) => {
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Draft';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid date';
+      const options = {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      };
+      return date.toLocaleDateString('en-US', options);
+    } catch (error) {
+      return 'Invalid date';
+    }
+  };
+
+  const renderMarkdownAsHtml = (content) => {
+    // Simple markdown to HTML conversion for preview
+    let html = content
+      .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mb-2 mt-4">$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mb-3 mt-4">$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mb-4 mt-4">$1</h1>')
+      .replace(/\*\*(.*)\*\*/gim, '<strong class="font-semibold">$1</strong>')
+      .replace(/\*(.*)\*/gim, '<em class="italic">$1</em>')
+      .replace(/\n\n/gim, '</p><p class="mb-4">')
+      .replace(/\n/gim, '<br>');
+    
+    return `<p class="mb-4">${html}</p>`;
+  };
+
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+        <div className="flex justify-between items-center p-4 border-b">
+          <h2 className="text-xl font-semibold text-gray-800">View Post</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-500 p-1 rounded-full hover:bg-gray-100"
+          >
+            <HiOutlineX className="h-6 w-6" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="space-y-6">
+            {/* Header Info */}
+            <div className="border-b pb-4">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{post.title}</h1>
+              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600" >
+                <span>Category: <span style={{color:'rgb(30 64 175 / var(--tw-text-opacity))'}}>{post.category?.name || 'Uncategorized'}</span></span>
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    post.isPublished 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-yellow-100 text-yellow-800'
+                  }`}
+                >
+                  {post.isPublished ? 'Published' : 'Draft'}
+                </span>
+                <span>Views: {(post.viewCount || 0).toLocaleString()}</span>
+              </div>
+              <div className="mt-2 text-sm text-gray-500">
+                {post.isPublished ? `Published: ${formatDate(post.publishedDate)}` : 'Not published yet'}
+              </div>
+            </div>
+
+            {/* Content */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Content</h3>
+              <div 
+                className="prose max-w-none bg-gray-50 p-4 rounded-md border"
+                dangerouslySetInnerHTML={{ __html: renderMarkdownAsHtml(post.content) }}
+              />
+            </div>
+
+            {/* Tags */}
+            {post.tags && post.tags.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-2">Tags</h3>
+                <div className="flex flex-wrap gap-2">
+                  {post.tags.map(tag => (
+                    <span
+                      key={tag.tagId}
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                    >
+                      #{tag.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+        </div>
+
+        
+
+        <div className="bg-gray-50 px-6 py-3 border-t flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
@@ -640,6 +792,7 @@ const ManagePosts = () => {
 const PostEditorModal = ({ post, categories = [], tags = [], onClose, onSave }) => {
   const [tagInput, setTagInput] = useState('');
   const [suggestedTags, setSuggestedTags] = useState([]);
+  const [errors, setErrors] = useState({});
 
   const [selectedTags, setSelectedTags] = useState(() => {
     // If post is being edited, use the selectedTagNames passed from the parent component
@@ -653,8 +806,6 @@ const PostEditorModal = ({ post, categories = [], tags = [], onClose, onSave }) 
     title: post?.title || '',
     slug: post?.slug || '',
     content: post?.content || '## Write your post content here\n\nYou can use markdown to format your content.',
-    excerpt: post?.excerpt || '',
-    featuredImage: post?.featuredImage || null,
     categoryId: post?.categoryId || '',
     isPublished: post?.isPublished || false,
     tagIds: post?.tagIds || []
@@ -667,8 +818,6 @@ const PostEditorModal = ({ post, categories = [], tags = [], onClose, onSave }) 
         title: post.title || '',
         slug: post.slug || '',
         content: post.content || '',
-        excerpt: post.excerpt || '',
-        featuredImage: post.featuredImage || null,
         categoryId: post.categoryId || '',
         isPublished: post.isPublished || false,
         tagIds: post.tagIds || []
@@ -679,16 +828,14 @@ const PostEditorModal = ({ post, categories = [], tags = [], onClose, onSave }) 
         title: '',
         slug: '',
         content: '## Write your post content here\n\nYou can use markdown to format your content.',
-        excerpt: '',
-        featuredImage: null,
         categoryId: '',
         isPublished: false,
         tagIds: []
       });
       setSelectedTags([]);
     }
+    setErrors({});
   }, [post]);
-
 
   useEffect(() => {
     if (categories.length > 0 && !formData.categoryId) {
@@ -698,6 +845,52 @@ const PostEditorModal = ({ post, categories = [], tags = [], onClose, onSave }) 
       }));
     }
   }, [categories, formData.categoryId]);
+
+  // Validation functions
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Title validation
+    if (!formData.title.trim()) {
+      newErrors.title = 'Title is required';
+    } else if (formData.title.trim().length < 3) {
+      newErrors.title = 'Title must be at least 3 characters long';
+    } else if (formData.title.trim().length > 200) {
+      newErrors.title = 'Title must be less than 200 characters';
+    }
+
+    // Slug validation
+    if (!formData.slug.trim()) {
+      newErrors.slug = 'Slug is required';
+    } else if (formData.slug.trim().length < 3) {
+      newErrors.slug = 'Slug must be at least 3 characters long';
+    } else if (!/^[a-z0-9-]+$/.test(formData.slug)) {
+      newErrors.slug = 'Slug can only contain lowercase letters, numbers, and hyphens';
+    }
+
+    // Content validation
+    if (!formData.content.trim()) {
+      newErrors.content = 'Content is required';
+    } else if (formData.content.trim().length < 10) {
+      newErrors.content = 'Content must be at least 10 characters long';
+    }
+
+    // Category validation
+    if (!formData.categoryId) {
+      newErrors.categoryId = 'Category is required';
+    }
+
+    // Tags validation
+    if (selectedTags.length === 0) {
+      newErrors.tags = 'At least one tag is required';
+    } else if (selectedTags.length > 10) {
+      newErrors.tags = 'Maximum 10 tags allowed';
+    }
+
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleTagInputChange = (e) => {
     const value = e.target.value;
@@ -718,9 +911,17 @@ const PostEditorModal = ({ post, categories = [], tags = [], onClose, onSave }) 
 
   const handleAddTag = (tag) => {
     if (tag && !selectedTags.includes(tag)) {
+      if (selectedTags.length >= 10) {
+        toast.error('Maximum 10 tags allowed');
+        return;
+      }
       setSelectedTags([...selectedTags, tag]);
       setTagInput('');
       setSuggestedTags([]);
+      // Clear tag error if it exists
+      if (errors.tags) {
+        setErrors(prev => ({ ...prev, tags: '' }));
+      }
     }
   };
 
@@ -740,52 +941,60 @@ const PostEditorModal = ({ post, categories = [], tags = [], onClose, onSave }) 
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    const newValue = type === 'checkbox' ? checked : value;
 
-    setFormData(prev => {
-      const newValue = type === 'checkbox' ? checked : value;
-      return {
+    setFormData(prev => ({
+      ...prev,
+      [name]: newValue
+    }));
+
+    // Clear specific field error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+
+    // Auto-generate slug from title if slug is empty
+    if (name === 'title' && !formData.slug) {
+      const generatedSlug = generateSlug(value);
+      setFormData(prev => ({
         ...prev,
-        [name]: newValue
-      };
-    });
+        title: value,
+        slug: generatedSlug
+      }));
+    }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const tagIds = selectedTags.map(tagName => {
+    if (!validateForm()) {
+      toast.error('Please fix all validation errors before submitting');
+      return;
+    }
+
+    // Separate existing tags and new tags
+    const existingTagIds = [];
+    const newTagNames = [];
+
+    selectedTags.forEach(tagName => {
       const found = tags.find(t => t.name === tagName);
-      return found ? found.tagId : null;
-    }).filter(Boolean);
+      if (found) {
+        existingTagIds.push(found.tagId);
+      } else {
+        newTagNames.push(tagName);
+      }
+    });
 
     const dataToSave = {
       ...formData,
-      tagIds: tagIds,
+      tagIds: existingTagIds,
+      newTagNames: newTagNames,
       categoryId: formData.categoryId ? parseInt(formData.categoryId, 10) : null,
-      excerpt: formData.excerpt || '',
-      featuredImage: formData.featuredImage || null,
       isPublished: formData.isPublished || false,
-      slug: formData.slug || formData.title
-        .toLowerCase()
-        .replace(/[^\w\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/--+/g, '-')
+      slug: formData.slug.trim(),
+      title: formData.title.trim(),
+      content: formData.content.trim()
     };
-
-    if (!dataToSave.categoryId) {
-      toast.error('Please select a category.');
-      return;
-    }
-    if (dataToSave.tagIds.length === 0) {
-      toast.error('Please select at least one tag.');
-      return;
-    }
-    
-    // Ensure categoryId is not a string "NaN"
-    if (isNaN(dataToSave.categoryId)) {
-        toast.error('Invalid category ID. Please select a valid category.');
-        return;
-    }
 
     onSave(dataToSave);
   };
@@ -808,17 +1017,15 @@ const PostEditorModal = ({ post, categories = [], tags = [], onClose, onSave }) 
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-500"
+            className="text-gray-400 hover:text-gray-500 p-1 rounded-full hover:bg-gray-100"
           >
-            <span className="sr-only">Close</span>
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <HiOutlineX className="h-6 w-6" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4">
           <div className="space-y-4">
+            {/* Title */}
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-gray-700">
                 Title <span className="text-red-500">*</span>
@@ -828,18 +1035,16 @@ const PostEditorModal = ({ post, categories = [], tags = [], onClose, onSave }) 
                 id="title"
                 name="title"
                 value={formData.title}
-                onChange={(e) => {
-                  setFormData(prev => ({
-                    ...prev,
-                    title: e.target.value,
-                    slug: prev.slug || generateSlug(e.target.value)
-                  }));
-                }}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                required
+                onChange={handleChange}
+                className={`mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 ${
+                  errors.title ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                }`}
+                placeholder="Enter post title"
               />
+              {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
             </div>
 
+            {/* Slug */}
             <div>
               <label htmlFor="slug" className="block text-sm font-medium text-gray-700">
                 Slug <span className="text-red-500">*</span>
@@ -854,12 +1059,17 @@ const PostEditorModal = ({ post, categories = [], tags = [], onClose, onSave }) 
                   name="slug"
                   value={formData.slug}
                   onChange={handleChange}
-                  className="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  required
+                  className={`flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md border focus:outline-none focus:ring-2 ${
+                    errors.slug ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                  }`}
+                  placeholder="post-url-slug"
                 />
               </div>
+              {errors.slug && <p className="mt-1 text-sm text-red-600">{errors.slug}</p>}
+              <p className="mt-1 text-xs text-gray-500">Only lowercase letters, numbers, and hyphens allowed</p>
             </div>
 
+            {/* Category and Tags Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="categoryId" className="block text-sm font-medium text-gray-700">
@@ -870,8 +1080,9 @@ const PostEditorModal = ({ post, categories = [], tags = [], onClose, onSave }) 
                   name="categoryId"
                   value={formData.categoryId}
                   onChange={handleChange}
-                  className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                  required
+                  className={`mt-1 block w-full pl-3 pr-10 py-2 text-base border focus:outline-none focus:ring-2 sm:text-sm rounded-md ${
+                    errors.categoryId ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                  }`}
                 >
                   <option value="">Select a category</option>
                   {categories.map(category => (
@@ -880,6 +1091,7 @@ const PostEditorModal = ({ post, categories = [], tags = [], onClose, onSave }) 
                     </option>
                   ))}
                 </select>
+                {errors.categoryId && <p className="mt-1 text-sm text-red-600">{errors.categoryId}</p>}
               </div>
 
               <div>
@@ -916,11 +1128,13 @@ const PostEditorModal = ({ post, categories = [], tags = [], onClose, onSave }) 
                       onChange={handleTagInputChange}
                       onKeyDown={handleTagKeyDown}
                       placeholder="Type to search or add tags..."
-                      className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className={`block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 ${
+                        errors.tags ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                      }`}
                     />
 
                     {suggestedTags.length > 0 && (
-                      <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1">
+                      <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 border">
                         {suggestedTags.map(tag => (
                           <div
                             key={tag.tagId}
@@ -933,13 +1147,15 @@ const PostEditorModal = ({ post, categories = [], tags = [], onClose, onSave }) 
                       </div>
                     )}
                   </div>
+                  {errors.tags && <p className="mt-1 text-sm text-red-600">{errors.tags}</p>}
                   <p className="mt-1 text-xs text-gray-500">
-                    Press Enter or comma to add a tag. Click on a tag to remove it.
+                    Press Enter or comma to add a tag. Maximum 10 tags allowed.
                   </p>
                 </div>
               </div>
             </div>
 
+            {/* Content */}
             <div>
               <label htmlFor="content" className="block text-sm font-medium text-gray-700">
                 Content <span className="text-red-500">*</span>
@@ -950,14 +1166,21 @@ const PostEditorModal = ({ post, categories = [], tags = [], onClose, onSave }) 
                 rows={12}
                 value={formData.content}
                 onChange={handleChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-                required
+                className={`mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 font-mono text-sm ${
+                  errors.content ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                }`}
+                placeholder="Write your post content here..."
               />
+              {errors.content && <p className="mt-1 text-sm text-red-600">{errors.content}</p>}
               <p className="mt-1 text-xs text-gray-500">
-                Supports markdown formatting. <a href="https://www.markdownguide.org/cheat-sheet/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Markdown Cheat Sheet</a>
+                Supports markdown formatting. {formData.content.length} characters.{' '}
+                <a href="https://www.markdownguide.org/cheat-sheet/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  Markdown Cheat Sheet
+                </a>
               </p>
             </div>
 
+            {/* Publish Checkbox */}
             <div className="flex items-center">
               <input
                 id="isPublished"
@@ -968,7 +1191,7 @@ const PostEditorModal = ({ post, categories = [], tags = [], onClose, onSave }) 
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
               <label htmlFor="isPublished" className="ml-2 block text-sm text-gray-700">
-                Publish this post
+                Publish this post immediately
               </label>
             </div>
           </div>
@@ -978,7 +1201,7 @@ const PostEditorModal = ({ post, categories = [], tags = [], onClose, onSave }) 
           <button
             type="submit"
             onClick={handleSubmit}
-            className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+            className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm transition-colors"
           >
             {post ? 'Update Post' : 'Create Post'}
           </button>
@@ -992,6 +1215,12 @@ const PostEditorModal = ({ post, categories = [], tags = [], onClose, onSave }) 
           {post && (
             <button
               type="button"
+              onClick={() => {
+                if (window.confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+                  // You might want to add delete functionality here or call a parent function
+                  onClose();
+                }
+              }}
               className="mt-3 w-full inline-flex justify-center rounded-md border border-transparent px-4 py-2 text-base font-medium text-red-700 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
             >
               Delete Post

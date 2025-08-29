@@ -5,7 +5,6 @@ import { getApiBaseUrl } from "../../util/apiconfig";
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-// A more modern, dark-themed blog index component.
 const BlogIndex = () => {
     const API_BASE = getApiBaseUrl();
     const [posts, setPosts] = useState([]);

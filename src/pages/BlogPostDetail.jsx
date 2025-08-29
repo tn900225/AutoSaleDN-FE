@@ -7,7 +7,6 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const BlogPostDetail = () => {
-    // 1. Sửa: Thay vì lấy 'id', bạn cần lấy 'slug' từ URL.
     const { slug } = useParams();
     const API_BASE = getApiBaseUrl();
     const [post, setPost] = useState(null);
@@ -17,7 +16,6 @@ const BlogPostDetail = () => {
         const fetchPost = async () => {
             try {
                 setLoading(true);
-                // 2. Sửa: Sử dụng biến 'slug' vừa lấy được để gọi API.
                 const response = await fetch(`${API_BASE}/api/user/posts/slug/${slug}`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch blog post');
@@ -27,17 +25,15 @@ const BlogPostDetail = () => {
             } catch (error) {
                 console.error('Error fetching post:', error);
                 toast.error('Failed to load blog post.');
-                setPost(null); // Đặt post về null để hiển thị thông báo lỗi
+                setPost(null); 
             } finally {
                 setLoading(false);
             }
         };
 
-        // 3. Sửa: Kiểm tra biến 'slug' để đảm bảo nó tồn tại trước khi gọi API.
         if (slug) {
             fetchPost();
         }
-    // 4. Sửa: Thêm 'slug' vào dependency array để useEffect chạy lại khi slug thay đổi.
     }, [slug]);
 
     const formatDate = (dateString) => {
@@ -74,13 +70,6 @@ const BlogPostDetail = () => {
                 <HiArrowLeft className="mr-2" />
                 Back blog
             </Link>
-
-            {/* <img
-                className="w-full h-96 object-cover object-center rounded-lg mb-6"
-                src={post.featuredImage || 'https://via.placeholder.com/1200x600?text=No+Image'}
-                alt={post.title}
-            /> */}
-
             <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4 leading-tight">
                 {post.title}
             </h1>
