@@ -360,12 +360,17 @@ export default function AdminDashboard() {
                   </div>
                   <div className="ml-3">
                     <p className="text-sm font-medium text-gray-500">Monthly Average</p>
-                    <p className="text-2xl font-bold text-gray-900">${insights?.averageMonthly?.toLocaleString() || 0}</p>
+                                         
+                    <p className="text-2xl font-bold text-gray-900">
+                      
+                     {Number(insights?.averageMonthly || 0).toLocaleString("vi-VN", { style: "currency", currency: "VND" })}
+                      
+                      </p>
                   </div>
                 </div>
               </div>
               <div className="text-sm text-gray-500">
-                Best: {insights?.bestMonth?.month} (${insights?.bestMonth?.revenue?.toLocaleString() || 0})
+                Best: {insights?.bestMonth?.month} ({insights?.bestMonth?.revenue?.toLocaleString("vi-VN", { style: "currency", currency: "VND" }) || 0})
               </div>
             </div>
 
@@ -440,7 +445,7 @@ export default function AdminDashboard() {
                     <span className="text-sm font-medium text-blue-900">Best Performance</span>
                   </div>
                   <p className="text-sm text-blue-700">
-                    {insights?.bestMonth?.month} generated ${insights?.bestMonth?.revenue?.toLocaleString() || 0} in revenue
+                    {insights?.bestMonth?.month} generated {insights?.bestMonth?.revenue?.toLocaleString("vi-VN", { style: "currency", currency: "VND" }) || 0} in revenue
                   </p>
                 </div>
                 <div className="p-4 bg-green-50 rounded-lg">
@@ -532,7 +537,7 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-semibold text-gray-900">${car.revenue?.toLocaleString()}</p>
+                          <p className="text-sm font-semibold text-gray-900">{car.revenue?.toLocaleString("vi-VN", { style: "currency", currency: "VND" })}</p>
                           <p className="text-xs text-gray-500">{car.totalSold} sold</p>
                         </div>
                       </div>

@@ -20,6 +20,8 @@ import {
   DocumentTextIcon,
   BanknotesIcon,
   ShoppingCartIcon,
+  ChatBubbleBottomCenterTextIcon, // Icon for review
+  PencilIcon // Icon for editing
 } from '@heroicons/react/24/outline';
 import { getApiBaseUrl } from "../../util/apiconfig";
 
@@ -35,11 +37,14 @@ export default function OrdersPage() {
   const [isProcessingGateway, setIsProcessingGateway] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewData, setReviewData] = useState({
-    carSaleId: '',
+    id: null,
     rating: 0,
-    content: ''
+    comment: '',
+    orderId: null,
+    images: [] // <— danh sách { url, name }
   });
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [isUploadingReviewImgs, setIsUploadingReviewImgs] = useState(false);
 
   const API_BASE = getApiBaseUrl();
 
@@ -49,7 +54,6 @@ export default function OrdersPage() {
 
   const getToken = () => localStorage.getItem('token');
 
-  // MoMo callback handler - Using the same pattern as PrePurchasePage
   useEffect(() => {
     console.log("--- useEffect for Momo callback initiated (Orders Page) ---");
     const query = new URLSearchParams(location.search);
@@ -440,13 +444,120 @@ export default function OrdersPage() {
     setSelectedOrder(null);
   };
 
-  const handleOpenReviewModal = (order) => {
-    setReviewData({
-      rating: 0,
-      comment: '',
-      orderId: order.orderId || order.saleId
-    });
+  const handleOpenReviewModal = async (order) => {
+    try {
+      const token = getToken();
+      if (!token) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Authentication Required',
+          text: 'Please log in to leave a review.',
+        });
+        return;
+      }
+
+      const response = await fetch(
+        `${API_BASE}/api/Customer/reviews/${order.orderId || order.saleId}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.ok) {
+        const existingReview = await response.json();
+
+        if (existingReview.exists) {
+          // ✅ Nếu đã có review thì nạp dữ liệu vào state
+          setReviewData({
+            id: existingReview.id,
+            rating: existingReview.rating,
+            comment: existingReview.content,
+            orderId: order.orderId || order.saleId,
+            images: (existingReview.images || []).map((url) => ({ url })) // nạp lại ảnh
+          });
+        } else {
+          // ✅ Nếu chưa có review thì reset state
+          setReviewData({
+            id: null,
+            rating: 0,
+            comment: '',
+            orderId: order.orderId || order.saleId,
+            images: []
+          });
+        }
+      } else {
+        // ✅ Nếu lỗi response thì cho phép review mới
+        setReviewData({
+          id: null,
+          rating: 0,
+          comment: '',
+          orderId: order.orderId || order.saleId,
+          images: []
+        });
+      }
+    } catch (err) {
+      console.error("Error checking review:", err);
+      setReviewData({
+        id: null,
+        rating: 0,
+        comment: '',
+        orderId: order.orderId || order.saleId,
+        images: []
+      });
+    }
+
     setShowReviewModal(true);
+  };
+
+
+  const uploadReviewImageToCloudinary = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'autosaledn'); // giữ nguyên preset
+
+    const res = await fetch('https://api.cloudinary.com/v1_1/di6k4wpxl/image/upload', {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok || !data.secure_url) {
+      throw new Error(data.error?.message || 'Upload failed');
+    }
+    return data.secure_url;
+  };
+
+  const handleReviewImageSelect = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    setIsUploadingReviewImgs(true);
+    try {
+      const uploads = [];
+      for (const file of files) {
+        // chặn video tuyệt đối ở đây
+        if (!file.type.startsWith('image/')) continue;
+        const url = await uploadReviewImageToCloudinary(file);
+        uploads.push({ url, name: file.name });
+      }
+      setReviewData((prev) => ({ ...prev, images: [...(prev.images || []), ...uploads] }));
+    } catch (err) {
+      console.error('Upload review images error:', err);
+      Swal.fire({ icon: 'error', title: 'Upload failed', text: err.message || 'Try again.' });
+    } finally {
+      setIsUploadingReviewImgs(false);
+      e.target.value = ''; // reset input
+    }
+  };
+
+  const removeReviewImage = (idx) => {
+    setReviewData((prev) => ({
+      ...prev,
+      images: (prev.images || []).filter((_, i) => i !== idx),
+    }));
   };
 
   const handleReviewSubmit = async (e) => {
@@ -457,34 +568,56 @@ export default function OrdersPage() {
         title: 'Incomplete Review',
         text: 'Please provide both a rating and a comment.',
         confirmButtonText: 'OK',
-        confirmButtonColor: '#3452e1',
       });
       return;
     }
-  
+
     setIsSubmittingReview(true);
     try {
       const token = getToken();
-      const response = await fetch(`${API_BASE}/api/Reviews`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          carSaleId: reviewData.orderId,
-          rating: reviewData.rating,
-          content: reviewData.comment,
-        })
-      });
-  
+      let response;
+
+      const images = (reviewData.images || []).map((i) => i.url); // ✅ lấy danh sách URL ảnh
+
+      if (reviewData.id) {
+        // Update review
+        response = await fetch(`${API_BASE}/api/Customer/reviews/${reviewData.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            rating: reviewData.rating,
+            content: reviewData.comment,
+            images: images, // ✅ gửi kèm ảnh khi update
+          })
+        });
+      } else {
+        // New review
+        response = await fetch(`${API_BASE}/api/Customer/reviews`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            carSaleId: reviewData.orderId,
+            rating: reviewData.rating,
+            content: reviewData.comment,
+            images: images, // ✅ gửi kèm ảnh khi tạo mới
+          })
+        });
+      }
+
       if (response.ok) {
         Swal.fire({
           icon: 'success',
-          title: 'Thank You!',
-          text: 'Your review has been submitted successfully.',
+          title: reviewData.id ? 'Review Updated!' : 'Thank You!',
+          text: reviewData.id
+            ? 'Your review has been updated successfully.'
+            : 'Your review has been submitted successfully.',
           confirmButtonText: 'OK',
-          confirmButtonColor: '#10B981',
         });
         setShowReviewModal(false);
         fetchOrders();
@@ -498,18 +631,19 @@ export default function OrdersPage() {
         icon: 'error',
         title: 'Submission Failed',
         text: error.message || 'There was an error submitting your review. Please try again.',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#EF4444',
       });
     } finally {
       setIsSubmittingReview(false);
     }
   };
-  
+
+
+
+
   const handleRatingChange = (rating) => {
     setReviewData(prev => ({ ...prev, rating }));
   };
-  
+
   const handleCommentChange = (e) => {
     setReviewData(prev => ({ ...prev, comment: e.target.value }));
   };
@@ -934,6 +1068,42 @@ export default function OrdersPage() {
                     onChange={handleCommentChange}
                     required
                   />
+                </div>
+
+                <div className="mt-4">
+                  <label className="block text-sm font-medium mb-2">Photos (optional)</label>
+                  <input
+                    type="file"
+                    accept="image/*"     // <- chỉ cho phép ảnh
+                    multiple
+                    onChange={handleReviewImageSelect}
+                    className="mb-2"
+                  />
+                  {isUploadingReviewImgs && (
+                    <p className="text-sm text-blue-600 animate-pulse">Uploading...</p>
+                  )}
+
+                  {!!(reviewData.images?.length) && (
+                    <div className="mt-2 grid grid-cols-4 gap-2">
+                      {reviewData.images.map((img, idx) => (
+                        <div key={idx} className="relative">
+                          <img
+                            src={img.url}
+                            alt={img.name || `img-${idx}`}
+                            className="w-full h-20 object-cover rounded"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeReviewImage(idx)}
+                            className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white border text-xs shadow"
+                            title="Remove"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-end space-x-3">

@@ -9,7 +9,7 @@ import {
   ArrowPathIcon,
   Cog6ToothIcon,
 } from '@heroicons/react/24/solid';
-import { useWishlist } from '../hooks/useWishList';
+import { useWishlist } from '../hooks/useWishlist';
 
 const getSaleStatusDisplay = (status) => {
   if (!status) return "Available";

@@ -2,6 +2,17 @@ import React, { useState, useEffect, useCallback } from "react";
 import SelectMakePopup from "./SelectMakePopup";
 import { getApiBaseUrl } from "../../util/apiconfig";
 
+const FilterInput = ({ placeholder, value, onChange, type = "text", ...props }) => (
+  <input
+    {...props}
+    type={type}
+    placeholder={placeholder}
+    value={value}
+    onChange={onChange}
+    className="w-full border border-[#bcc6dd] rounded-lg px-4 py-2 text-[#1c274c] bg-white focus:border-[#3452e1] focus:ring-2 focus:ring-[#3452e1] transition"
+  />
+);
+
 
 export default function CarFilterSidebar({ onFilter, currentFilters }) {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -9,7 +20,7 @@ export default function CarFilterSidebar({ onFilter, currentFilters }) {
   const [transmission, setTransmission] = useState(currentFilters.transmission || "");
   const [keyword, setKeyword] = useState(currentFilters.keyword || "");
 
-   const API_BASE = getApiBaseUrl();
+  const API_BASE = getApiBaseUrl();
 
   // Convert currentFilters.priceFrom and priceTo back to the format for selectedPriceRange
   const getInitialPriceRange = (filters) => {
@@ -138,16 +149,6 @@ export default function CarFilterSidebar({ onFilter, currentFilters }) {
   const handleOpenPopup = () => setIsPopupOpen(true);
   const handleClosePopup = () => setIsPopupOpen(false);
 
-  const FilterInput = ({ placeholder, value, onChange, type = "text", ...props }) => (
-    <input
-      {...props}
-      type={type}
-      placeholder={placeholder}
-      value={value}
-      onChange={onChange}
-      className="w-full border border-[#bcc6dd] rounded-lg px-4 py-2 text-[#1c274c] bg-white focus:border-[#3452e1] focus:ring-2 focus:ring-[#3452e1] transition"
-    />
-  );
 
   const SelectInput = ({ placeholder, value, onChange, options, ...props }) => (
     <div className="relative w-full">
@@ -247,26 +248,26 @@ export default function CarFilterSidebar({ onFilter, currentFilters }) {
 
   const handleResetFilters = () => {
     const defaultFilters = {
-        keyword: '',
-        paymentType: 'cash',
-        priceFrom: null,
-        priceTo: null,
-        vatDeduction: false,
-        discountedCars: false,
-        premiumPartners: false,
-        registrationFrom: null,
-        registrationTo: null,
-        mileageFrom: null,
-        mileageTo: null,
-        transmission: '',
-        fuelType: '', // ĐÃ SỬA: Đặt lại fuelType trong defaultFilters
-        powerUnit: 'kW',
-        powerFrom: null,
-        powerTo: null,
-        vehicleType: '',
-        driveType4x4: false,
-        exteriorColor: '',
-        features: [],
+      keyword: '',
+      paymentType: 'cash',
+      priceFrom: null,
+      priceTo: null,
+      vatDeduction: false,
+      discountedCars: false,
+      premiumPartners: false,
+      registrationFrom: null,
+      registrationTo: null,
+      mileageFrom: null,
+      mileageTo: null,
+      transmission: '',
+      fuelType: '', // ĐÃ SỬA: Đặt lại fuelType trong defaultFilters
+      powerUnit: 'kW',
+      powerFrom: null,
+      powerTo: null,
+      vehicleType: '',
+      driveType4x4: false,
+      exteriorColor: '',
+      features: [],
     };
     onFilter(defaultFilters); // Inform parent about filter reset
     // Reset local form fields by updating state to default/empty values
@@ -354,8 +355,8 @@ export default function CarFilterSidebar({ onFilter, currentFilters }) {
                 data-test-value="installment"
                 className={`px-4 py-1 rounded-lg font-medium transition
                     ${paymentType === "installment"
-                      ? "bg-[#3452e1] text-white"
-                      : "text-[#222] hover:bg-[#e9ecfa]"}`}
+                    ? "bg-[#3452e1] text-white"
+                    : "text-[#222] hover:bg-[#e9ecfa]"}`}
                 onClick={() => setPaymentType("installment")}
                 aria-pressed={paymentType === "installment"}
               >
@@ -366,8 +367,8 @@ export default function CarFilterSidebar({ onFilter, currentFilters }) {
                 data-test-value="cash"
                 className={`px-4 py-1 rounded-lg font-medium transition ml-1
                     ${paymentType === "cash"
-                      ? "bg-[#3452e1] text-white"
-                      : "text-[#222] hover:bg-[#e9ecfa]"}`}
+                    ? "bg-[#3452e1] text-white"
+                    : "text-[#222] hover:bg-[#e9ecfa]"}`}
                 onClick={() => setPaymentType("cash")}
                 aria-pressed={paymentType === "cash"}
               >
@@ -482,7 +483,7 @@ export default function CarFilterSidebar({ onFilter, currentFilters }) {
               options={vehicleTypeOptions}
             />
           </div>
-        
+
         </section>
 
         <section className="border-b border-[#e6e8f0] pt-4">

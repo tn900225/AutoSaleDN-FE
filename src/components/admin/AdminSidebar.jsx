@@ -3,7 +3,6 @@ import React from "react";
 import {
     HiOutlineViewGrid,
     HiOutlineBriefcase,
-    HiOutlineCalendar,
     HiOutlineChat,
     HiOutlineCog,
     HiOutlineLogout,
@@ -23,7 +22,6 @@ const sidebarItems = [
     { label: "Car Colors", icon: FaPalette, path: "/admin/car-colors" },
     { label: "Manufacturers & Models", icon: FaBuilding, path: "/admin/car-manufacturers-models" },
     { label: "Price Prediction", icon: HiOutlineCalculator, path: "/admin/car-prediction" },
-    { label: "Calendar", icon: HiOutlineCalendar, path: "/admin/calendar" },
     { label: "Messages", icon: HiOutlineChat, path: "/admin/messages" }
 ];
 

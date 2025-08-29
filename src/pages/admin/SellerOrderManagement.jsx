@@ -47,9 +47,10 @@ const SellerOrderManagement = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState('');
   const [updateData, setUpdateData] = useState({
     saleStatusId: '',
-    estimatedDeliveryDate: '',
+    expectedDeliveryDate: '',
     actualDeliveryDate: '',
     notes: ''
   });
@@ -181,21 +182,49 @@ const SellerOrderManagement = () => {
     });
     setShowUpdateModal(true);
   };
-
+  const handleOpenUpdateModal = (order) => {
+    setSelectedOrder(order);
+    // Populate the updateData state with the order's current information
+    setUpdateData({
+      saleStatusId: order.saleStatusId.toString(),
+      // Format dates for the <input type="date"> element
+      expectedDeliveryDate: order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toISOString().split('T')[0] : '',
+      actualDeliveryDate: order.actualDeliveryDate ? new Date(order.actualDeliveryDate).toISOString().split('T')[0] : '',
+      notes: order.notes || ''
+    });
+    setShowUpdateModal(true);
+  };
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setUpdateData(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
+  };
   const handleSaveUpdate = async () => {
+    const token = getToken();
     if (!selectedOrder) return;
-
     setUpdating(true);
-    try {
-      const token = getToken();
-      const payload = {
-        saleStatusId: parseInt(updateData.saleStatusId),
-        expectedDeliveryDate: updateData.estimatedDeliveryDate ? new Date(updateData.estimatedDeliveryDate).toISOString() : null,
-        actualDeliveryDate: updateData.actualDeliveryDate ? new Date(updateData.actualDeliveryDate).toISOString() : null,
-        notes: updateData.notes
-      };
 
-      const response = await fetch(`${API_BASE}/api/Seller/orders/${selectedOrder.orderId || selectedOrder.saleId}/status`, {
+    const payload = {
+      // Use the names from your C# DTO
+      NewStatusId: parseInt(updateData.saleStatusId),
+      // Convert dates back to full ISO string or null if empty
+      ExpectedDeliveryDate: updateData.expectedDeliveryDate ? new Date(updateData.expectedDeliveryDate).toISOString() : null,
+      ActualDeliveryDate: updateData.actualDeliveryDate ? new Date(updateData.actualDeliveryDate).toISOString() : null,
+      Notes: updateData.notes
+    };
+
+    // FIX for 'undefined' ID: Check for saleId, which is what your fetchOrders() likely returns
+    const orderId = selectedOrder.orderId || selectedOrder.saleId;
+    if (!orderId) {
+      Swal.fire('Error', `Order ID is missing. Cannot update.`, 'error');
+      setUpdating(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/api/Seller/orders/${orderId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -210,11 +239,11 @@ const SellerOrderManagement = () => {
         Swal.fire('Success', 'Order status updated successfully!', 'success');
       } else {
         const errorData = await response.json();
-        Swal.fire('Error', `Failed to update order status: ${errorData.message || response.statusText}`, 'error');
+        throw new Error(errorData.message || 'Failed to update status');
       }
     } catch (error) {
       console.error('Error updating order status:', error);
-      Swal.fire('Error', 'Error updating order status. Please try again.', 'error');
+      Swal.fire('Error', `Update failed: ${error.message}`, 'error');
     } finally {
       setUpdating(false);
     }
@@ -593,14 +622,8 @@ const SellerOrderManagement = () => {
                     <div className="p-6 space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Sale Status</label>
-                        <select
-                          value={updateData.saleStatusId}
-                          onChange={(e) => setUpdateData({ ...updateData, saleStatusId: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                          {Object.entries(statusMap).map(([id, status]) => (
-                            <option key={id} value={id}>{status.name}</option>
-                          ))}
+                        <select id="saleStatusId" name="saleStatusId" value={updateData.saleStatusId} onChange={handleFormChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                          {Object.entries(statusMap).map(([id, { name }]) => (<option key={id} value={id}>{name}</option>))}
                         </select>
                       </div>
 

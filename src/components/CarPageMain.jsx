@@ -16,7 +16,7 @@ import {
   ArrowPathIcon,
   Cog6ToothIcon,
 } from '@heroicons/react/24/solid';
-import { useWishlist } from '../hooks/useWishList';
+import { useWishlist } from '../hooks/useWishlist';
 
 function getPagination(currentPage, totalPages, delta = 2) {
   const pages = [];

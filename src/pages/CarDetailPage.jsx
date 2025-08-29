@@ -5,6 +5,7 @@ import PropTypes from "prop-types";
 import Swal from "sweetalert2";
 import Login from "../components/Login";
 import { getApiBaseUrl } from "../../util/apiconfig";
+import { useUserContext } from "../components/context/UserContext";
 
 const formatCurrency = (num) =>
   new Intl.NumberFormat("vi-VN", {
@@ -106,11 +107,13 @@ export default function CarDetailPage({ carId: propCarId }) {
   const [featureSearch, setFeatureSearch] = useState("");
   const heroRef = useRef(null);
   const [showSignInModal, setShowSignInModal] = useState(false);
-
+  const [sellerInfo, setSellerInfo] = useState(null);
   const [selectedPartner, setSelectedPartner] = useState('');
 
   const [isCarSold, setIsCarSold] = useState(false);
   const [saleInfoText, setSaleInfoText] = useState("");
+
+  const { user, chatWithSeller } = useUserContext();
 
   const API_BASE = getApiBaseUrl();
 
@@ -168,6 +171,14 @@ export default function CarDetailPage({ carId: propCarId }) {
           throw new Error(`HTTP error! Status: ${carResponse.status}`);
         }
         const carData = await carResponse.json();
+        console.log("carData", carData); // Debug the response
+        if (carData.userId) {
+          setSellerInfo({
+            id: carData.userId,
+            name: carData.sellerName,
+            email: carData.sellerEmail,
+          });
+        }
 
         let taxRateValue = 0.085; // Default value
 
@@ -342,6 +353,23 @@ export default function CarDetailPage({ carId: propCarId }) {
         text: `Unable to schedule test drive: ${err.message}`,
         confirmButtonText: "Try Again",
         confirmButtonColor: "#EF4444",
+      });
+    }
+  };
+
+  const handleChatClick = () => {
+    if (!user) {
+      // setShowLogin(true); // Mở popup login nếu cần
+      return;
+    }
+
+    if (chatWithSeller && sellerInfo) {
+      chatWithSeller(sellerInfo);
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'Không thể bắt đầu',
+        text: 'Không tìm thấy thông tin người bán để trò chuyện.',
       });
     }
   };
@@ -544,162 +572,162 @@ export default function CarDetailPage({ carId: propCarId }) {
 
       {/* Price Breakdown */}
       <div class="max-w-7xl mx-auto px-4 -mt-12 relative z-10">
-  <div class="bg-white rounded-2xl shadow-xl p-8">
-    <h2 class="text-2xl font-bold text-gray-900 mb-6">Price Breakdown</h2>
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <div class="space-y-4">
-        <div class="flex justify-between items-center py-2">
-          <span class="text-gray-600">Vehicle Price</span>
-          <span class="font-semibold text-xl">{formatCurrency(price)}</span>
-        </div>
-        <div class="flex justify-between items-center py-2">
-          <span class="text-gray-600">Registration Fee</span>
-          <span class="font-semibold">{formatCurrency(regFee)}</span>
-        </div>
-        <div class="flex justify-between items-center py-2">
-          <span class="text-gray-600">Documentation Fee</span>
-          <span class="font-semibold">{formatCurrency(dealerFee)}</span>
-        </div>
-        <div class="flex justify-between items-center py-2">
-          <span class="text-gray-600">Tax ({(priceInfo.taxRate * 100).toFixed(1)}%)</span>
-          <span class="font-semibold">{formatCurrency(tax)}</span>
-        </div>
-        <hr class="my-4" />
-        <div class="flex justify-between items-center py-2">
-          <span class="text-xl font-bold text-gray-900">Total Price</span>
-          <span class="text-2xl font-bold text-green-600">{formatCurrency(totalPrice)}</span>
-        </div>
-      </div>
-      <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Financing Calculator</h3>
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Down Payment: {downPayment}% ({formatCurrency((price * downPayment) / 100)})
-            </label>
-            <input
-              type="range"
-              min={0}
-              max={50}
-              step={5}
-              value={downPayment}
-              onChange={(e) => setDownPayment(Number(e.target.value))}
-              class="w-full accent-blue-600"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Loan Term: {paybackPeriod} months
-            </label>
-            <input
-              type="range"
-              min={12}
-              max={84}
-              step={12}
-              value={paybackPeriod}
-              onChange={(e) => setPaybackPeriod(Number(e.target.value))}
-              class="w-full accent-blue-600"
-            />
-          </div>
-          <div class="bg-blue-100 rounded-lg p-3 my-3 text-center">
-            <div class="text-sm text-blue-800 font-semibold">Estimated Monthly Payment</div>
-            <div class="text-3xl font-extrabold text-blue-900">
-              {formatCurrency(
-                selectedPartner
-                  ? calculateMonthlyPayment(
-                      price - (price * downPayment) / 100,
-                      financingPartners.find(p => p.id === selectedPartner)?.interestRate || 8.5,
-                      paybackPeriod
-                    )
-                  : monthlyPayment
-              )}
+        <div class="bg-white rounded-2xl shadow-xl p-8">
+          <h2 class="text-2xl font-bold text-gray-900 mb-6">Price Breakdown</h2>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="space-y-4">
+              <div class="flex justify-between items-center py-2">
+                <span class="text-gray-600">Vehicle Price</span>
+                <span class="font-semibold text-xl">{formatCurrency(price)}</span>
+              </div>
+              <div class="flex justify-between items-center py-2">
+                <span class="text-gray-600">Registration Fee</span>
+                <span class="font-semibold">{formatCurrency(regFee)}</span>
+              </div>
+              <div class="flex justify-between items-center py-2">
+                <span class="text-gray-600">Documentation Fee</span>
+                <span class="font-semibold">{formatCurrency(dealerFee)}</span>
+              </div>
+              <div class="flex justify-between items-center py-2">
+                <span class="text-gray-600">Tax ({(priceInfo.taxRate * 100).toFixed(1)}%)</span>
+                <span class="font-semibold">{formatCurrency(tax)}</span>
+              </div>
+              <hr class="my-4" />
+              <div class="flex justify-between items-center py-2">
+                <span class="text-xl font-bold text-gray-900">Total Price</span>
+                <span class="text-2xl font-bold text-green-600">{formatCurrency(totalPrice)}</span>
+              </div>
             </div>
-          </div>
-        </div>
-        <div class="mt-6">
-          <h4 class="text-lg font-semibold text-gray-900 mb-4">Financing Partners</h4>
-          <div class="grid grid-cols-1 gap-3">
-            {financingPartners.map((partner) => {
-              const loanAmount = price - (price * downPayment) / 100;
-              const partnerMonthly = calculateMonthlyPayment(loanAmount, partner.interestRate, paybackPeriod);
-              const isSelected = selectedPartner === partner.id;
-
-              return (
-                <div
-                  key={partner.id}
-                  class={`border-2 rounded-lg p-4 cursor-pointer transition-all duration-200 hover:shadow-md ${isSelected
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                  onClick={() => setSelectedPartner(partner.id)}
-                >
-                  <div class="flex items-center justify-between mb-2">
-                    <div class="flex items-center gap-2">
-                    <img src={partner.images} alt={`${partner.name} logo`} class="h-8 w-8 object-contain" />
-                      <div>
-                        <h5 class="font-semibold text-gray-900 text-sm">{partner.name}</h5>
-                        <div class="flex items-center">
-                          {renderStars(partner.rating)}
-                          <span class="text-xs text-gray-500 ml-1">({partner.rating})</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="text-right">
-                      <div class="text-sm font-bold text-green-600">{partner.interestRate}%</div>
-                      <div class="text-xs text-gray-500">interest rate</div>
-                    </div>
-                  </div>
-                  <div class="bg-gray-50 rounded-lg p-2 mb-3 text-center">
-                    <div class="text-xs text-gray-600">Monthly Installment</div>
-                    <div class="text-lg font-bold text-blue-600">
-                      {formatCurrency(partnerMonthly)}
-                    </div>
-                  </div>
-                  <div class="flex gap-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handlePartnerContact(partner);
-                      }}
-                      class={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 ${isSelected
-                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                      Contact
-                    </button>
-                    <a
-                      href={`tel:${partner.hotline}`}
-                      onClick={(e) => e.stopPropagation()}
-                      class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                      title={`Call ${partner.hotline}`}
-                    >
-                      <svg class="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                      </svg>
-                    </a>
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Financing Calculator</h3>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Down Payment: {downPayment}% ({formatCurrency((price * downPayment) / 100)})
+                  </label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={50}
+                    step={5}
+                    value={downPayment}
+                    onChange={(e) => setDownPayment(Number(e.target.value))}
+                    class="w-full accent-blue-600"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Loan Term: {paybackPeriod} months
+                  </label>
+                  <input
+                    type="range"
+                    min={12}
+                    max={84}
+                    step={12}
+                    value={paybackPeriod}
+                    onChange={(e) => setPaybackPeriod(Number(e.target.value))}
+                    class="w-full accent-blue-600"
+                  />
+                </div>
+                <div class="bg-blue-100 rounded-lg p-3 my-3 text-center">
+                  <div class="text-sm text-blue-800 font-semibold">Estimated Monthly Payment</div>
+                  <div class="text-3xl font-extrabold text-blue-900">
+                    {formatCurrency(
+                      selectedPartner
+                        ? calculateMonthlyPayment(
+                          price - (price * downPayment) / 100,
+                          financingPartners.find(p => p.id === selectedPartner)?.interestRate || 8.5,
+                          paybackPeriod
+                        )
+                        : monthlyPayment
+                    )}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-          {selectedPartner && (
-            <div class="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
-              <p class="text-sm text-green-700">
-                ✅ Selected: <strong>{financingPartners.find(p => p.id === selectedPartner)?.name}</strong>
-                <br />
-                Click "Contact" to be redirected to the partner's loan application page.
-              </p>
+              </div>
+              <div class="mt-6">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">Financing Partners</h4>
+                <div class="grid grid-cols-1 gap-3">
+                  {financingPartners.map((partner) => {
+                    const loanAmount = price - (price * downPayment) / 100;
+                    const partnerMonthly = calculateMonthlyPayment(loanAmount, partner.interestRate, paybackPeriod);
+                    const isSelected = selectedPartner === partner.id;
+
+                    return (
+                      <div
+                        key={partner.id}
+                        class={`border-2 rounded-lg p-4 cursor-pointer transition-all duration-200 hover:shadow-md ${isSelected
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        onClick={() => setSelectedPartner(partner.id)}
+                      >
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="flex items-center gap-2">
+                            <img src={partner.images} alt={`${partner.name} logo`} class="h-8 w-8 object-contain" />
+                            <div>
+                              <h5 class="font-semibold text-gray-900 text-sm">{partner.name}</h5>
+                              <div class="flex items-center">
+                                {renderStars(partner.rating)}
+                                <span class="text-xs text-gray-500 ml-1">({partner.rating})</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="text-right">
+                            <div class="text-sm font-bold text-green-600">{partner.interestRate}%</div>
+                            <div class="text-xs text-gray-500">interest rate</div>
+                          </div>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-2 mb-3 text-center">
+                          <div class="text-xs text-gray-600">Monthly Installment</div>
+                          <div class="text-lg font-bold text-blue-600">
+                            {formatCurrency(partnerMonthly)}
+                          </div>
+                        </div>
+                        <div class="flex gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePartnerContact(partner);
+                            }}
+                            class={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 ${isSelected
+                              ? 'bg-blue-600 text-white hover:bg-blue-700'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
+                          >
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                            Contact
+                          </button>
+                          <a
+                            href={`tel:${partner.hotline}`}
+                            onClick={(e) => e.stopPropagation()}
+                            class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                            title={`Call ${partner.hotline}`}
+                          >
+                            <svg class="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                            </svg>
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {selectedPartner && (
+                  <div class="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <p class="text-sm text-green-700">
+                      ✅ Selected: <strong>{financingPartners.find(p => p.id === selectedPartner)?.name}</strong>
+                      <br />
+                      Click "Contact" to be redirected to the partner's loan application page.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
-    </div>
-  </div>
-</div>
 
       {/* Image Gallery */}
       <div className="max-w-7xl mx-auto px-4 py-16">
@@ -998,9 +1026,9 @@ export default function CarDetailPage({ carId: propCarId }) {
                   <div className="flex space-x-4 pt-4">
                     <button
                       className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold px-6 py-3 rounded-xl transition-all duration-200 transform hover:scale-105"
-                      onClick={() => handleTestDrive(showroom)}
+                      onClick={handleChatClick}
                     >
-                      Schedule Test Drive
+                      Chat with Showroom
                     </button>
                     <button
                       className="px-6 py-3 border-2 border-gray-200 hover:border-gray-300 rounded-xl transition-all duration-200"
