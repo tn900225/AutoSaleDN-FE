@@ -62,7 +62,7 @@ const CarInfoForm = () => {
         setPrediction(null);
 
         try {
-            const response = await fetch('http://autosaledn.store/predict', {
+            const response = await fetch('https://autosaledn.store:4433/predict', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
