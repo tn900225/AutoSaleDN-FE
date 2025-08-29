@@ -4,7 +4,7 @@ import Login from "./Login";
 import AccountMenu from "./AccountMenu";
 import HeaderUserDropdown from "./HeaderUserDropDown";
 import { useUserContext } from "./context/UserContext";
-import { useWishlist } from '../hooks/useWishlist';
+import { useWishlist } from '../hooks/useWishlist'; 
 
 const navLinks = [
   { label: "Buy", to: "/cars" },
