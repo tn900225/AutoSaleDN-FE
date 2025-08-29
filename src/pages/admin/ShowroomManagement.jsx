@@ -14,7 +14,8 @@ import {
   Users,
   Filter,
   Download,
-  Upload
+  Upload,
+  Plus
 } from 'lucide-react';
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminTopbar from "../../components/admin/AdminTopbar";
@@ -25,6 +26,111 @@ import { getApiBaseUrl } from "../../../util/apiconfig";
 
 // Register Chart.js components
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
+
+// New CreateShowroomModal component
+const CreateShowroomModal = ({ isOpen, onClose, onShowroomCreated }) => {
+  const API_BASE = getApiBaseUrl();
+  const [showroomName, setShowroomName] = useState('');
+  const [address, setAddress] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+  
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE}/api/Admin/showrooms/add`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name: showroomName, address })
+      });
+  
+      if (response.ok) {
+        Swal.fire('Success', 'Showroom created successfully!', 'success');
+        onShowroomCreated();
+        onClose();
+      } else {
+        // SỬA ĐỔI Ở ĐÂY: Sử dụng response.text() để đọc chuỗi văn bản thuần
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to create showroom');
+      }
+    } catch (error) {
+      Swal.fire('Error', `Error: ${error.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 transition-opacity duration-300 ease-out">
+      <div className="relative w-full max-w-md mx-4 p-6 bg-white rounded-lg shadow-2xl sm:p-8">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-semibold text-gray-900">Create New Showroom</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded-full"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="mb-5">
+            <label htmlFor="showroom-name" className="block text-sm font-medium text-gray-700 mb-1">
+              Showroom Name
+            </label>
+            <input
+              type="text"
+              id="showroom-name"
+              value={showroomName}
+              onChange={(e) => setShowroomName(e.target.value)}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
+              placeholder="Enter showroom name"
+            />
+          </div>
+          <div className="mb-6">
+            <label htmlFor="showroom-address" className="block text-sm font-medium text-gray-700 mb-1">
+              Address
+            </label>
+            <input
+              type="text"
+              id="showroom-address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
+              placeholder="Enter address"
+            />
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-5 py-2 bg-indigo-600 text-white font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200 disabled:bg-indigo-400 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Creating...' : 'Create'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 export default function ShowroomManagement() {
   const API_BASE = getApiBaseUrl();
@@ -38,6 +144,7 @@ export default function ShowroomManagement() {
   const [importData, setImportData] = useState([{ listingId: '', quantity: '' }]);
   const [carListings, setCarListings] = useState([]);
   const token = localStorage.getItem('token');
+  const [showCreateShowroomModal, setShowCreateShowroomModal] = useState(false);
 
   const fetchShowrooms = async () => {
     try {
@@ -218,7 +325,7 @@ export default function ShowroomManagement() {
         confirmButtonText: 'OK'
       });
     }
-};
+  };
 
   const handleAddImportRow = () => {
     setImportData([...importData, { listingId: '', quantity: '' }]);
@@ -304,7 +411,7 @@ export default function ShowroomManagement() {
   const handleBackToOverview = () => {
     setSelectedShowroom(null);
     setViewMode('overview');
-    setCarListings([]); // Clear car listings when returning to overview
+    setCarListings([]);
   };
 
   const getTotalRevenue = () => {
@@ -318,6 +425,20 @@ export default function ShowroomManagement() {
   const getTotalSold = () => {
     return showrooms.reduce((total, showroom) => total + showroom.soldThisMonth, 0);
   };
+  
+  // New functions for the create showroom modal
+  const handleCreateShowroom = () => {
+    setShowCreateShowroomModal(true);
+  };
+
+  const handleCloseCreateModal = () => {
+    setShowCreateShowroomModal(false);
+  };
+
+  const handleShowroomCreated = () => {
+    fetchShowrooms();
+  };
+
 
   if (loading && viewMode === 'detail') {
     return (
@@ -682,6 +803,14 @@ export default function ShowroomManagement() {
               <p className="text-gray-600">Monitor and manage showroom performance</p>
             </div>
             <div className="flex items-center space-x-3">
+              {/* Thêm nút "Create Showroom" ở đây */}
+              <button
+                onClick={handleCreateShowroom}
+                className="flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Showroom
+              </button>
               <select
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
@@ -698,6 +827,13 @@ export default function ShowroomManagement() {
             </div>
           </div>
 
+          {/* Conditional rendering of the new modal */}
+          <CreateShowroomModal
+            isOpen={showCreateShowroomModal}
+            onClose={handleCloseCreateModal}
+            onShowroomCreated={handleShowroomCreated}
+          />
+          {/* Existing content of the component */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div className="bg-white rounded-xl p-6 border border-gray-200">
               <div className="flex items-center justify-between">
