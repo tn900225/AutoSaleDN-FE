@@ -39,6 +39,7 @@ import ManagePosts from "./pages/seller/ManagePosts";
 import BlogIndex from "./pages/BlogIndex";
 import BlogPostDetail from "./pages/BlogPostDetail";
 import SellerMessage from "./pages/seller/SellerMessage";
+import CarPredict from "./pages/admin/CarPredict";
 
 import { getApiBaseUrl } from "../util/apiconfig";
 
@@ -431,6 +432,8 @@ function App() {
                   <Route path="car-colors" element={<CarColor />} />
                   <Route path="car-manufacturers-models" element={<CarManufacturers />} />
                   <Route path="cars/edit/:listingId" element={<UpdateCar />} />
+                  <Route path="car-prediction" element={<CarPredict />} />
+                  
 
                   {/* Admin-only routes */}
                   <Route

@@ -8,7 +8,8 @@ import {
     HiOutlineCog,
     HiOutlineLogout,
     HiOutlineUsers,
-    HiUserGroup
+    HiUserGroup,
+    HiOutlineCalculator
 } from "react-icons/hi";
 import { FaWrench, FaCar, FaTools, FaPalette, FaBuilding } from "react-icons/fa"; // Added FaPalette and FaBuilding icons
 
@@ -21,6 +22,7 @@ const sidebarItems = [
     { label: "Car Features", icon: FaTools, path: "/admin/car-features" },
     { label: "Car Colors", icon: FaPalette, path: "/admin/car-colors" },
     { label: "Manufacturers & Models", icon: FaBuilding, path: "/admin/car-manufacturers-models" },
+    { label: "Price Prediction", icon: HiOutlineCalculator, path: "/admin/car-prediction" },
     { label: "Services", icon: FaWrench, path: "/admin/services" },
     { label: "Calendar", icon: HiOutlineCalendar, path: "/admin/calendar" },
     { label: "Messages", icon: HiOutlineChat, path: "/admin/messages" }
