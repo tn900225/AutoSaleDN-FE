@@ -57,9 +57,9 @@ export default function PrePurchasePage() {
   // State for the contract viewing modal
   const [contractModal, setContractModal] = useState({ open: false, content: '' });
 
-  const MIN_DEPOSIT = 5000000; // 5 million VND minimum deposit
-  const MAX_DEPOSIT = 10000000; // 10 million VND maximum deposit
-  const SHIPPING_COST = 3500000; // Shipping cost in VND
+  const MIN_DEPOSIT = 5000000;
+  const MAX_DEPOSIT = 10000000;
+  const SHIPPING_COST = 3500000;
 
   const getToken = () => localStorage.getItem('token');
 
@@ -261,7 +261,6 @@ export default function PrePurchasePage() {
         })
           .then(res => {
             if (!res.ok) {
-              // If the server returns an HTTP error, throw an exception to be caught by .catch
               return res.json().then(err => { throw new Error(err.message || 'Server error occurred'); });
             }
             return res.json();
@@ -269,13 +268,11 @@ export default function PrePurchasePage() {
           .then(data => {
             console.log("✅ Data sent successfully:", data);
 
-            // Check the resultCode from your server's response
             if (data.resultCode === "0") {
-              // Attempt to determine payment purpose from extraData
               let paymentPurposeText = "payment";
               if (momoExtraData) {
                 try {
-                  const decodedExtraData = atob(momoExtraData); // Decode Base64
+                  const decodedExtraData = atob(momoExtraData);
                   const parts = decodedExtraData.split('|');
                   if (parts.length > 1) {
                     paymentPurposeText = parts[1] === "deposit" ? "deposit" : "full payment";
@@ -290,17 +287,16 @@ export default function PrePurchasePage() {
                 title: "Payment Successful!",
                 html: `Your ${paymentPurposeText} has been processed successfully.<br/>Please check your email; we've sent the detailed invoice there.`,
                 confirmButtonText: "Complete",
-                confirmButtonColor: "#10B981", // Green color
+                confirmButtonColor: "#10B981",
               }).then(() => {
-                // Redirect the user after they click "Complete"
+
                 if (carId) {
                   navigate(`/cars/orders`, { replace: true });
                 } else {
-                  navigate('/some-success-page', { replace: true }); // Or a generic success page
+                  navigate('/some-success-page', { replace: true });
                 }
               });
             } else {
-              // Case where MoMo reported success but your server validation failed
               Swal.fire({
                 icon: "error",
                 title: "Payment Verification Failed!",
@@ -333,12 +329,11 @@ export default function PrePurchasePage() {
             });
           })
           .finally(() => {
-            setIsProcessingGateway(false); // Stop loading indicator
+            setIsProcessingGateway(false);
             console.log("--- useEffect for Momo callback finished ---");
           });
 
       } else {
-        // MoMo reported payment failure
         console.log(`Momo Payment FAILED! Result Code: ${momoResultCode}, Message: ${momoMessage}`);
         Swal.fire({
           icon: "error",
@@ -351,10 +346,10 @@ export default function PrePurchasePage() {
           if (carId) {
             navigate(`/cars/${carId}/confirm-orders`, { replace: true });
           } else {
-            navigate('/some-failure-page', { replace: true }); // Or a generic failure page
+            navigate('/some-failure-page', { replace: true });
           }
         });
-        setIsProcessingGateway(false); // Stop loading indicator
+        setIsProcessingGateway(false);
         console.log("--- useEffect for Momo callback finished ---");
       }
 
@@ -363,7 +358,6 @@ export default function PrePurchasePage() {
     }
   }, [location.search, navigate, carId]);
 
-  // Calculate total price for display
   const calculateTotalPrice = () => {
     if (!car) return 0;
     const price = car.price;
@@ -374,7 +368,6 @@ export default function PrePurchasePage() {
     return price + regFee + dealerFee + tax + shipping;
   };
 
-  // Calculate deposit amount (fixed between 5-10 million VND)
   const calculateDepositAmount = () => {
     const tenPercent = Math.round(calculateTotalPrice() * 0.1);
     return Math.min(MAX_DEPOSIT, Math.max(MIN_DEPOSIT, tenPercent));
@@ -383,7 +376,6 @@ export default function PrePurchasePage() {
   const depositAmount = calculateDepositAmount();
   const remainingBalance = calculateTotalPrice() - depositAmount;
 
-  // Function to get requestType based on payment method
   const getRequestType = (paymentMethod) => {
     switch (paymentMethod) {
       case 'e_wallet_momo_test':
@@ -393,11 +385,10 @@ export default function PrePurchasePage() {
       case 'qr_banking':
         return 'payWithCC';
       default:
-        return 'captureMoMoWallet'; // Default fallback
+        return 'captureMoMoWallet';
     }
   };
 
-  // Function to initiate Momo payment
   const initiateMomoPayment = async (saleId, amount, purpose, paymentMethod) => {
     setIsProcessingGateway(true);
     try {
@@ -406,7 +397,7 @@ export default function PrePurchasePage() {
         saleId: saleId,
         amount: amount,
         paymentPurpose: purpose,
-        requestType: getRequestType(paymentMethod), // Add requestType based on payment method
+        requestType: getRequestType(paymentMethod),
         returnUrl: window.location.origin + window.location.pathname + window.location.search,
       };
 
@@ -438,7 +429,6 @@ export default function PrePurchasePage() {
     }
   };
 
-  // Handle Deposit
   const handleDeposit = async () => {
     if (!car) {
       Swal.fire({
@@ -629,11 +619,10 @@ export default function PrePurchasePage() {
           selectedShowroomId: deliveryOption === 'pickup' ? Number(selectedShowroom) : null,
           useUserProfileAddress: deliveryOption === 'shipping' ? useUserProfileAddress : false,
           shippingAddressInfo: deliveryOption === 'shipping' && !useUserProfileAddress ? shippingAddressInfo : null,
-          depositPaymentMethod: paymentMethod, // Use the same payment method selected for full payment
+          depositPaymentMethod: paymentMethod,
           expectedDeliveryDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
         };
 
-        // First create the order with deposit structure
         const createOrderResponse = await fetch(`${API_BASE}/api/Customer/orders/deposit`, {
           method: 'POST',
           headers: {
@@ -652,14 +641,12 @@ export default function PrePurchasePage() {
         const orderId = orderConfirmation.orderId;
         setCurrentOrderId(orderId);
 
-        // Now process the full payment for this order
         const fullPaymentPayload = {
           paymentMethod: paymentMethod,
           actualDeliveryDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
         };
 
         if (paymentMethod === 'e_wallet_momo_test') {
-          // For Momo, we need to process full payment first, then redirect
           const fullPaymentResponse = await fetch(`${API_BASE}/api/Customer/orders/full-payment?orderId=${orderId}`, {
             method: 'POST',
             headers: {
@@ -677,7 +664,6 @@ export default function PrePurchasePage() {
           // Then initiate Momo payment
           await initiateMomoPayment(orderId, calculateTotalPrice(), 'full_payment');
         } else {
-          // Handle non-gateway payment methods
           const fullPaymentResponse = await fetch(`${API_BASE}/api/Customer/orders/full-payment?orderId=${orderId}`, {
             method: 'POST',
             headers: {
@@ -1336,28 +1322,6 @@ export default function PrePurchasePage() {
                         className="h-5 w-5 text-green-600 border-gray-300 focus:ring-green-500"
                       />
                       <span className="ml-3 font-medium text-gray-700">MoMo</span>
-                    </label>
-                    <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors duration-200">
-                      <input
-                        type="radio"
-                        name="depositPaymentMethod"
-                        value="atm_domestic_card"
-                        checked={depositPaymentMethod === 'atm_domestic_card'}
-                        onChange={handleDepositPaymentMethodChange}
-                        className="h-5 w-5 text-green-600 border-gray-300 focus:ring-green-500"
-                      />
-                      <span className="ml-3 font-medium text-gray-700">ATM Thẻ Nội Địa</span>
-                    </label>
-                    <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors duration-200">
-                      <input
-                        type="radio"
-                        name="depositPaymentMethod"
-                        value="qr_banking"
-                        checked={depositPaymentMethod === 'qr_banking'}
-                        onChange={handleDepositPaymentMethodChange}
-                        className="h-5 w-5 text-green-600 border-gray-300 focus:ring-green-500"
-                      />
-                      <span className="ml-3 font-medium text-gray-700">QR Ngân Hàng</span>
                     </label>
                   </div>
                   {!depositPaymentMethod && (
