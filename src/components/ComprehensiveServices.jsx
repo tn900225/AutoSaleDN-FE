@@ -6,10 +6,10 @@ const icons = [
   (
     <span className="service-icon-bg">
       <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-        <rect x="0" y="0" width="36" height="36" rx="10" fill="#F0F3FF"/>
-        <path d="M14.5 16.8V14.5C14.5 12.0147 16.5147 10 19 10C21.4853 10 23.5 12.0147 23.5 14.5C23.5 16.9853 21.4853 19 19 19H18.5" stroke="#4650dd" strokeWidth="2" strokeLinecap="round"/>
-        <circle cx="18" cy="23" r="3" stroke="#4650dd" strokeWidth="2"/>
-        <path d="M22.5 26.5C21.5 27.5 19 27.5 18 26.5C17 25.5 17 23.5 18 22.5C19 21.5 21.5 21.5 22.5 22.5" stroke="#4650dd" strokeWidth="2" strokeLinecap="round"/>
+        <rect x="0" y="0" width="36" height="36" rx="10" fill="#F0F3FF" />
+        <path d="M14.5 16.8V14.5C14.5 12.0147 16.5147 10 19 10C21.4853 10 23.5 12.0147 23.5 14.5C23.5 16.9853 21.4853 19 19 19H18.5" stroke="#4650dd" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="18" cy="23" r="3" stroke="#4650dd" strokeWidth="2" />
+        <path d="M22.5 26.5C21.5 27.5 19 27.5 18 26.5C17 25.5 17 23.5 18 22.5C19 21.5 21.5 21.5 22.5 22.5" stroke="#4650dd" strokeWidth="2" strokeLinecap="round" />
       </svg>
     </span>
   ),
@@ -17,11 +17,11 @@ const icons = [
   (
     <span className="service-icon-bg">
       <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-        <rect x="0" y="0" width="36" height="36" rx="10" fill="#F0F3FF"/>
-        <rect x="10" y="17" width="16" height="6" rx="2" stroke="#4650dd" strokeWidth="2"/>
-        <path d="M11 23.5V25C11 25.8284 11.6716 26.5 12.5 26.5H23.5C24.3284 26.5 25 25.8284 25 25V23.5" stroke="#4650dd" strokeWidth="2"/>
-        <circle cx="14" cy="27" r="1" fill="#4650dd"/>
-        <circle cx="22" cy="27" r="1" fill="#4650dd"/>
+        <rect x="0" y="0" width="36" height="36" rx="10" fill="#F0F3FF" />
+        <rect x="10" y="17" width="16" height="6" rx="2" stroke="#4650dd" strokeWidth="2" />
+        <path d="M11 23.5V25C11 25.8284 11.6716 26.5 12.5 26.5H23.5C24.3284 26.5 25 25.8284 25 25V23.5" stroke="#4650dd" strokeWidth="2" />
+        <circle cx="14" cy="27" r="1" fill="#4650dd" />
+        <circle cx="22" cy="27" r="1" fill="#4650dd" />
       </svg>
     </span>
   ),
@@ -29,12 +29,12 @@ const icons = [
   (
     <span className="service-icon-bg">
       <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-        <rect x="0" y="0" width="36" height="36" rx="10" fill="#F0F3FF"/>
-        <rect x="10" y="17" width="10" height="6" rx="2" stroke="#4650dd" strokeWidth="2"/>
-        <rect x="21" y="19" width="5" height="4" rx="1" stroke="#4650dd" strokeWidth="2"/>
-        <circle cx="12" cy="25" r="1" fill="#4650dd"/>
-        <circle cx="24" cy="25" r="1" fill="#4650dd"/>
-        <path d="M26 23V21M26 21H24M26 21H27" stroke="#4650dd" strokeWidth="1.5" strokeLinecap="round"/>
+        <rect x="0" y="0" width="36" height="36" rx="10" fill="#F0F3FF" />
+        <rect x="10" y="17" width="10" height="6" rx="2" stroke="#4650dd" strokeWidth="2" />
+        <rect x="21" y="19" width="5" height="4" rx="1" stroke="#4650dd" strokeWidth="2" />
+        <circle cx="12" cy="25" r="1" fill="#4650dd" />
+        <circle cx="24" cy="25" r="1" fill="#4650dd" />
+        <path d="M26 23V21M26 21H24M26 21H27" stroke="#4650dd" strokeWidth="1.5" strokeLinecap="round" />
       </svg>
     </span>
   ),
@@ -42,9 +42,9 @@ const icons = [
   (
     <span className="service-icon-bg">
       <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-        <rect x="0" y="0" width="36" height="36" rx="10" fill="#F0F3FF"/>
-        <circle cx="18" cy="19" r="6" stroke="#4650dd" strokeWidth="2"/>
-        <path d="M16.5 19.5L18 21L21 18" stroke="#4650dd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <rect x="0" y="0" width="36" height="36" rx="10" fill="#F0F3FF" />
+        <circle cx="18" cy="19" r="6" stroke="#4650dd" strokeWidth="2" />
+        <path d="M16.5 19.5L18 21L21 18" stroke="#4650dd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </span>
   ),
@@ -52,9 +52,9 @@ const icons = [
   (
     <span className="service-icon-bg">
       <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-        <rect x="0" y="0" width="36" height="36" rx="10" fill="#F0F3FF"/>
-        <rect x="12" y="13" width="12" height="10" rx="3" stroke="#4650dd" strokeWidth="2"/>
-        <path d="M18 19.5L20 21L24 17" stroke="#4650dd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <rect x="0" y="0" width="36" height="36" rx="10" fill="#F0F3FF" />
+        <rect x="12" y="13" width="12" height="10" rx="3" stroke="#4650dd" strokeWidth="2" />
+        <path d="M18 19.5L20 21L24 17" stroke="#4650dd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </span>
   ),
@@ -62,10 +62,10 @@ const icons = [
   (
     <span className="service-icon-bg">
       <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-        <rect x="0" y="0" width="36" height="36" rx="10" fill="#F0F3FF"/>
-        <rect x="13" y="11" width="10" height="14" rx="2" stroke="#4650dd" strokeWidth="2"/>
-        <path d="M15 15H21" stroke="#4650dd" strokeWidth="2" strokeLinecap="round"/>
-        <path d="M15 19H21" stroke="#4650dd" strokeWidth="2" strokeLinecap="round"/>
+        <rect x="0" y="0" width="36" height="36" rx="10" fill="#F0F3FF" />
+        <rect x="13" y="11" width="10" height="14" rx="2" stroke="#4650dd" strokeWidth="2" />
+        <path d="M15 15H21" stroke="#4650dd" strokeWidth="2" strokeLinecap="round" />
+        <path d="M15 19H21" stroke="#4650dd" strokeWidth="2" strokeLinecap="round" />
       </svg>
     </span>
   ),
@@ -73,16 +73,15 @@ const icons = [
 
 // Check icon xanh lá
 const checkIcon = (
-  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{display: "inline", verticalAlign: "middle"}}>
-    <circle cx="9" cy="9" r="9" fill="#44C776"/>
-    <path d="M5 9l2.5 2.5L13 7" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{ display: "inline", verticalAlign: "middle" }}>
+    <circle cx="9" cy="9" r="9" fill="#44C776" />
+    <path d="M5 9l2.5 2.5L13 7" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
 const services = [
   {
     title: "Financing",
-    href: "/car-financing",
     points: [
       "Completely online within 1 hour",
       "Transparent, no fine print"
@@ -90,23 +89,20 @@ const services = [
   },
   {
     title: "CarAudit™",
-    href: "/caraudit",
     points: [
       "Thorough vehicle check",
       "Qualified mechanics and technicians"
     ]
   },
   {
-    title: "Delivery",
-    href: "/car-delivery",
+    title: "Installment Support",
     points: [
-      "To your doorstep or a Pick-up Point",
-      "Unbeatable price"
+      "Flexible plans up to 72 months",
+      "Quick and easy approval"
     ]
   },
   {
     title: "Warranty",
-    href: "/warranty",
     points: [
       "Up to 36 months",
       "For all vehicles"
@@ -114,7 +110,6 @@ const services = [
   },
   {
     title: "Insurance",
-    href: "/insurance",
     points: [
       "Both third-party and comprehensive insurance",
       "Great rates for everyone"
@@ -122,7 +117,6 @@ const services = [
   },
   {
     title: "Vehicle registration",
-    href: "/vehicleregistration",
     points: [
       "Everything from emission-test to MOT",
       "Car registered in your name"
