@@ -235,61 +235,11 @@ export default function Register({ show, onClose, onShowLogin }) {
                         </button>
                     </div>
                     {/* Social login */}
-                    <div className="flex gap-5 mb-7">
-                        <button
-                            className="flex items-center gap-2 border border-gray-200 rounded-lg px-8 py-3 font-semibold shadow-md hover:bg-gray-50 transition w-1/2 justify-center bg-white text-[#253887] text-lg"
-                            style={{ boxShadow: "0 2px 8px 0 rgba(60,80,180,0.04)" }}
-                            type="button"
-                            tabIndex={-1}
-                        >
-                            <span>
-                                {/* Google SVG */}
-                                <svg viewBox="0 0 20 20" width={24} height={24} aria-hidden="true">
-                                    <circle cx="12" cy="12" r="12" fill="#EA4335" />
-                                    <path
-                                        d="M16.6711 15.4688L17.2031 12H13.875V9.75C13.875 8.80102 14.34 7.875 15.8306 7.875H17.3438V4.92188C17.3438 4.92188 15.9705 4.6875 14.6576 4.6875C11.9166 4.6875 10.125 6.34875 10.125 9.35625V12H7.07812V15.4688H10.125V23.8542C11.3674 24.0486 12.6326 24.0486 13.875 23.8542V15.4688H16.6711Z"
-                                        fill="white"
-                                    ></path>
-                                    <path
-                                        d="M19.6 10.222c0-.822-.067-1.422-.211-2.044H10v3.71h5.511c-.111.923-.711 2.312-2.044 3.245l3.155 2.445c1.89-1.745 2.978-4.311 2.978-7.356z"
-                                        fill="#4285F4"
-                                    ></path>
-                                    <path
-                                        d="M4.311 11.978c-.211-.623-.333-1.29-.333-1.978 0-.689.122-1.356.322-1.978l-3.233-2.51C.389 6.866 0 8.388 0 10c0 1.611.389 3.133 1.067 4.489l3.244-2.511z"
-                                        fill="#FBBC05"
-                                    ></path>
-                                    <path
-                                        d="M10 20c2.7 0 4.967-.889 6.623-2.422l-3.156-2.445c-.844.59-1.978 1-3.467 1-2.644 0-4.889-1.744-5.689-4.155l-3.233 2.51C2.723 17.757 6.09 20 10 20z"
-                                        fill="#34A853"
-                                    ></path>
-                                </svg>
-                            </span>
-                            Google
-                        </button>
-                        <button
-                            className="flex items-center gap-2 border border-gray-200 rounded-lg px-8 py-3 font-semibold shadow-md hover:bg-gray-50 transition w-1/2 justify-center bg-white text-[#253887] text-lg"
-                            style={{ boxShadow: "0 2px 8px 0 rgba(60,80,180,0.04)" }}
-                            type="button"
-                            tabIndex={-1}
-                        >
-                            <span>
-                                {/* Facebook SVG */}
-                                <svg viewBox="0 0 24 24" width={24} height={24} aria-hidden="true">
-                                    <circle cx="12" cy="12" r="12" fill="#1877F2" />
-                                    <path
-                                        d="M16.6711 15.4688L17.2031 12H13.875V9.75C13.875 8.80102 14.34 7.875 15.8306 7.875H17.3438V4.92188C17.3438 4.92188 15.9705 4.6875 14.6576 4.6875C11.9166 4.6875 10.125 6.34875 10.125 9.35625V12H7.07812V15.4688H10.125V23.8542C11.3674 24.0486 12.6326 24.0486 13.875 23.8542V15.4688H16.6711Z"
-                                        fill="white"
-                                    ></path>
-                                </svg>
-                            </span>
-                            Facebook
-                        </button>
-                    </div>
                     {/* OR divider */}
                     <div className="flex items-center gap-3 mb-6">
                         <div className="flex-1 border-t border-gray-200" />
                         <span className="text-[#bfc8dc] text-base font-semibold">
-                            Or via e-mail
+                            via e-mail
                         </span>
                         <div className="flex-1 border-t border-gray-200" />
                     </div>

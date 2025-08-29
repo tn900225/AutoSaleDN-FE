@@ -1,37 +1,39 @@
 import React, { useState } from "react";
 import Register from "./Register";
-import Swal from "sweetalert2"; // Ensure Swal is imported
+import Swal from "sweetalert2";
 import { useUserContext } from "./context/UserContext";
-import { useNavigate } from 'react-router-dom';
-
+import { useNavigate } from "react-router-dom";
 import { getApiBaseUrl } from "../../util/apiconfig";
+
+const AppSwal = Swal.mixin({
+  buttonsStyling: false,
+  customClass: {
+    confirmButton:
+      "bg-[#3452e1] hover:bg-[#253887] text-white font-semibold px-6 py-2 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-[#253887] mr-2",
+    cancelButton:
+      "bg-gray-400 hover:bg-gray-500 text-white font-semibold px-6 py-2 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-gray-500"
+  }
+});
 
 export default function Login({ show, onClose }) {
   const navigate = useNavigate();
   const { setUser } = useUserContext();
   const [showPassword, setShowPassword] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
-  const [form, setForm] = useState({
-    email: "",
-    password: ""
-  });
+  const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
-
   const API_BASE = getApiBaseUrl();
+
+  // ---------- Validation ----------
+  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const validatePassword = (pw) => pw.length >= 8;
 
   const validateForm = () => {
     const err = {};
     if (!validateEmail(form.email)) err.email = "Invalid email address.";
-    if (!validatePassword(form.password)) err.password = "Password must be at least 8 characters.";
+    if (!validatePassword(form.password))
+      err.password = "Password must be at least 8 characters.";
     return err;
-  };
-
-  const validateEmail = (email) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
-
-  const validatePassword = (pw) => {
-    return pw.length >= 8;
   };
 
   const handleChange = (e) => {
@@ -39,110 +41,280 @@ export default function Login({ show, onClose }) {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  // ---------- Login ----------
   const handleLogin = async (e) => {
     e.preventDefault();
     const err = validateForm();
     setErrors(err);
+    if (Object.keys(err).length > 0) return;
 
-    if (Object.keys(err).length === 0) {
-      try {
-        const loginDto = {
-          Email: form.email,
-          Password: form.password
-        };
+    try {
+      const loginDto = { Email: form.email, Password: form.password };
+      const resp = await fetch(`${API_BASE}/api/User/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(loginDto),
+      });
 
-        const resp = await fetch(`${API_BASE}/api/User/login`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(loginDto)
+      if (resp.ok) {
+        const { token, role } = await resp.json();
+        localStorage.setItem("token", token);
+        localStorage.setItem("role", role);
+
+        if (role === "Admin") {
+          navigate("/admin/dashboard");
+          AppSwal.fire("Login Successful", "Welcome Admin!", "success");
+          onClose();
+          return;
+        }
+        if (role === "Seller") {
+          navigate("/seller/dashboard");
+          AppSwal.fire("Login Successful", "Welcome Seller!", "success");
+          onClose();
+          return;
+        }
+
+        // Normal User
+        const userInfoResp = await fetch(`${API_BASE}/api/User/me`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
+        const userInfo = await userInfoResp.json();
+        setUser(userInfo);
 
-        if (resp.ok) {
-          const { token, role } = await resp.json();
-          localStorage.setItem('token', token);
-          localStorage.setItem('role', role);
+        onClose();
+        AppSwal.fire("Login Successful", "Welcome back!", "success").then(() => {
+          window.location.reload();
+        });
+      } else if (resp.status === 401) {
+        const errorText = await resp.text();
+        if (
+          errorText ===
+          "Your account has been deactivated by the administrator."
+        ) {
+          AppSwal.fire("Account Deactivated", "Please contact support.", "warning");
+        } else {
+          AppSwal.fire(
+            "Authentication Failed",
+            "Invalid email or password.",
+            "error"
+          );
+        }
+      } else {
+        const errorDetail = await resp.text();
+        throw new Error(
+          `Login failed with status ${resp.status}: ${errorDetail}`
+        );
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      AppSwal.fire(
+        "Login Failed",
+        `An unexpected error occurred. (${error.message})`,
+        "error"
+      );
+    }
+  };
 
-          if (role === "Admin") {
-            navigate('/admin/dashboard');
-            Swal.fire({
-              icon: "success",
-              title: "Login Successful",
-              text: "Welcome Admin!"
-            });
-            onClose();
-            return;
-          }
-
-          if (role === "Seller") {
-            navigate('/seller/dashboard');
-            Swal.fire({
-              icon: "success",
-              title: "Login Successful",
-              text: "Welcome Seller!"
-            });
-            onClose();
-            return;
-          }
-          const userInfoResp = await fetch(`${API_BASE}/api/User/me`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
+  // ---------- OTP Prompt ----------
+  const promptOtp = async (email) => {
+    const { value: otp } = await AppSwal.fire({
+      title: "Verify OTP",
+      html: `
+        <div class="flex justify-center gap-2">
+          ${Array.from({ length: 6 })
+            .map(
+              (_, i) => `
+              <input type="text" maxlength="1" id="otp-${i}" 
+                class="w-12 h-12 border-2 border-[#3452e1] rounded-lg text-center text-xl font-semibold 
+                focus:outline-none focus:ring-2 focus:ring-[#253887]" />
+            `
+            )
+            .join("")}
+        </div>
+      `,
+      focusConfirm: false,
+      confirmButtonText: "Verify",
+      showCancelButton: true,
+      customClass: {
+        confirmButton:
+          "bg-[#3452e1] hover:bg-[#253887] text-white font-semibold px-6 py-2 rounded-lg shadow-md",
+        cancelButton:
+          "bg-gray-400 hover:bg-gray-500 text-white font-semibold px-6 py-2 rounded-lg shadow-md",
+      },
+      buttonsStyling: false,
+      preConfirm: () => {
+        const otpCode = Array.from({ length: 6 })
+          .map((_, i) => document.getElementById(`otp-${i}`).value)
+          .join("");
+        if (otpCode.length !== 6) {
+          Swal.showValidationMessage("Please enter a valid 6-digit OTP.");
+        }
+        return otpCode;
+      },
+      didOpen: () => {
+        const inputs = Array.from(document.querySelectorAll("input[id^=otp-]"));
+        inputs.forEach((input, idx) => {
+          input.addEventListener("input", (e) => {
+            if (e.target.value && idx < inputs.length - 1) {
+              inputs[idx + 1].focus();
             }
           });
-          const userInfo = await userInfoResp.json();
-          setUser(userInfo);
-
-          onClose();
-          Swal.fire({
-            icon: "success",
-            title: "Login Successful",
-            text: "Welcome back!"
-          }).then(() => {
-            window.location.reload();
+          input.addEventListener("keydown", (e) => {
+            if (e.key === "Backspace" && !input.value && idx > 0) {
+              inputs[idx - 1].focus();
+            }
           });
-        }
-        else if (resp.status === 401) {
-          const errorText = await resp.text(); // Get the error message from the response body
-
-          if (errorText === "Your account has been deactivated by the administrator.") {
-            Swal.fire({
-              icon: "warning", // Changed to warning for deactivation
-              title: "Account Deactivated",
-              text: "Your account has been deactivated by the administrator. Please contact support for assistance."
-            });
-          } else {
-            Swal.fire({
-              icon: "error",
-              title: "Authentication Failed",
-              text: "Invalid Email or password. Please try again."
-            });
-          }
-        } else {
-          // For any other non-OK status, throw an error
-          const errorDetail = await resp.text(); // Get more specific error if available
-          throw new Error(`Login failed with status ${resp.status}: ${errorDetail}`);
-        }
-      } catch (error) {
-        console.error("Login error:", error);
-        Swal.fire({
-          icon: "error",
-          title: "Login Failed",
-          text: `An unexpected error occurred. Please try again. (${error.message})`
         });
+        inputs[0].focus();
+      },
+    });
+
+    if (!otp) return null;
+
+    // Call verify API
+    AppSwal.fire({
+      title: "Verifying...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    const verifyResp = await fetch(`${API_BASE}/api/User/verify-reset-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, otp }),
+    });
+
+    Swal.close();
+
+    if (!verifyResp.ok) {
+      await AppSwal.fire({
+        icon: "error",
+        title: "Invalid OTP",
+        text: "The OTP you entered is incorrect or expired. Please try again.",
+        confirmButtonText: "Retry",
+        customClass: {
+          confirmButton:
+            "bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-lg shadow-md",
+        },
+        buttonsStyling: false,
+      });
+      return await promptOtp(email); // retry
+    }
+
+    return otp;
+  };
+
+  // ---------- Forgot Password ----------
+  const handleForgotPassword = async () => {
+    // Step 1: Ask for email
+    const { value: email } = await AppSwal.fire({
+      title: "Forgot Password",
+      input: "email",
+      inputLabel: "Enter your registered email",
+      inputPlaceholder: "your@email.com",
+      confirmButtonText: "Send OTP",
+      showCancelButton: true,
+      confirmButtonColor: "#3452e1",
+      cancelButtonColor: "#6b7280",
+    });
+
+    if (!email) return;
+
+    try {
+      AppSwal.fire({
+        title: "Sending OTP...",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
+      const resp = await fetch(`${API_BASE}/api/User/forgotpassword`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      Swal.close();
+
+      const data = await resp.json();
+      if (!resp.ok) {
+        AppSwal.fire("Error", data || "Email not found.", "error");
+        return;
       }
+
+      await AppSwal.fire({
+        icon: "info",
+        title: "OTP Sent",
+        text: "Check your email inbox. We sent you a 6-digit OTP code (valid for 10 minutes).",
+        confirmButtonColor: "#3452e1",
+      });
+
+      // Step 2: OTP
+      const otp = await promptOtp(email);
+      if (!otp) return;
+
+      await AppSwal.fire({
+        icon: "success",
+        title: "OTP Verified",
+        text: "Now you can set your new password.",
+        confirmButtonColor: "#3452e1",
+      });
+
+      // Step 3: New password
+      const { value: newPassForm } = await AppSwal.fire({
+        title: "Reset Password",
+        html: `
+          <input id="swal-newpass" type="password" class="swal2-input" placeholder="New Password">
+          <input id="swal-confirmpass" type="password" class="swal2-input" placeholder="Confirm Password">
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: "Reset Password",
+        confirmButtonColor: "#3452e1",
+        cancelButtonColor: "#6b7280",
+        preConfirm: () => {
+          const newPass = document.getElementById("swal-newpass").value;
+          const confirmPass = document.getElementById("swal-confirmpass").value;
+
+          if (!newPass || !confirmPass) {
+            Swal.showValidationMessage("Both password fields are required.");
+          } else if (newPass.length < 8) {
+            Swal.showValidationMessage("Password must be at least 8 characters.");
+          } else if (newPass !== confirmPass) {
+            Swal.showValidationMessage("Passwords do not match.");
+          }
+          return { newPass };
+        },
+      });
+
+      if (!newPassForm) return;
+
+      const resetResp = await fetch(`${API_BASE}/api/User/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          otp,
+          newPassword: newPassForm.newPass,
+        }),
+      });
+
+      const resetData = await resetResp.json();
+      if (resetResp.ok) {
+        AppSwal.fire(
+          "Success",
+          "Password reset successful. You can now log in.",
+          "success"
+        );
+      } else {
+        AppSwal.fire("Error", resetData || "Failed to reset password.", "error");
+      }
+    } catch (err) {
+      console.error(err);
+      AppSwal.fire("Error", "Something went wrong. Please try again later.", "error");
     }
   };
 
   if (!show) return null;
-
-  const handleShowRegister = () => {
-    setShowRegister(true);
-  };
-
-  const handleCloseRegister = () => {
-    setShowRegister(false);
-  };
 
   return (
     <>
@@ -155,51 +327,42 @@ export default function Login({ show, onClose }) {
             aria-label="Close modal"
           >
             <svg width={20} height={20} fill="none" viewBox="0 0 16 16">
-              <path d="M4 4l8 8M12 4l-8 8" stroke="#253887" strokeWidth={2} strokeLinecap="round" />
+              <path
+                d="M4 4l8 8M12 4l-8 8"
+                stroke="#253887"
+                strokeWidth={2}
+                strokeLinecap="round"
+              />
             </svg>
           </button>
+
           <h4 className="text-xl font-bold text-[#253887] mb-2">Welcome back</h4>
           <div className="flex items-center gap-2 mb-6">
-            <span className="text-[#425187] text-sm">Don't have an account yet?</span>
-            <button className="text-[#3452e1] text-sm font-semibold hover:underline" onClick={handleShowRegister}>
+            <span className="text-[#425187] text-sm">
+              Don't have an account yet?
+            </span>
+            <button
+              className="text-[#3452e1] text-sm font-semibold hover:underline"
+              onClick={() => setShowRegister(true)}
+            >
               Register here
             </button>
           </div>
-          {/* Social login */}
-          <div className="flex gap-4 mb-6">
-            <button className="flex items-center gap-2 border border-gray-200 rounded-lg px-4 py-2 font-semibold shadow hover:bg-gray-50 transition w-1/2 justify-center">
-              <span>
-                {/* Google SVG */}
-                <svg viewBox="0 0 20 20" width={20} height={20} aria-hidden="true">
-                  <path fill="#EA4335" fillRule="evenodd" d="M10 3.867c1.877 0 3.144.81 3.866 1.489L16.69 2.6C14.955.989 12.699 0 9.999 0 6.09 0 2.712 2.244 1.067 5.511L4.3 8.022c.81-2.41 3.055-4.155 5.7-4.155z" clipRule="evenodd"></path>
-                  <path fill="#4285F4" fillRule="evenodd" d="M19.6 10.222c0-.822-.067-1.422-.211-2.044H10v3.71h5.511c-.111.923-.711 2.312-2.044 3.245l3.155 2.445c1.89-1.745 2.978-4.311 2.978-7.356z" clipRule="evenodd"></path>
-                  <path fill="#FBBC05" fillRule="evenodd" d="M4.311 11.978c-.211-.623-.333-1.29-.333-1.978 0-.689.122-1.356.322-1.978l-3.233-2.51C.389 6.866 0 8.388 0 10c0 1.611.389 3.133 1.067 4.489l3.244-2.511z" clipRule="evenodd"></path>
-                  <path fill="#34A853" fillRule="evenodd" d="M10 20c2.7 0 4.967-.889 6.623-2.422l-3.156-2.445c-.844.59-1.978 1-3.467 1-2.644 0-4.889-1.744-5.689-4.155l-3.233 2.51C2.723 17.757 6.09 20 10 20z" clipRule="evenodd"></path>
-                </svg>
-              </span>
-              Google
-            </button>
-            <button className="flex items-center gap-2 border border-gray-200 rounded-lg px-4 py-2 font-semibold shadow hover:bg-gray-50 transition w-1/2 justify-center">
-              <span>
-                {/* Facebook SVG */}
-                <svg viewBox="0 0 24 24" width={20} height={20} aria-hidden="true">
-                  <path d="M24 12.0733C24 5.40541 18.6274 0 12 0C5.37258 0 0 5.40541 0 12.0733C0 18.0994 4.3882 23.0943 10.125 24V15.5633H7.07812V12.0733H10.125V9.41343C10.125 6.38755 11.9166 4.71615 14.6576 4.71615C15.9701 4.71615 17.3438 4.95195 17.3438 4.95195V7.92313H15.8306C14.34 7.92313 13.875 8.85386 13.875 9.80958V12.0733H17.2031L16.6711 15.5633H13.875V24C19.6118 23.0943 24 18.0994 24 12.0733Z" fill="#1877F2"></path>
-                  <path d="M16.6711 15.4688L17.2031 12H13.875V9.75C13.875 8.80102 14.34 7.875 15.8306 7.875H17.3438V4.92188C17.3438 4.92188 15.9705 4.6875 14.6576 4.6875C11.9166 4.6875 10.125 6.34875 10.125 9.35625V12H7.07812V15.4688H10.125V23.8542C11.3674 24.0486 12.6326 24.0486 13.875 23.8542V15.4688H16.6711Z" fill="white"></path>
-                </svg>
-              </span>
-              Facebook
-            </button>
-          </div>
-          {/* OR divider */}
           <div className="flex items-center gap-3 mb-6">
             <div className="flex-1 border-t border-gray-200" />
-            <span className="text-[#425187] text-sm">or via e-mail</span>
+            <span className="text-[#425187] text-sm">Via e-mail</span>
             <div className="flex-1 border-t border-gray-200" />
           </div>
-          {/* Login form */}
+
+          {/* Login Form */}
           <form onSubmit={handleLogin}>
             <div className="mb-4">
-              <label htmlFor="username" className="block text-[#253887] font-medium mb-1">Login</label>
+              <label
+                htmlFor="username"
+                className="block text-[#253887] font-medium mb-1"
+              >
+                Login
+              </label>
               <input
                 id="username"
                 name="email"
@@ -234,15 +397,30 @@ export default function Login({ show, onClose }) {
                 tabIndex={-1}
                 onClick={() => setShowPassword((s) => !s)}
               >
-                {/* Eye icon */}
                 <svg width={18} height={18} fill="none" viewBox="0 0 16 16">
-                  <path d="M1.333 8s2.667-4 6.667-4 6.667 4 6.667 4-2.667 4-6.667 4-6.667-4-6.667-4z" stroke="#3452e1" strokeWidth="1.5" />
-                  <circle cx="8" cy="8" r="2" stroke="#3452e1" strokeWidth="1.5" />
+                  <path
+                    d="M1.333 8s2.667-4 6.667-4 6.667 4 6.667 4-2.667 4-6.667 4-6.667-4-6.667-4z"
+                    stroke="#3452e1"
+                    strokeWidth="1.5"
+                  />
+                  <circle
+                    cx="8"
+                    cy="8"
+                    r="2"
+                    stroke="#3452e1"
+                    strokeWidth="1.5"
+                  />
                 </svg>
               </button>
             </div>
             <div className="mb-4 flex justify-between items-center">
-              <button type="button" className="text-[#3452e1] text-sm font-semibold hover:underline">Forgot your password?</button>
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                className="text-[#3452e1] text-sm font-semibold hover:underline"
+              >
+                Forgot your password?
+              </button>
             </div>
             <button
               type="submit"
@@ -253,9 +431,10 @@ export default function Login({ show, onClose }) {
           </form>
         </div>
       </div>
+
       <Register
         show={showRegister}
-        onClose={handleCloseRegister}
+        onClose={() => setShowRegister(false)}
         onShowLogin={onClose}
       />
     </>
