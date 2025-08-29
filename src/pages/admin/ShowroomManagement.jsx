@@ -273,25 +273,57 @@ export default function ShowroomManagement() {
     setViewMode('detail');
   };
 
-  const handleExportReport = async (showroomId) => {
-    try {
-      const response = await fetch(`${API_BASE}/api/Admin/showrooms/export`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ showroomId: showroomId }),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to export report');
-      }
-      alert('Report exported successfully!');
-    } catch (err) {
-      setError(err.message);
-      alert(`Error exporting report: ${err.message}`);
+const handleExportReport = async (showroomId) => {
+  
+  try {
+    const token = localStorage.getItem('token');
+    const API_BASE = getApiBaseUrl();
+
+    const response = await fetch(`${API_BASE}/api/Admin/showrooms/export`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ showroomId: showroomId }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to export report.');
     }
-  };
+
+    const disposition = response.headers.get('content-disposition');
+    let filename = `showroom_report_${showroomId}.xlsx`; 
+    if (disposition && disposition.includes('attachment')) {
+      const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+      const matches = filenameRegex.exec(disposition);
+      if (matches != null && matches[1]) {
+        filename = matches[1].replace(/['"]/g, '');
+      }
+    }
+
+    const blob = await response.blob();
+
+    const url = window.URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode.removeChild(link);
+
+    // 6. Clean up the temporary URL
+    window.URL.revokeObjectURL(url);
+
+
+  } catch (err) {
+    alert(`Error exporting report: ${err.message}`);
+  } finally {
+
+  }
+};
 
   const handleImportStock = async () => {
     try {
@@ -423,7 +455,7 @@ export default function ShowroomManagement() {
   };
 
   const getTotalSold = () => {
-    return showrooms.reduce((total, showroom) => total + showroom.soldThisMonth, 0);
+    return showrooms.reduce((total, showroom) => total + showroom.totalSoldAllTime, 0);
   };
   
   // New functions for the create showroom modal
