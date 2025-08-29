@@ -16,6 +16,7 @@ import {
   ArrowPathIcon,
   Cog6ToothIcon,
 } from '@heroicons/react/24/solid';
+import { useWishlist } from '../hooks/useWishList';
 
 function getPagination(currentPage, totalPages, delta = 2) {
   const pages = [];
@@ -58,20 +59,25 @@ export default function CarPageMain({
   onSortChange,
 }) {
 
+  const navigate = useNavigate();
+  
+  // Sử dụng hook useWishlist để lấy danh sách các xe trong wishlist và các hàm liên quan
+  const { wishlistItems, addCarToWishlist, removeCarFromWishlist } = useWishlist();
+
   const getSaleStatusDisplay = (status) => {
     if (!status) {
-      return "Available"; // Mặc định là "Available" nếu không có trạng thái
+      return "Available";
     }
     switch (status) {
       case "Available":
-      case "Pending Deposit": // Thay đổi: Pending Deposit -> Available
+      case "Pending Deposit":
         return "Available";
       case "Sold":
         return "Sold";
       case "On Hold":
         return "On Hold";
       case "Deposit Paid":
-      case "Pending Full Payment": // Thay đổi: Pending Full Payment -> Deposit Paid
+      case "Pending Full Payment":
         return "Deposit Paid";
       default:
         return status;
@@ -79,24 +85,29 @@ export default function CarPageMain({
   };
 
   const getStatusBadgeClass = (status) => {
-    // Sử dụng trạng thái gốc từ backend để quyết định màu sắc,
-    // hoặc có thể dùng statusToDisplay để đồng bộ màu với text
-    const displayStatus = getSaleStatusDisplay(status); // Lấy trạng thái đã được map
+    const displayStatus = getSaleStatusDisplay(status);
 
     switch (displayStatus) {
       case "Sold":
-        return 'bg-red-500'; // Màu đỏ cho trạng thái "Sold"
+        return 'bg-red-500';
       case "On Hold":
       case "Deposit Paid":
-        return 'bg-orange-500'; // Màu cam cho các trạng thái tạm giữ/đã đặt cọc
+        return 'bg-orange-500';
       case "Available":
-        return 'bg-green-500'; // Màu xanh cho trạng thái "Available"
+        return 'bg-green-500';
       default:
-        return 'bg-gray-500'; // Màu mặc định
+        return 'bg-gray-500';
     }
   };
 
-  const navigate = useNavigate();
+  // Hàm xử lý khi click vào nút wishlist
+  const handleWishlistToggle = (carId, isWishlisted) => {
+    if (isWishlisted) {
+      removeCarFromWishlist(carId);
+    } else {
+      addCarToWishlist(carId);
+    }
+  };
 
   if (loading) {
     return (
@@ -151,9 +162,10 @@ export default function CarPageMain({
         {cars.map(car => {
           const firstSpec = car.specifications && car.specifications.length > 0 ? car.specifications[0] : {};
           const priceWithoutVat = car.price - (car.pricing && car.pricing.length > 0 ? car.pricing[0].taxRate : 0);
+          const isWishlisted = wishlistItems.includes(car.listingId);
 
           const statusToDisplay = getSaleStatusDisplay(car.currentSaleStatus);
-          const statusBadgeClass = getStatusBadgeClass(car.currentSaleStatus); // Truyền trạng thái gốc để lấy màu
+          const statusBadgeClass = getStatusBadgeClass(car.currentSaleStatus);
 
           return (
             <div key={car.listingId} data-testid="feature.car.card" className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 group flex flex-col md:flex-row">
@@ -164,12 +176,29 @@ export default function CarPageMain({
                 data-car-id={car.listingId}
                 style={{ all: "unset", cursor: "pointer" }}
               >
-                <div className="absolute top-3 right-3 z-10">
-                  <span className="bg-white rounded-full p-2 shadow-md flex items-center justify-center">
-                    <HeartIcon className="w-6 h-6 text-[#3452e1]" />
-                  </span>
-                </div>
+                
                 <div className="w-full h-[220px] md:h-[240px] overflow-hidden relative bg-[#e9ecfa]">
+
+                <div className="absolute top-3 right-3 z-10">
+                  {/* Nút wishlist */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Ngăn chặn sự kiện click lan truyền đến thẻ cha
+                      e.preventDefault();
+                      handleWishlistToggle(car.listingId, isWishlisted);
+
+                      setTimeout(() => {
+                        window.location.reload();
+                      }, 100);
+                    }}
+                    className={`rounded-full p-2 shadow-md flex items-center justify-center transition-colors duration-200
+                      ${isWishlisted ? 'bg-red-500 text-white' : 'bg-white text-[#3452e1]'}
+                      hover:bg-red-500 hover:text-white`}
+                  >
+                    <HeartIcon className="w-6 h-6" />
+                  </button>
+                </div>
                   <img
                     alt={`${car.model.manufacturer.name} ${car.model.name} image`}
                     src={car.images[0]?.url || "/images/no-image.png"}
@@ -191,9 +220,9 @@ export default function CarPageMain({
                         {car.model.manufacturer.name} {car.model.name}
                       </Link>
                       {statusToDisplay && (
-                          <span className={`px-2 py-1 rounded-full text-white font-semibold text-xs ${statusBadgeClass}`}>
-                              {statusToDisplay}
-                          </span>
+                        <span className={`px-2 py-1 rounded-full text-white font-semibold text-xs ${statusBadgeClass}`}>
+                          {statusToDisplay}
+                        </span>
                       )}
                     </h4>
                   </div>

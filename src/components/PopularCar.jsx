@@ -4,6 +4,7 @@ import { Navigation, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
+import { useNavigate } from "react-router-dom";
 
 const slides = [
   {
@@ -19,6 +20,7 @@ const slides = [
     carsCount: "296 838 cars",
     image: "/images/discount_1x.webp",
     image2x: "/images/discount_2x.webp",
+    filter: { discountedCars: true },
     alt: "discount cars",
   },
   {
@@ -26,48 +28,61 @@ const slides = [
     title: "SUV",
     image: "/images/suv.webp",
     alt: "SUV",
+    filter: { vehicleType: 'SUV' },
   },
   {
     href: "/cars?family-cars=1",
-    title: "Family car",
+    title: "SEDAN",
     image: "/images/family.webp",
-    alt: "Family car",
+    alt: "SEDAN",
+    filter: { vehicleType: 'SEDAN'},
   },
   {
     href: "/cars?car-style[]=CARSTYLE_ESTATE_CAR",
     title: "Estate",
     image: "/images/combi.webp",
     alt: "Estate",
+    filter: { vehicleType: 'ESTATE' },
   },
   {
     href: "/cars?city-cars=1",
     title: "City",
     image: "/images/city.webp",
     alt: "City",
+    filter: { vehicleType: 'CITY' },
   },
   {
     href: "/cars?premium-cars=1",
     title: "Luxury",
     image: "/images/luxury.webp",
     alt: "Luxury",
+    filter: { vehicleType: 'LUXURY'},
   },
   {
     href: "/cars?mileage-to=15000&registration-date-from=2023",
     title: "Nearly new",
     image: "/images/almost-new.webp",
     alt: "Nearly new",
+    filter: { registrationFrom: "2023" },
   },
   {
     href: "/cars?sports-cars=1",
     title: "Sport",
     image: "/images/sport.webp",
     alt: "Sport",
+    filter: { vehicleType: 'SPORT' },
   },
 ];
 
 export default function PopularCar() {
   const prevRef = useRef(null);
   const nextRef = useRef(null);
+  const navigate = useNavigate();
+
+  const handleSlideClick = (filter) => {
+    // Chuyển hướng đến trang /cars và truyền đối tượng filter qua state
+    navigate("/cars", { state: { initialFilter: filter } });
+  };
 
   return (
     <section className="bg-white py-10 border-b border-[#e6e9f3]">
@@ -99,11 +114,15 @@ export default function PopularCar() {
                     ? { width: 410, minWidth: 410, maxWidth: 410 }
                     : { width: 260, minWidth: 260, maxWidth: 260 }
                 }
-                className="group"
+                className="group cursor-pointer" // Thêm cursor-pointer để tạo hiệu ứng click
+                onClick={() => {
+                  if (slide.filter) {
+                    handleSlideClick(slide.filter);
+                  }
+                }}
               >
                 {slide.banner ? (
-                  <a
-                    href={slide.href}
+                  <div
                     className="block relative rounded-2xl shadow border border-transparent transition-all duration-200 hover:shadow-2xl hover:-translate-y-1 hover:border-[#F79C2E] focus:outline-none"
                     style={{
                       background: "linear-gradient(120deg, #FFE6B9 0%, #FFD595 100%)",
@@ -152,10 +171,9 @@ export default function PopularCar() {
                       className="absolute bottom-3 right-3 w-[200px] h-[90px] object-contain pointer-events-none"
                       style={{ zIndex: 1 }}
                     />
-                  </a>
+                  </div>
                 ) : (
-                  <a
-                    href={slide.href}
+                  <div
                     className="block relative rounded-2xl bg-white border border-[#e6e9f3] shadow transition-all duration-200 hover:shadow-2xl hover:-translate-y-1 hover:border-[#3452e1] focus:outline-none px-6 pt-8 pb-5 h-[200px] flex flex-col items-start"
                   >
                     <h4 className="text-lg font-extrabold text-[#253887] mb-3 flex items-center gap-2">
@@ -169,7 +187,7 @@ export default function PopularCar() {
                       height={80}
                       className="w-[140px] h-[80px] object-contain"
                     />
-                  </a>
+                  </div>
                 )}
               </SwiperSlide>
             ))}

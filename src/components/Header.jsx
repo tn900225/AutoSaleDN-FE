@@ -1,11 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Login from "./Login";
 import AccountMenu from "./AccountMenu";
 import HeaderUserDropdown from "./HeaderUserDropDown";
 import { useUserContext } from "./context/UserContext";
-
-import { getApiBaseUrl } from "../../util/apiconfig";
+import { useWishlist } from '../hooks/useWishlist';
 
 const navLinks = [
   { label: "Buy", to: "/cars" },
@@ -29,22 +28,12 @@ export default function Header() {
   const [showServices, setShowServices] = useState(false);
   const [showSignInModal, setShowSignInModal] = useState(false);
 
-  const API_BASE = getApiBaseUrl();
+  const navigate = useNavigate();
+  const { wishlistItems } = useWishlist();
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      // Fetch user info from API using token
-      fetch(`${API_BASE}/api/User/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-      .then(resp => resp.json())
-      .then(data => setUser(data))
-      .catch(error => console.error('Error fetching user info:', error));
-    }
-  }, [setUser]);
+  const handleNavigateToWishlist = () => {
+    navigate('/wishlist');
+  };
 
   useEffect(() => {
     if (!showDropdown) return;
@@ -63,7 +52,7 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white border-b border-[#253887]">
+    <header className="bg-white border-b border-[#3e47dd]">
       <div className="max-w-[1400px] mx-auto flex items-center h-16 px-8">
         {/* Logo */}
         <Link to="/" className="flex items-center mr-10 select-none">
@@ -74,59 +63,68 @@ export default function Header() {
         </Link>
         {/* Menu */}
         <nav className="flex items-center gap-6">
-          <Link to="/cars" className="text-[#253887] font-semibold text-base hover:text-[#3452e1] transition">Buy</Link>
-          <Link to="/how-auto-works" className="text-[#253887] font-semibold text-base hover:text-[#3452e1] transition">How it works</Link>
-          <Link to="/customer-reviews" className="text-[#253887] font-semibold text-base hover:text-[#3452e1] transition">Reviews</Link>
+          <Link to="/cars" className="text-[#3e47dd] font-semibold text-base hover:text-[#3452e1] transition">Buy</Link>
+          <Link to="/how-auto-works" className="text-[#3e47dd] font-semibold text-base hover:text-[#3452e1] transition">How it works</Link>
+          <Link to="/customer-reviews" className="text-[#3e47dd] font-semibold text-base hover:text-[#3452e1] transition">Reviews</Link>
           <Link
-                    to="/blog"
-                    className="text-[#253887] font-semibold text-base hover:text-[#3452e1] transition"
-                >
-                    Blog
-                </Link>
-          {/* <Link to="/electric-hybrid-vehicles" className="text-[#253887] font-semibold text-base hover:text-[#3452e1] transition">Electric &amp; Hybrid</Link> */}
+            to="/blog"
+            className="text-[#3e47dd] font-semibold text-base hover:text-[#3452e1] transition"
+          >
+            Blog
+          </Link>
         </nav>
         {/* Actions */}
         <div className="flex items-center gap-7 ml-auto">
           {/* Heart */}
-          <button className="p-1" aria-label="Favorites">
-            <svg width={26} height={26} fill="none" stroke="#253887" strokeWidth={1.7} viewBox="0 0 24 24">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41 0.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-            </svg>
-          </button>
+          <div className="relative">
+            <button
+              className="p-1"
+              aria-label="Favorites"
+              onClick={handleNavigateToWishlist}
+            >
+              <svg width={26} height={26} fill="none" stroke="#3e47dd" strokeWidth={1.7} viewBox="0 0 24 24">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41 0.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+              </svg>
+            </button>
+            {/* Sử dụng wishlistItems.length để hiển thị số lượng */}
+            {wishlistItems.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-[#3e47dd] text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
+                {wishlistItems.length}
+              </span>
+            )}
+          </div>
           {/* Flag */}
           <button className="flex items-center" aria-label="Language">
-            <img src="https://flagcdn.com/vn.svg" alt="VN" className="w-6 h-6 rounded-full border border-[#253887]" />
+            <img src="https://flagcdn.com/vn.svg" alt="VN" className="w-6 h-6 rounded-full border border-[#3e47dd]" />
           </button>
           {/* User/Login */}
           <div
             className="relative flex items-center"
             ref={dropdownRef}
           >
-            <button className="flex items-center gap-1 text-[#253887] font-semibold text-base" type="button" onClick={() => setShowDropdown((s) => !s)}>
-
-              <svg width={26} height={26} fill="none" stroke="#253887" strokeWidth={1.7} viewBox="0 0 24 24">
+            <button className="flex items-center gap-1 text-[#3e47dd] font-semibold text-base" type="button" onClick={() => setShowDropdown((s) => !s)}>
+              <svg width={26} height={26} fill="none" stroke="#3e47dd" strokeWidth={1.7} viewBox="0 0 24 24">
                 <circle cx="12" cy="9" r="4" />
                 <path d="M4 20c0-3.314 3.134-6 7-6s7 2.686 7 6" />
               </svg>
               <span className="ml-1">{user ? user.fullName : 'Login'}</span>
               <svg width={16} height={16} fill="none" className="ml-1">
-                <path d="M4 6l4 4 4-4" stroke="#253887" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M4 6l4 4 4-4" stroke="#3e47dd" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
             {/* Dropdown */}
             {showDropdown && (
-            <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 shadow-md rounded z-50 min-w-[120px] py-2" style={{width:'320px'}}>
-              {user ? (
-                <AccountMenu user={user} onLogout={handleLogout} />
-              ) : (
-                <HeaderUserDropdown onLoginClick={() => setShowSignInModal(true)} />
-              )}
-            </div>
-             )}
+              <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 shadow-md rounded z-50 min-w-[120px] py-2" style={{ width: '320px' }}>
+                {user ? (
+                  <AccountMenu user={user} onLogout={handleLogout} />
+                ) : (
+                  <HeaderUserDropdown onLoginClick={() => setShowSignInModal(true)} />
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
-
       <Login
         show={showSignInModal}
         onClose={() => setShowSignInModal(false)}

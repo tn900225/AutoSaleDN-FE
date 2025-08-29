@@ -93,7 +93,7 @@ const AccountMenu = ({ user, onLogout }) => {
         </Link>
 
         <Link 
-          to="/favourite-cars" 
+          to="/wishlist" 
           className="flex items-center gap-3 py-2 text-[#253887] hover:bg-[#f6f8fd] rounded-lg transition font-medium text-base"
         >
           <svg 
@@ -106,7 +106,7 @@ const AccountMenu = ({ user, onLogout }) => {
           >
             <path d="M12 21l-1.45-1.32C5.4 15.36 2 12.28 2 8.5A5.5 5.5 0 017.5 3c1.74 0 3.41.81 4.5 2.09A5.5 5.5 0 0116.5 3 5.5 5.5 0 0122 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21z" />
           </svg>
-          <span>Favorite cars</span>
+          <span>WishList cars</span>
         </Link>
 
         <Link 

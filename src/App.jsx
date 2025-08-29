@@ -40,6 +40,7 @@ import BlogIndex from "./pages/BlogIndex";
 import BlogPostDetail from "./pages/BlogPostDetail";
 import SellerMessage from "./pages/seller/SellerMessage";
 import CarPredict from "./pages/admin/CarPredict";
+import WishlistPage from "./pages/WishlistPage";
 
 import { getApiBaseUrl } from "../util/apiconfig";
 
@@ -408,6 +409,7 @@ function App() {
 
                 <Route path="/blog" element={<BlogIndex />} />
                 <Route path="/blog/:slug" element={<BlogPostDetail />} />
+                <Route path="/wishlist" element={<WishlistPage />} />
 
               </Routes>
             </UserLayout>

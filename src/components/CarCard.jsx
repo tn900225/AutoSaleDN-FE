@@ -1,105 +1,174 @@
-// src/components/CarCard.jsx
-import React from "react";
+import React from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import {
+  HeartIcon,
+  PhotoIcon,
+  MapPinIcon,
+  BoltIcon,
+  CalendarDaysIcon,
+  ArrowPathIcon,
+  Cog6ToothIcon,
+} from '@heroicons/react/24/solid';
+import { useWishlist } from '../hooks/useWishList';
+
+const getSaleStatusDisplay = (status) => {
+  if (!status) return "Available";
+  switch (status) {
+    case "Available":
+    case "Pending Deposit": return "Available";
+    case "Sold": return "Sold";
+    case "On Hold": return "On Hold";
+    case "Deposit Paid":
+    case "Pending Full Payment": return "Deposit Paid";
+    default: return status;
+  }
+};
+
+const getStatusBadgeClass = (status) => {
+  const displayStatus = getSaleStatusDisplay(status);
+  switch (displayStatus) {
+    case "Sold": return 'bg-red-500';
+    case "On Hold":
+    case "Deposit Paid": return 'bg-orange-500';
+    case "Available": return 'bg-green-500';
+    default: return 'bg-gray-500';
+  }
+};
 
 export default function CarCard({ car }) {
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(price);
+  const navigate = useNavigate();
+  const { wishlistItems, addCarToWishlist, removeCarFromWishlist } = useWishlist();
+  const isWishlisted = wishlistItems.includes(car.listingId);
+
+  const handleWishlistToggle = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (isWishlisted) {
+      removeCarFromWishlist(car.listingId);
+    } else {
+      addCarToWishlist(car.listingId);
+    }
   };
 
+  const firstSpec = car.specification && car.specification.length > 0 ? car.specification[0] : {};
+  const priceWithoutVat = car.price - (car.pricing && car.pricing.length > 0 ? car.pricing[0].taxRate : 0);
+  const statusToDisplay = getSaleStatusDisplay(car.currentSaleStatus);
+  const statusBadgeClass = getStatusBadgeClass(car.currentSaleStatus);
+
   return (
-    <a
-      href={`/car/${car.id}/${car.make.toLowerCase().replace(/\s/g, '-')}-${car.model.toLowerCase().replace(/\s/g, '-')}`}
-      className="flex flex-col bg-white rounded-xl shadow hover:shadow-lg transition overflow-hidden"
-    >
-      {/* Image carousel */}
-      <div className="relative">
-        <div className="overflow-hidden rounded-t-xl">
-          <img
-            alt={`${car.make} ${car.model} image number 1`}
-            src={car.imageUrl}
-            className="w-full h-48 object-cover"
-            loading="lazy"
-          />
-        </div>
-        {/* Carousel badge */}
-        <div className="absolute bottom-2 left-2 bg-[#253887] text-white text-xs px-2 py-1 rounded flex items-center gap-1">
-          <svg width={18} height={18} viewBox="0 0 18 18" className="inline-block">
-            <rect x={2} y={4} width={14} height={10} rx={2} fill="white" stroke="#3452e1" />
-            <circle cx={5} cy={14} r={1} fill="#3452e1" />
-            <circle cx={13} cy={14} r={1} fill="#3452e1" />
-          </svg>
-          {car.imagesCount}
-        </div>
-      </div>
-      {/* Car info */}
-      <div className="p-4 flex flex-col gap-2">
-        <div>
-          <h4 className="font-bold text-lg text-[#253887]">{car.make} {car.model}</h4>
-          <p className="text-xs text-[#425187]">(Comb.) {car.consumption} • {car.co2} • class {car.emissionClass}</p>
-        </div>
-        <div className="flex flex-wrap gap-4 text-sm text-[#253887]">
-          <div className="flex items-center gap-1">
-            <svg width={18} height={18} viewBox="0 0 18 18"><circle cx={9} cy={9} r={8} stroke="#3452e1" strokeWidth={1.5} fill="none"/><rect x={8} y={4} width={2} height={7} rx={1} fill="#3452e1"/></svg>
-            <span>{car.powerKw} kW ({car.powerHp} hp)</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <svg width={18} height={18} viewBox="0 0 18 18"><rect x={3} y={5} width={12} height={8} rx={2} stroke="#3452e1" strokeWidth={1.5} fill="none"/><rect x={7} y={7} width={4} height={4} rx={1} fill="#3452e1"/></svg>
-            <span>{car.registrationDate}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <svg width={18} height={18} viewBox="0 0 18 18"><rect x={2} y={8} width={14} height={2} rx={1} fill="#3452e1"/><circle cx={5} cy={13} r={1} fill="white"/><circle cx={13} cy={13} r={1} fill="white"/></svg>
-            <span>{car.mileage}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <svg width={18} height={18} viewBox="0 0 18 18"><rect x={5} y={5} width={8} height={8} rx={2} stroke="#3452e1" strokeWidth={1.5} fill="none"/><path d="M9 5v8" stroke="#3452e1" strokeWidth={1.5}/></svg>
-            <span>{car.transmission}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <svg width={18} height={18} viewBox="0 0 18 18"><rect x={3} y={5} width={12} height={8} rx={2} stroke="#3452e1" strokeWidth={1.5} fill="none"/><rect x={7} y={9} width={4} height={2} rx={1} fill="#3452e1"/></svg>
-            <span>{car.fuel}</span>
-          </div>
-        </div>
-        {/* Features preview */}
-        <div className="flex flex-wrap gap-2">
-          {car.features.slice(0, 5).map((feat) => // Hiển thị tối đa 5 tính năng chính
-            <span key={feat} className="bg-[#f4f7fc] text-[#3452e1] px-2 py-1 rounded text-xs">{feat}</span>
-          )}
-          {car.features.length > 5 && (
-            <button className="ml-1 text-[#3452e1] text-xs font-semibold hover:underline flex items-center gap-1">
-              {car.features.length - 5} more
-              <svg width={14} height={14} viewBox="0 0 14 14">
-                <path d="M7 5v4M5 9h4" stroke="#3452e1" strokeWidth={2} strokeLinecap="round" />
-              </svg>
+          <div data-testid="feature.car.card" className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 group flex flex-col md:flex-row">
+      <button
+        type="button"
+        onClick={() => navigate(`/cars/${car.listingId}`)}
+        className="flex-shrink-0 w-full md:w-[320px] relative block text-left p-0 m-0 border-none bg-none focus:outline-none cursor-pointer"
+        data-car-id={car.listingId}
+        style={{ all: "unset", cursor: "pointer" }}
+      >
+        <div className="w-full h-[220px] md:h-[240px] overflow-hidden relative bg-[#e9ecfa]">
+          <div className="absolute top-3 right-3 z-10">
+            <button
+              type="button"
+              onClick={handleWishlistToggle}
+              className={`rounded-full p-2 shadow-md flex items-center justify-center transition-colors duration-200
+                ${isWishlisted ? 'bg-red-500 text-white' : 'bg-white text-[#3452e1]'}
+                hover:bg-red-500 hover:text-white`}
+            >
+              <HeartIcon className="w-6 h-6" />
             </button>
-          )}
-        </div>
-        {/* Delivery & monthly */}
-        <div className="flex flex-wrap items-center gap-4 mt-2">
-          <div className="flex items-center gap-1">
-            <svg width={18} height={18} viewBox="0 0 18 18"><rect x={2} y={5} width={14} height={8} rx={2} fill="#3452e1"/><circle cx={5} cy={13} r={1} fill="white"/><circle cx={13} cy={13} r={1} fill="white"/></svg>
-            <span>{car.deliveryLocation}, delivery:</span>
-            <span className="font-bold text-[#3452e1]">{formatPrice(car.deliveryPrice)}</span>
           </div>
-          <div className="flex items-center gap-1">
-            <svg width={18} height={18} viewBox="0 0 18 18"><rect x={3} y={5} width={12} height={8} rx={2} fill="#3452e1"/><rect x={7} y={9} width={4} height={2} rx={1} fill="white"/></svg>
-            <span>Monthly payment:</span>
-            <span className="font-bold text-[#3452e1]">{formatPrice(car.monthlyPayment)}</span>
+          <img
+            alt={`${car.model.manufacturer.name} ${car.model.name} image`}
+            src={car.images[0]?.url || "/images/no-image.png"}
+            loading="lazy"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            decoding="async"
+          />
+          <div data-testid="carousel-photo-count-badge" className="absolute bottom-3 left-3 bg-white/90 rounded-full px-3 py-1 flex items-center gap-1 text-[#3452e1] font-bold text-xs shadow">
+            <PhotoIcon className="w-4 h-4" />
+            <p>{car.images?.length || 0}</p>
           </div>
         </div>
-        {/* Price */}
-        <div className="flex items-end gap-2 mt-2">
-          <div>
-            <div className="text-xs text-[#14b8a6] font-medium">Very good price</div>
-            <div className="flex items-end gap-2">
-              <div className="text-2xl font-bold text-[#3452e1]">{formatPrice(car.priceEuro)}</div>
-              <div className="flex flex-col text-xs text-gray-500 leading-tight">
-                <span>{formatPrice(car.priceWithoutVat)}</span>
-                <span>without VAT</span>
-              </div>
-            </div>
+      </button>
+      <div className="flex-1 p-6 flex flex-col justify-between">
+        <div>
+          <div className="mb-4">
+            <h4 className="text-[#253887] text-2xl font-extrabold flex items-center gap-2" data-testid="feature.car.card_serp_row_title">
+              <Link to={`/cars/${car.listingId}`} className="hover:text-blue-600 transition-colors">
+                {car.model.manufacturer.name} {car.model.name}
+              </Link>
+              {statusToDisplay && (
+                <span className={`px-2 py-1 rounded-full text-white font-semibold text-xs ${statusBadgeClass}`}>
+                  {statusToDisplay}
+                </span>
+              )}
+            </h4>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-3 gap-x-6 text-[#253887] text-base font-medium mb-4">
+            <span className="flex items-center gap-2">
+              <BoltIcon className="w-5 h-5 text-[#3452e1]" />
+              <span className="font-bold">{firstSpec.engine || 'N/A'}</span>
+            </span>
+            <span className="flex items-center gap-2">
+              <CalendarDaysIcon className="w-5 h-5 text-[#3452e1]" />
+              <span className="font-bold">{car.year}</span>
+            </span>
+            <span className="flex items-center gap-2">
+              <ArrowPathIcon className="w-5 h-5 text-[#3452e1]" />
+              <span className="font-bold">{car.mileage.toLocaleString()} km</span>
+            </span>
+            <span className="flex items-center gap-2">
+              <Cog6ToothIcon className="w-5 h-5 text-[#3452e1]" />
+              <span className="font-bold">{firstSpec.transmission || 'N/A'}</span>
+            </span>
+            <span className="flex items-center gap-2">
+              <BoltIcon className="w-5 h-5 text-[#3452e1]" />
+              <span className="font-bold">{firstSpec.fuelType || 'N/A'}</span>
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {(car.features || []).slice(0, 5).map(f => (
+              <span key={f.featureId} className="bg-[#e9ecfa] text-[#3452e1] rounded-full px-3 py-1 text-sm font-medium">
+                {f.name}
+              </span>
+            ))}
+            {car.features && car.features.length > 5 &&
+              <span className="bg-[#e9ecfa] text-[#3452e1] rounded-full px-3 py-1 text-sm font-medium">
+                +{car.features.length - 5} more
+              </span>
+            }
+          </div>
+          <div className="flex flex-col gap-y-2 mt-4 text-sm font-medium">
+            {car.showrooms && car.showrooms.length > 0 ? (
+              car.showrooms.map((showroom) => (
+                <div key={showroom.storeLocationId} className="flex flex-col text-[#253887] mt-2">
+                  <div className="flex items-center gap-2">
+                    <MapPinIcon className="w-5 h-5 text-[#3452e1]" />
+                    <span className="leading-snug">
+                      {showroom.name}
+                      <br />
+                      [{showroom.address}]
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <span className="flex items-center gap-2 text-[#253887]">
+                <MapPinIcon className="w-5 h-5 text-[#3452e1]" />
+                Unknown Location
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-col items-end mt-4">
+          <h4 className="text-3xl font-bold text-[#253887]">
+            ₫{car.price.toLocaleString('vi-VN')}
+          </h4>
+          <div className="text-sm text-gray-500 font-medium">
+            ₫{priceWithoutVat.toLocaleString('vi-VN')} <span className="text-[#3452e1]">without VAT</span>
           </div>
         </div>
       </div>
-    </a>
+    </div>
+
   );
 }

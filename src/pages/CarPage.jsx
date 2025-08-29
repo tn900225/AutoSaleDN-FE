@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import CarFilterSidebar from "../components/CarFilterSidebar";
 import CarPageMain from "../components/CarPageMain";
 import { getApiBaseUrl } from "../../util/apiconfig";
-
+import { useLocation } from "react-router-dom";
 
 const PER_PAGE = 5;
 
@@ -73,39 +73,48 @@ async function fetchCars(filters = {}, page = 1, perPage = PER_PAGE) {
 }
 
 export default function CarPage() {
+  const location = useLocation(); 
   const [cars, setCars] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
 
-  const [currentFilters, setCurrentFilters] = useState({
-    keyword: '',
-    paymentType: 'cash',
-    priceFrom: null,
-    priceTo: null,
-    vatDeduction: false,
-    discountedCars: false,
-    premiumPartners: false,
-    registrationFrom: null,
-    registrationTo: null,
-    mileageFrom: null,
-    mileageTo: null,
-    transmission: '',
-    fuelType: '',
-    powerUnit: 'kW',
-    powerFrom: null,
-    powerTo: null,
-    vehicleType: '',
-    driveType4x4: false,
-    exteriorColor: '',
-    features: [],
-    sortBy: 'newest', // Keep sortBy in frontend filters state
+  // Khởi tạo state currentFilters bằng cách kiểm tra location.state ngay lập tức
+  const [currentFilters, setCurrentFilters] = useState(() => {
+    const defaultFilters = {
+      keyword: '',
+      paymentType: 'cash',
+      priceFrom: null,
+      priceTo: null,
+      vatDeduction: false,
+      discountedCars: false,
+      premiumPartners: false,
+      registrationFrom: null,
+      registrationTo: null,
+      mileageFrom: null,
+      mileageTo: null,
+      transmission: '',
+      fuelType: '',
+      powerUnit: 'kW',
+      powerFrom: null,
+      powerTo: null,
+      vehicleType: '',
+      driveType4x4: false,
+      exteriorColor: '',
+      features: [],
+      sortBy: 'newest',
+    };
+    // Nếu có filter ban đầu, trộn nó với các filter mặc định
+    if (location.state && location.state.initialFilter) {
+      return { ...defaultFilters, ...location.state.initialFilter };
+    }
+    return defaultFilters;
   });
 
   const handleFilterChange = useCallback((newFilters) => {
     setCurrentFilters(prevFilters => {
-      // Only reset page if actual filter values (excluding sortBy) have changed significantly
+      // Chỉ reset trang nếu các giá trị filter thực sự thay đổi
       const changedFilterKeys = Object.keys(newFilters).filter(key => key !== 'sortBy' && prevFilters[key] !== newFilters[key]);
       if (changedFilterKeys.length > 0 || (newFilters.features && JSON.stringify(prevFilters.features) !== JSON.stringify(newFilters.features))) {
         setCurrentPage(1);
@@ -119,19 +128,16 @@ export default function CarPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  // This function now only updates the sortBy state
   const handleSortChange = useCallback((newSortBy) => {
     setCurrentFilters(prevFilters => {
-      // No need to reset page here, as sorting is client-side
       return { ...prevFilters, sortBy: newSortBy };
     });
   }, []);
 
-  // Function to sort the cars array locally
   const sortCarsLocally = useCallback((carsArray, sortByOption) => {
     if (!carsArray || carsArray.length === 0) return [];
 
-    let sortedCars = [...carsArray]; // Create a shallow copy to sort
+    let sortedCars = [...carsArray]; 
 
     switch (sortByOption) {
         case 'price-asc':
@@ -152,24 +158,20 @@ export default function CarPage() {
         case 'year-desc':
             sortedCars.sort((a, b) => b.year - a.year);
             break;
-        case 'newest': // Default, or sort by newest posted date
+        case 'newest': 
         default:
-            // Assuming DatePosted is a date string, parse it for accurate comparison
             sortedCars.sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime());
             break;
     }
     return sortedCars;
-  }, []); // Dependencies for useCallback: empty means it's stable unless recreated
+  }, []); 
 
   useEffect(() => {
     const loadCars = async () => {
       setLoading(true);
       try {
-        // Fetch cars without sending sortBy to backend
         const data = await fetchCars(currentFilters, currentPage, PER_PAGE);
-        
-        // Store the raw cars, then sort them before passing to children
-        setCars(data.cars); // Keep the fetched cars in state
+        setCars(data.cars);
         setTotalPages(data.totalPages);
         setTotalResults(data.totalResults);
       } catch (error) {
@@ -183,9 +185,8 @@ export default function CarPage() {
     };
 
     loadCars();
-  }, [currentFilters, currentPage]); // Re-fetch when filters or page changes
+  }, [currentFilters, currentPage]);
 
-  // Apply local sorting right before passing to CarPageMain
   const carsToDisplay = sortCarsLocally(cars, currentFilters.sortBy);
 
   return (
@@ -193,14 +194,14 @@ export default function CarPage() {
       <div className="container mx-auto flex flex-col md:flex-row gap-6">
         <CarFilterSidebar onFilter={handleFilterChange} currentFilters={currentFilters} />
         <CarPageMain
-          cars={carsToDisplay} // Pass the locally sorted cars
+          cars={carsToDisplay}
           loading={loading}
           totalResults={totalResults}
           totalPages={totalPages}
           currentPage={currentPage}
           onPageChange={handlePageChange}
-          sortBy={currentFilters.sortBy} // Pass sortBy to CarPageMain for dropdown value
-          onSortChange={handleSortChange} // Pass handler for dropdown changes
+          sortBy={currentFilters.sortBy}
+          onSortChange={handleSortChange}
         />
       </div>
     </div>

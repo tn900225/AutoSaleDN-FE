@@ -379,12 +379,26 @@ export default function PrePurchasePage() {
     const tenPercent = Math.round(calculateTotalPrice() * 0.1);
     return Math.min(MAX_DEPOSIT, Math.max(MIN_DEPOSIT, tenPercent));
   };
-  
+
   const depositAmount = calculateDepositAmount();
   const remainingBalance = calculateTotalPrice() - depositAmount;
 
+  // Function to get requestType based on payment method
+  const getRequestType = (paymentMethod) => {
+    switch (paymentMethod) {
+      case 'e_wallet_momo_test':
+        return 'captureMoMoWallet';
+      case 'atm_domestic_card':
+        return 'payWithATM';
+      case 'qr_banking':
+        return 'payWithCC';
+      default:
+        return 'captureMoMoWallet'; // Default fallback
+    }
+  };
+
   // Function to initiate Momo payment
-  const initiateMomoPayment = async (saleId, amount, purpose) => {
+  const initiateMomoPayment = async (saleId, amount, purpose, paymentMethod) => {
     setIsProcessingGateway(true);
     try {
       const token = getToken();
@@ -392,6 +406,7 @@ export default function PrePurchasePage() {
         saleId: saleId,
         amount: amount,
         paymentPurpose: purpose,
+        requestType: getRequestType(paymentMethod), // Add requestType based on payment method
         returnUrl: window.location.origin + window.location.pathname + window.location.search,
       };
 
@@ -463,9 +478,9 @@ export default function PrePurchasePage() {
         return;
       }
     }
-
+  
     setIsProcessingDeposit(true);
-
+  
     try {
       const token = getToken();
       const payload = {
@@ -479,8 +494,8 @@ export default function PrePurchasePage() {
         depositPaymentMethod: depositPaymentMethod,
         expectedDeliveryDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
       };
-
-      if (depositPaymentMethod === 'e_wallet_momo_test') {
+  
+      if (depositPaymentMethod === 'e_wallet_momo_test' || depositPaymentMethod === 'atm_domestic_card' || depositPaymentMethod === 'qr_banking') {
         const createOrderResponse = await fetch(`${API_BASE}/api/Customer/orders/deposit`, {
           method: 'POST',
           headers: {
@@ -489,15 +504,15 @@ export default function PrePurchasePage() {
           },
           body: JSON.stringify({ ...payload, depositPaymentMethod: depositPaymentMethod })
         });
-
+  
         if (!createOrderResponse.ok) {
           const errorData = await createOrderResponse.json();
           throw new Error(errorData.message || 'Failed to create pending deposit order.');
         }
         const orderConfirmation = await createOrderResponse.json();
         setCurrentOrderId(orderConfirmation.orderId);
-
-        await initiateMomoPayment(orderConfirmation.orderId, depositAmount, 'deposit');
+  
+        await initiateMomoPayment(orderConfirmation.orderId, depositAmount, 'deposit', depositPaymentMethod);
       } else {
         const response = await fetch(`${API_BASE}/api/Customer/orders/deposit`, {
           method: 'POST',
@@ -507,23 +522,23 @@ export default function PrePurchasePage() {
           },
           body: JSON.stringify(payload)
         });
-
+  
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.message || 'Failed to process deposit on server.');
         }
-
+  
         const depositConfirmation = await response.json();
         setIsDepositPaid(true);
         setCurrentOrderId(depositConfirmation.orderId);
-
+  
         const apiExpectedDeliveryDate = depositConfirmation.expectedDeliveryDate ? new Date(depositConfirmation.expectedDeliveryDate) : new Date(new Date().setDate(new Date().getDate() + 30));
         setDeliveryDate(apiExpectedDeliveryDate.toISOString().split('T')[0]);
-
+  
         const calculatedPaymentDueDate = new Date(apiExpectedDeliveryDate);
         calculatedPaymentDueDate.setDate(apiExpectedDeliveryDate.getDate() - 10);
         setPaymentDueDate(calculatedPaymentDueDate.toISOString().split('T')[0]);
-
+  
         await Swal.fire({
           icon: "success",
           title: "Deposit Payment Successful!",
@@ -632,7 +647,7 @@ export default function PrePurchasePage() {
           const errorData = await createOrderResponse.json();
           throw new Error(errorData.message || 'Failed to create order for full payment.');
         }
-        
+
         const orderConfirmation = await createOrderResponse.json();
         const orderId = orderConfirmation.orderId;
         setCurrentOrderId(orderId);
@@ -1285,7 +1300,7 @@ export default function PrePurchasePage() {
                       className="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
                     />
                     <label htmlFor="installment" className="ml-2 block text-sm font-medium text-gray-700">
-                    Installment
+                      Installment
                     </label>
                   </div>
                 </div>
@@ -1326,12 +1341,23 @@ export default function PrePurchasePage() {
                       <input
                         type="radio"
                         name="depositPaymentMethod"
-                        value="qr"
-                        checked={depositPaymentMethod === 'qr'}
+                        value="atm_domestic_card"
+                        checked={depositPaymentMethod === 'atm_domestic_card'}
                         onChange={handleDepositPaymentMethodChange}
                         className="h-5 w-5 text-green-600 border-gray-300 focus:ring-green-500"
                       />
-                      <span className="ml-3 font-medium text-gray-700">QR Payment</span>
+                      <span className="ml-3 font-medium text-gray-700">ATM Thẻ Nội Địa</span>
+                    </label>
+                    <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors duration-200">
+                      <input
+                        type="radio"
+                        name="depositPaymentMethod"
+                        value="qr_banking"
+                        checked={depositPaymentMethod === 'qr_banking'}
+                        onChange={handleDepositPaymentMethodChange}
+                        className="h-5 w-5 text-green-600 border-gray-300 focus:ring-green-500"
+                      />
+                      <span className="ml-3 font-medium text-gray-700">QR Ngân Hàng</span>
                     </label>
                   </div>
                   {!depositPaymentMethod && (
