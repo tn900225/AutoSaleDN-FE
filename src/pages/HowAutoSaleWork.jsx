@@ -6,7 +6,7 @@ const steps = [
   { number: "03.", label: "Order and pay", anchor: "orderAndPay" },
   { number: "04.", label: "We will provide a guarantee", anchor: "benefits" },
   { number: "05.", label: "We buy out the car", anchor: "carBuyOut" },
-  { number: "06.", label: "We deliver", anchor: "carDeliver" },
+  { number: "06.", label: "Showroom pickup", anchor: "carDeliver" },
 ];
 
 const benefits = [
@@ -94,7 +94,7 @@ export default function HowCarvagoWorks() {
     }
   };
 
-    const handleKnowMoreClick = () => {
+  const handleKnowMoreClick = () => {
     if (chooseYourCarRef.current) {
       chooseYourCarRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
@@ -720,19 +720,18 @@ export default function HowCarvagoWorks() {
             <div className="flex items-center mb-2">
               <h3 className="text-[#3452e1] text-3xl font-bold mr-4">06.</h3>
               <h4 className="text-2xl font-bold text-[#253887]">
-                We’ll deliver it to your house, or a pick-up point
+                You'll pick up the car at our showroom
               </h4>
             </div>
-            {/* Accordion with icons, dọc, box, border, shadow như ảnh */}
+            {/* Accordion */}
             <div className="flex flex-col gap-4 mt-6">
               <Accordion
-                // icon="/images/icons/oval-check.svg"
                 title="Where can I pick up my car?"
-                content={<>Wherever you wish. Whether we deliver the car directly to your doorstep or you pick it up at one of our pick-up points is entirely up to you. We will hand over the keys and documents, and your only worry will be deciding where to go for your first drive. At the pick-up point, we will also demonstrate the car and answer any questions you may have.</>}
+                content={<>You can pick up your car at our main showroom. We will have everything ready for you. We will hand over the keys and all necessary documents, and our specialist will demonstrate the car and answer any questions you may have.</>}
               />
               <Accordion
-                title="How long will it take for you to deliver my car?"
-                content={<>The process from payment receipt to car handover typically takes around 20 business days. We always strive to deliver as quickly as possible; however, in some cases, delivery times may be extended due to administrative procedures in individual European countries. Rest assured, we are doing everything possible to hand over the car to you in the shortest possible time. Transparency and open communication are key for us, which is why we will keep you informed about the status of your order and any potential changes to the delivery schedule.</>}
+                title="How long until my car is ready for pickup?"
+                content={<>The process from payment receipt to car handover typically takes around 15-20 business days. We always strive to prepare the car as quickly as possible. Transparency and open communication are key for us, which is why we will keep you informed about the status of your order and the exact date when the car is ready for you to pick up.</>}
               />
             </div>
 
@@ -740,13 +739,13 @@ export default function HowCarvagoWorks() {
             <div className="hidden md:flex items-center gap-4 mt-8">
               <img
                 src="/images/how-carvago-works-banner-delivery.webp"
-                alt="AutoSaleDN delivery"
+                alt="AutoSaleDN Showroom Pickup"
                 className="w-40 h-auto object-contain rounded-xl"
               />
               <div>
-                <h6 className="text-lg font-bold text-[#253887] mb-1">Unique experience guarantee</h6>
+                <h6 className="text-lg font-bold text-[#253887] mb-1">A seamless handover experience</h6>
                 <span className="text-[#425187] text-base font-medium">
-                  We can guarantee you that having the car delivered to your home is a unique experience. That’s what our customers say, and we believe them.
+                  We ensure a smooth and enjoyable experience when you come to pick up your new car.
                 </span>
               </div>
             </div>
@@ -754,30 +753,30 @@ export default function HowCarvagoWorks() {
             <div className="flex md:hidden flex-col items-center mt-8">
               <img
                 src="/images/how-carvago-works-banner-delivery-mobile.webp"
-                alt="AutoSaleDN delivery"
+                alt="AutoSaleDN Showroom Pickup"
                 className="w-40 h-auto object-contain rounded-xl mb-2"
               />
               <h6 className="text-lg font-bold text-[#253887] mb-1 text-center">
-                Unique experience guarantee
+                A seamless handover experience
               </h6>
               <span className="text-[#425187] text-base font-medium text-center">
-                We can guarantee you that having the car delivered to your home is a unique experience. That’s what our customers say, and we believe them.
+                We ensure a smooth and enjoyable experience when you come to pick up your new car.
               </span>
             </div>
           </div>
-          {/* Right: Video panel */}
+          {/* Right: Image panel */}
           <div className="flex-1 flex items-center justify-center relative min-h-[420px]">
             <div className="relative w-full flex flex-col items-center">
               {/* Desktop image */}
               <img
                 src="/images/how-carvago-works-delivery.webp"
-                alt="Delivery"
+                alt="Pickup at showroom"
                 className="hidden md:block w-full max-w-xl h-auto object-contain rounded-2xl shadow"
               />
               {/* Mobile image */}
               <img
                 src="/images/how-carvago-works-delivery-mobile.webp"
-                alt="Delivery"
+                alt="Pickup at showroom"
                 className="block md:hidden w-full max-w-xs h-auto object-contain rounded-2xl shadow"
               />
               <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-white bg-opacity-90 rounded-xl shadow-md px-6 py-4">
@@ -787,22 +786,11 @@ export default function HowCarvagoWorks() {
                   <path d="M38.05 29.301L39.7988 28.8929C40.4438 28.7424 40.9 28.1675 40.9 27.5052V24.6095C40.9 23.7376 40.3067 22.9776 39.4608 22.7662L31.75 20.8385C31.5188 20.7807 31.3004 20.6798 31.1065 20.5413L25.2455 16.3549C24.9233 16.1247 24.5371 16.001 24.1411 16.001H15.8489C15.4591 16.001 15.0787 16.1209 14.7594 16.3444L10.7506 19.1505C10.5846 19.2668 10.4011 19.3557 10.207 19.4139L7.20766 20.3137C6.3557 20.5693 5.79508 21.3817 5.85845 22.2689L6.13461 26.1352C6.18934 26.9014 6.70014 27.5593 7.42895 27.8023L10.5 28.826M18.1 29.301H31.4M18.2462 16.001L15.7792 18.5463C15.2076 19.136 15.6031 20.1241 16.4237 20.1567L31.4 20.751M31.4 27.876C31.4 29.7123 32.8887 31.201 34.725 31.201C36.5614 31.201 38.05 29.7123 38.05 27.876C38.05 26.0396 36.5614 24.551 34.725 24.551C32.8887 24.551 31.4 26.0396 31.4 27.876ZM10.5 27.876C10.5 29.7123 11.9887 31.201 13.825 31.201C15.6614 31.201 17.15 29.7123 17.15 27.876C17.15 26.0396 15.6614 24.551 13.825 24.551C11.9887 24.551 10.5 26.0396 10.5 27.876Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
                 </svg>
                 <div>
-                  <h6 className="text-base font-bold text-[#253887] leading-tight mb-1">Delivery to your home</h6>
+                  <h6 className="text-base font-bold text-[#253887] leading-tight mb-1">Ready at our Showroom</h6>
                   <p className="text-[#425187] text-sm font-medium mb-0">
-                    We will bring your dream car from all over Europe to your front door.
+                    Your dream car will be waiting for you, fully prepared and ready to go.
                   </p>
                 </div>
-                {/* <a href="/landingDelivery" className="ml-4">
-                  <button
-                    type="button"
-                    className="flex items-center gap-1 bg-[#3452e1] hover:bg-[#253887] text-white font-bold rounded-xl px-5 py-2 text-base shadow transition focus:outline-none"
-                  >
-                    More about delivery
-                    <svg viewBox="0 0 16 16" className="w-5 h-5" fill="none">
-                      <path fillRule="evenodd" clipRule="evenodd" d="M5.29289 3.29289C4.90237 3.68342 4.90237 4.31658 5.29289 4.70711L8.58579 8L5.29289 11.2929C4.90237 11.6834 4.90237 12.3166 5.29289 12.7071C5.68342 13.0976 6.31658 13.0976 6.70711 12.7071L10.7071 8.70711C10.8946 8.51957 11 8.26522 11 8C11 7.73478 10.8946 7.48043 10.7071 7.29289L6.70711 3.29289C6.31658 2.90237 5.68342 2.90237 5.29289 3.29289Z" fill="currentColor"></path>
-                    </svg>
-                  </button>
-                </a> */}
               </div>
             </div>
           </div>
