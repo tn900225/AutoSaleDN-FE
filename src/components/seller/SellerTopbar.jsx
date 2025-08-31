@@ -7,10 +7,6 @@ export default function SellerTopbar() {
       <div className="flex items-center w-1/2">
       </div>
       <div className="flex items-center gap-6">
-        <button className="relative">
-          <HiOutlineBell className="w-6 h-6 text-gray-500" />
-          <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-        </button>
         <div>
           <img
             src="https://randomuser.me/api/portraits/men/3.jpg"
