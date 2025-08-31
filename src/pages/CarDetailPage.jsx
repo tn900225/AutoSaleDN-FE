@@ -522,7 +522,7 @@ export default function CarDetailPage({ carId: propCarId }) {
           if (carData.currentSaleStatus === "Pending Full Payment") {
             saleText = "Pending Full Payment";
           } else if (carData.currentSaleStatus === "On Hold" && saleText === "Deposit Made") {
-            saleText = "Deposit Placed"; // Match what's displayed on the button
+            saleText = "Deposit Paid"; // Match what's displayed on the button
           } else if (carData.currentSaleStatus === "Sold" && saleText === "Full Payment Made") {
             saleText = "Sold"; // Match what's displayed on the button
           }
@@ -817,6 +817,8 @@ export default function CarDetailPage({ carId: propCarId }) {
     videoGridClasses += " md:grid-cols-2 lg:grid-cols-4";
   }
 
+  console.log("Rendering CarDetailPage with car:", car);
+
   return (
     <div className="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
       {/* Hero Section */}
@@ -828,9 +830,12 @@ export default function CarDetailPage({ carId: propCarId }) {
               <div className="space-y-4">
                 <div className="flex items-center space-x-3 text-sm font-medium">
                   <span className={`px-3 py-1 rounded-full ${isCarSold ? 'bg-red-500' : 'bg-green-500'} text-white`}>
-                    {isCarSold
-                      ? (saleInfoText)
-                      : (car.listingStatus === 'Pending Deposit' ? 'Available' : (car.listingStatus || 'Available'))
+                    {
+                      isCarSold
+                        ? saleInfoText
+                        : ['Pending Deposit', 'Available', 'Refunded', 'Cancelled'].includes(car.listingStatus)
+                          ? 'Available'
+                          : car.listingStatus
                     }
                   </span>
                   <span className="bg-blue-500 text-white px-3 py-1 rounded-full">{condition}</span>
@@ -856,32 +861,43 @@ export default function CarDetailPage({ carId: propCarId }) {
               <div className="space-y-4">
                 <div className="text-5xl font-bold text-green-400">{formatCurrency(price)}</div>
                 <div className="flex flex-wrap gap-4">
-                  {isCarSold ? (
-                    <button
-                      className="bg-gray-400 text-white font-bold px-8 py-4 rounded-xl shadow-lg cursor-not-allowed"
-                      disabled
-                    >
-                      {saleInfoText === "Deposit Made" ? "Deposit Placed" : (saleInfoText === "Full Payment Made" ? "Sold" : (saleInfoText || "Not Available"))}
-                    </button>
-                  ) : (
-                    <button
-                      className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold px-8 py-4 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200"
-                      onClick={handlePurchase}
-                    >
-                      Buy Now
-                    </button>
-                  )}
-                  <button
-                    className="border-2 border-white hover:bg-white hover:text-gray-900 font-bold px-12 py-4 rounded-xl transition-all duration-200 text-lg"
-                    onClick={handleTestDrive} // Thay đổi ở đây
-                  >
-                    Schedule Test Drive
-                  </button>
+                  {/* Biến isActionDisabled sẽ quyết định cả 2 nút có bị vô hiệu hóa hay không */}
+                  {(() => {
+                    const isActionDisabled = !["Available", "Pending Deposit", "Refunded"].includes(car.listingStatus);
+
+                    return (
+                      <>
+                        {/* Nút Buy Now */}
+                        <button
+                          className={`font-bold px-8 py-4 rounded-xl shadow-lg transition-all duration-200 ${isActionDisabled
+                            ? "bg-gray-400 text-white cursor-not-allowed"
+                            : "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white transform hover:scale-105"
+                            }`}
+                          onClick={!isActionDisabled ? handlePurchase : undefined}
+                          disabled={isActionDisabled}
+                        >
+                          {isActionDisabled ? car.listingStatus : "Buy Now"}
+                        </button>
+
+                        {/* Nút Schedule Test Drive */}
+                        <button
+                          className={`border-2 font-bold px-12 py-4 rounded-xl transition-all duration-200 text-lg ${isActionDisabled
+                            ? "border-gray-500 text-gray-500 cursor-not-allowed"
+                            : "border-white hover:bg-white hover:text-gray-900"
+                            }`}
+                          onClick={!isActionDisabled ? handleTestDrive : undefined}
+                          disabled={isActionDisabled}
+                        >
+                          Schedule Test Drive
+                        </button>
+                      </>
+                    );
+                  })()}
+
                   {/* Render Modal */}
                   {isTestDriveModalOpen && (
                     <TestDriveModal
-                      car={car} // Cần đảm bảo carDetail chứa thông tin xe
-                      showroom={showrooms[0] || {}} // Lấy showroom đầu tiên
+                      car={car}
                       onClose={() => setIsTestDriveModalOpen(false)}
                       onSubmit={handleBookingSubmit}
                     />
@@ -1384,7 +1400,7 @@ export default function CarDetailPage({ carId: propCarId }) {
           </div>
         ) : (
           <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-            <div className="text-gray-500 text-lg">Hiện không có sẵn tại bất kỳ showroom nào.</div>
+            <div className="text-gray-500 text-lg">Not yet Showrooms existting.</div>
           </div>
         )}
       </div>
@@ -1527,8 +1543,7 @@ export default function CarDetailPage({ carId: propCarId }) {
                   className="bg-gray-400 text-white font-bold px-12 py-4 rounded-xl shadow-lg cursor-not-allowed text-lg"
                   disabled
                 >
-                  {saleInfoText === "Deposit Made" ? "Deposit Placed" : (saleInfoText === "Full Payment Made" ? "Sold" : (saleInfoText || "Not Available"))}
-                  {/* Cần điều chỉnh logic hiển thị saleInfoText cho các trạng thái chờ */}
+                  {saleInfoText === "Deposit Made" ? "Deposit Paid" : (saleInfoText === "Full Payment Made" ? "Sold" : (saleInfoText || "Not Available"))}
                 </button>
               ) : (
                 <button

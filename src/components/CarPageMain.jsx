@@ -79,6 +79,10 @@ export default function CarPageMain({
       case "Deposit Paid":
       case "Pending Full Payment":
         return "Deposit Paid";
+      case "Refunded":
+        return "Available";
+      case "Cancelled":
+        return "Available";
       default:
         return status;
     }
