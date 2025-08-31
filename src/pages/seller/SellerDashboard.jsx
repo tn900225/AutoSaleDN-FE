@@ -3,7 +3,7 @@ import SellerTopbar from "../../components/seller/SellerTopbar";
 import { useNavigate } from 'react-router-dom';
 import Chart from "react-apexcharts";
 import { useState, useEffect } from "react";
-import { TrendingUp, TrendingDown, Calendar, BarChart3, DollarSign, Car, Star, MapPin, Package, Users, Activity, Target, Eye, Award,ArrowRight, AlertTriangle } from "lucide-react";
+import { TrendingUp, TrendingDown, Calendar, BarChart3, DollarSign, Car, Star, MapPin, Package, Users, Activity, Target, Eye, Award, ArrowRight, AlertTriangle } from "lucide-react";
 import { getApiBaseUrl } from "../../../util/apiconfig";
 
 const fetchRevenueData = async () => {
@@ -11,50 +11,51 @@ const fetchRevenueData = async () => {
   const currentYear = new Date().getFullYear();
   const API_BASE = getApiBaseUrl();
 
+
   const monthlyData = [];
   for (let month = 1; month <= 12; month++) {
     const url = `${API_BASE}/api/Seller/reports/revenue/monthly?year=${currentYear}&month=${month}`;
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-    });
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
     if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.message || "Failed to fetch monthly revenue");
+      monthlyData.push(0);
+      continue;
     }
     const data = await res.json();
     monthlyData.push(data.totalRevenue);
   }
 
-  // Get yearly data for comparison for the seller's showroom
-  const yearlyData = [];
+  const yearlyChartValues = [];
+  const yearlyChartLabels = [];
   for (let year = currentYear - 2; year <= currentYear; year++) {
     const url = `${API_BASE}/api/Seller/reports/revenue/yearly?year=${year}`;
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-    });
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
     if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.message || "Failed to fetch yearly revenue");
+      yearlyChartValues.push(0);
+    } else {
+      const data = await res.json();
+      yearlyChartValues.push(data.totalRevenue);
     }
-    const data = await res.json();
-    yearlyData.push(data.totalRevenue);
+    yearlyChartLabels.push(year.toString());
   }
+
+  const currentYearReportUrl = `${API_BASE}/api/Seller/reports/revenue/yearly?year=${currentYear}`;
+  const yearlyRes = await fetch(currentYearReportUrl, { headers: { Authorization: `Bearer ${token}` } });
+  if (!yearlyRes.ok) {
+    const errorData = await yearlyRes.json();
+    throw new Error(errorData.message || "Failed to fetch yearly revenue report");
+  }
+  const currentYearReport = await yearlyRes.json();
 
   return {
     monthly: {
       labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
       values: monthlyData
     },
-    yearly: {
-      labels: [(currentYear - 2).toString(), (currentYear - 1).toString(), currentYear.toString()],
-      values: yearlyData
-    }
+    yearly: { // Trả lại object 'yearly' cho biểu đồ
+      labels: yearlyChartLabels,
+      values: yearlyChartValues
+    },
+    currentYearReport: currentYearReport // Giữ lại báo cáo chi tiết cho các thẻ stats
   };
 };
 
@@ -73,6 +74,7 @@ const fetchSellerDashboardData = async () => {
     });
     const showroomInventory = await showroomRes.json();
 
+
     return { topCars, showroomInventory };
   } catch (error) {
     throw new Error('Failed to fetch dashboard data: ' + error.message);
@@ -86,13 +88,12 @@ export default function SellerDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const [showroomProfile, setShowroomProfile] = useState(null);
 
-  // Pagination state for Top Selling Cars
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(5); // Show 5 items per page
+  const [itemsPerPage] = useState(5);
 
   const handleShowroomDetail = (showroomId) => {
-    // Seller có thể xem chi tiết showroom của mình
     navigate(`/seller/showroom/${showroomId}`);
   };
 
@@ -100,13 +101,21 @@ export default function SellerDashboard() {
     const loadData = async () => {
       try {
         setLoading(true);
-        // Gọi các hàm fetch đã thay đổi
         const [revenue, dashboard] = await Promise.all([
           fetchRevenueData(),
           fetchSellerDashboardData()
         ]);
         setRevenueData(revenue);
         setDashboardData(dashboard);
+        const token = localStorage.getItem('token');
+        const API_BASE = getApiBaseUrl();
+        const profileRes = await fetch(`${API_BASE}/api/seller/my-showroom-profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          setShowroomProfile(profileData);
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -219,11 +228,14 @@ export default function SellerDashboard() {
 
   const calculateStrategicInsights = () => {
     if (!revenueData) return null;
-    const currentYearData = revenueData.monthly.values || [];
-    const yearlyData = revenueData.yearly.values || [];
 
-    const currentYearTotal = currentYearData.reduce((a, b) => a + (b || 0), 0);
-    const lastYearTotal = yearlyData[yearlyData.length - 2] || 0;
+    const currentYearData = revenueData.monthly.values || [];
+
+    const yearlyReport = revenueData.currentYearReport || {};
+
+    const currentYearTotal = yearlyReport.totalRevenue || 0;
+
+    const yearGrowth = yearlyReport.growthPercentage || 0;
 
     const bestMonthIndex = currentYearData.length > 0
       ? currentYearData.indexOf(Math.max(...currentYearData))
@@ -232,15 +244,12 @@ export default function SellerDashboard() {
       ? currentYearData.indexOf(Math.min(...currentYearData))
       : 0;
 
-    const yearGrowth = lastYearTotal > 0 ? ((currentYearTotal - lastYearTotal) / lastYearTotal * 100) : 0;
-
-    // Các thông tin này sẽ chỉ dành cho showroom của seller
     const sellerShowroom = dashboardData?.showroomInventory || {};
 
     return {
       currentYearTotal,
-      lastYearTotal,
-      yearGrowth: yearGrowth.toFixed(1),
+      lastYearTotal: yearlyReport.previousYearRevenue || 0,
+      yearGrowth: yearGrowth.toFixed(1), // Sử dụng giá trị từ backend
       bestMonth: {
         month: revenueData.monthly.labels[bestMonthIndex],
         revenue: currentYearData[bestMonthIndex] || 0
@@ -249,7 +258,7 @@ export default function SellerDashboard() {
         month: revenueData.monthly.labels[worstMonthIndex],
         revenue: currentYearData[worstMonthIndex] || 0
       },
-      averageMonthly: (currentYearTotal / 12).toFixed(0),
+      averageMonthly: (currentYearTotal / 12), // Đã sửa ở lần trước
       totalCarsSold: dashboardData?.topCars?.reduce((acc, car) => acc + car.totalSold, 0) || 0,
       totalInventory: sellerShowroom.totalCars || 0,
       sellerShowroom
@@ -307,7 +316,9 @@ export default function SellerDashboard() {
               <div className="flex items-center mb-4 md:mb-0">
                 <Activity className="h-8 w-8 text-blue-600 mr-3" />
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900">Seller Dashboard</h1>
+                  <h1 className="text-3xl font-bold text-gray-800">
+                    {showroomProfile ? showroomProfile.name : "Seller Dashboard"}
+                  </h1>
                   <p className="text-gray-600">Welcome back! Here's what's happening with your showroom.</p>
                 </div>
               </div>
@@ -317,8 +328,8 @@ export default function SellerDashboard() {
                     key={view}
                     onClick={() => setSelectedView(view)}
                     className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${selectedView === view
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                       }`}
                   >
                     {view.charAt(0).toUpperCase() + view.slice(1)}
@@ -369,12 +380,17 @@ export default function SellerDashboard() {
                   </div>
                   <div className="ml-3">
                     <p className="text-sm font-medium text-gray-500">Monthly Average</p>
-                    <p className="text-2xl font-bold text-gray-900">${insights?.averageMonthly?.toLocaleString() || 0}</p>
-                  </div>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {(insights?.averageMonthly || 0).toLocaleString("vi-VN", {
+                        style: "currency",
+                        currency: "VND",
+                        maximumFractionDigits: 0 // Làm tròn đến số nguyên gần nhất
+                      })}
+                    </p>                  </div>
                 </div>
               </div>
               <div className="text-sm text-gray-500">
-                Best: {insights?.bestMonth?.month} (${insights?.bestMonth?.revenue?.toLocaleString() || 0})
+                Best: {insights?.bestMonth?.month} ({insights?.bestMonth?.revenue?.toLocaleString("vi-VN", { style: "currency", currency: "VND" }) || 0})
               </div>
             </div>
 
@@ -408,9 +424,6 @@ export default function SellerDashboard() {
                     <p className="text-2xl font-bold text-gray-900">{insights?.totalInventory || 0}</p>
                   </div>
                 </div>
-              </div>
-              <div className="text-sm text-gray-500">
-                Location: {sellerShowroom?.location || 'N/A'}
               </div>
             </div>
           </div>
@@ -488,44 +501,44 @@ export default function SellerDashboard() {
                 {dashboardData?.topCars
                   ?.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                   .map((car, index) => (
-                  <div key={car.ModelId} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                    <div className="flex-shrink-0">
-                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-200">
-                        <img
-                          src={car.imageUrl || `/api/placeholder/64/64`}
-                          alt={car.modelName}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
-                          }}
-                        />
-                        <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center" style={{ display: 'none' }}>
-                          <Car className="h-8 w-8 text-white" />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="text-sm font-semibold text-gray-900 truncate">{car.modelName}</h4>
-                          <p className="text-xs text-gray-500">{car.manufacturerName}</p>
-                          <div className="flex items-center mt-1">
-                            <Star className="h-3 w-3 text-yellow-400 fill-current" />
-                            <span className="text-xs text-gray-600 ml-1">
-                              {car.averageRating?.toFixed(1)} ({car.totalReviews})
-                            </span>
+                    <div key={car.ModelId} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <div className="flex-shrink-0">
+                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-200">
+                          <img
+                            src={car.imageUrl || `/api/placeholder/64/64`}
+                            alt={car.modelName}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                          <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center" style={{ display: 'none' }}>
+                            <Car className="h-8 w-8 text-white" />
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm font-semibold text-gray-900">${car.revenue?.toLocaleString()}</p>
-                          <p className="text-xs text-gray-500">{car.totalSold} sold</p>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="text-sm font-semibold text-gray-900 truncate">{car.modelName}</h4>
+                            <p className="text-xs text-gray-500">{car.manufacturerName}</p>
+                            <div className="flex items-center mt-1">
+                              <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                              <span className="text-xs text-gray-600 ml-1">
+                                {car.averageRating?.toFixed(1)} ({car.totalReviews})
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-gray-900">${car.revenue?.toLocaleString()}</p>
+                            <p className="text-xs text-gray-500">{car.totalSold} sold</p>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-                
+                  ))}
+
                 {/* Pagination Controls */}
                 <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
                   <button
@@ -535,28 +548,28 @@ export default function SellerDashboard() {
                   >
                     Previous
                   </button>
-                  
+
                   <div className="flex space-x-1">
                     {Array.from({ length: Math.ceil((dashboardData?.topCars?.length || 0) / itemsPerPage) }, (_, i) => i + 1).map((pageNum) => (
                       <button
                         key={pageNum}
                         onClick={() => setCurrentPage(pageNum)}
-                        className={`w-8 h-8 rounded-md ${currentPage === pageNum 
-                          ? 'bg-blue-600 text-white' 
+                        className={`w-8 h-8 rounded-md ${currentPage === pageNum
+                          ? 'bg-blue-600 text-white'
                           : 'text-gray-600 hover:bg-gray-100'}`}
                       >
                         {pageNum}
                       </button>
                     ))}
                   </div>
-                  
+
                   <button
-                    onClick={() => setCurrentPage(prev => 
+                    onClick={() => setCurrentPage(prev =>
                       Math.min(prev + 1, Math.ceil((dashboardData?.topCars?.length || 0) / itemsPerPage)))
                     }
                     disabled={currentPage >= Math.ceil((dashboardData?.topCars?.length || 0) / itemsPerPage)}
-                    className={`px-3 py-1 rounded-md ${currentPage >= Math.ceil((dashboardData?.topCars?.length || 0) / itemsPerPage) 
-                      ? 'text-gray-400 cursor-not-allowed' 
+                    className={`px-3 py-1 rounded-md ${currentPage >= Math.ceil((dashboardData?.topCars?.length || 0) / itemsPerPage)
+                      ? 'text-gray-400 cursor-not-allowed'
                       : 'text-blue-600 hover:bg-blue-50'}`}
                   >
                     Next
