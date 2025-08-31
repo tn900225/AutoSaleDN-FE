@@ -634,7 +634,7 @@ const SellerOrderManagement = () => {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                         >
                           {Object.entries(statusMap)
-                            .filter(([id]) => Number(id) >= Number(updateData.currentStatusId)) // chỉ giữ nguyên hoặc tiến lên
+                            .filter(([id]) => Number(id) >= Number(updateData.currentStatusId) && id !== '4')  // chỉ giữ nguyên hoặc tiến lên
                             .map(([id, { name }]) => (
                               <option key={id} value={id}>{name}</option>
                             ))}

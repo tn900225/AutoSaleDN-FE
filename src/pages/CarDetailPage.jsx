@@ -633,14 +633,7 @@ export default function CarDetailPage({ carId: propCarId }) {
   const handleTestDrive = () => {
     // Kiểm tra đăng nhập trước khi mở modal
     if (!user) {
-      Swal.fire({
-        icon: "info",
-        title: "Please Log In",
-        text: "You need to be logged in to schedule a test drive.",
-        confirmButtonColor: "#3B82F6",
-      });
-      // Mở modal login nếu cần
-      // showLoginModal();
+      setShowSignInModal(true);
       return;
     }
     setIsTestDriveModalOpen(true);
@@ -756,7 +749,7 @@ export default function CarDetailPage({ carId: propCarId }) {
       Swal.fire({
         icon: "error",
         title: "Network Error",
-        text: "Could not connect to the server to verify login status. Please try again.",
+        text: `We couldn't proceed with the purchase due to a server error. Please try again later.`,
         confirmButtonText: "OK",
       });
     }
@@ -835,7 +828,10 @@ export default function CarDetailPage({ carId: propCarId }) {
               <div className="space-y-4">
                 <div className="flex items-center space-x-3 text-sm font-medium">
                   <span className={`px-3 py-1 rounded-full ${isCarSold ? 'bg-red-500' : 'bg-green-500'} text-white`}>
-                    {isCarSold ? (saleInfoText) : (car.listingStatus || "Available")}
+                    {isCarSold
+                      ? (saleInfoText)
+                      : (car.listingStatus === 'Pending Deposit' ? 'Available' : (car.listingStatus || 'Available'))
+                    }
                   </span>
                   <span className="bg-blue-500 text-white px-3 py-1 rounded-full">{condition}</span>
                 </div>

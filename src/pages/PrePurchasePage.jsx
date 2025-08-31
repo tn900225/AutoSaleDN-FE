@@ -468,9 +468,9 @@ export default function PrePurchasePage() {
         return;
       }
     }
-  
+
     setIsProcessingDeposit(true);
-  
+
     try {
       const token = getToken();
       const payload = {
@@ -484,7 +484,7 @@ export default function PrePurchasePage() {
         depositPaymentMethod: depositPaymentMethod,
         expectedDeliveryDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
       };
-  
+
       if (depositPaymentMethod === 'e_wallet_momo_test' || depositPaymentMethod === 'atm_domestic_card' || depositPaymentMethod === 'qr_banking') {
         const createOrderResponse = await fetch(`${API_BASE}/api/Customer/orders/deposit`, {
           method: 'POST',
@@ -494,14 +494,14 @@ export default function PrePurchasePage() {
           },
           body: JSON.stringify({ ...payload, depositPaymentMethod: depositPaymentMethod })
         });
-  
+
         if (!createOrderResponse.ok) {
           const errorData = await createOrderResponse.json();
           throw new Error(errorData.message || 'Failed to create pending deposit order.');
         }
         const orderConfirmation = await createOrderResponse.json();
         setCurrentOrderId(orderConfirmation.orderId);
-  
+
         await initiateMomoPayment(orderConfirmation.orderId, depositAmount, 'deposit', depositPaymentMethod);
       } else {
         const response = await fetch(`${API_BASE}/api/Customer/orders/deposit`, {
@@ -512,23 +512,23 @@ export default function PrePurchasePage() {
           },
           body: JSON.stringify(payload)
         });
-  
+
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.message || 'Failed to process deposit on server.');
         }
-  
+
         const depositConfirmation = await response.json();
         setIsDepositPaid(true);
         setCurrentOrderId(depositConfirmation.orderId);
-  
+
         const apiExpectedDeliveryDate = depositConfirmation.expectedDeliveryDate ? new Date(depositConfirmation.expectedDeliveryDate) : new Date(new Date().setDate(new Date().getDate() + 30));
         setDeliveryDate(apiExpectedDeliveryDate.toISOString().split('T')[0]);
-  
+
         const calculatedPaymentDueDate = new Date(apiExpectedDeliveryDate);
         calculatedPaymentDueDate.setDate(apiExpectedDeliveryDate.getDate() - 10);
         setPaymentDueDate(calculatedPaymentDueDate.toISOString().split('T')[0]);
-  
+
         await Swal.fire({
           icon: "success",
           title: "Deposit Payment Successful!",
@@ -1521,7 +1521,7 @@ export default function PrePurchasePage() {
 
           <div className="flex-shrink-0 flex flex-col sm:flex-row gap-3 p-6 pt-4 border-t border-gray-200/50 bg-white/80 backdrop-blur-sm rounded-b-2xl">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate(`/cars/${carId}`)}
               className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-all duration-200 hover:shadow-md active:scale-95 border border-gray-200"
             >
               Cancel

@@ -36,6 +36,8 @@ export default function OrdersPage() {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [isProcessingGateway, setIsProcessingGateway] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [detailLoadingId, setDetailLoadingId] = useState(null);
+
   const [reviewData, setReviewData] = useState({
     id: null,
     rating: 0,
@@ -51,6 +53,12 @@ export default function OrdersPage() {
   // States for search and filter
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
+
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    pageSize: 10,
+    totalPages: 0,
+  });
 
   const getToken = () => localStorage.getItem('token');
 
@@ -192,6 +200,12 @@ export default function OrdersPage() {
     }
   }, [location.search]);
 
+  const handlePageChange = (newPage) => {
+    if (newPage > 0 && newPage <= pagination.totalPages) {
+      setPagination(prev => ({ ...prev, currentPage: newPage }));
+    }
+  };
+
   const fetchOrders = async () => {
     setLoading(true);
     setShowSignInModal(false);
@@ -211,16 +225,16 @@ export default function OrdersPage() {
       });
 
       if (ordersResponse.ok) {
-        const data = await ordersResponse.json();
+        const responseData = await ordersResponse.json();
 
-        console.log('Raw orders data:', data);
-        console.log('Sample order structure:', data[0]);
+        // const uniqueOrders = getUniqueOrdersByLatestStatus(data);
 
-        const uniqueOrders = getUniqueOrdersByLatestStatus(data);
+        setOrders(responseData.data);
 
-        console.log('Unique orders after processing:', uniqueOrders);
-
-        setOrders(uniqueOrders);
+        setPagination(prev => ({
+          ...prev,
+          totalPages: Math.ceil(responseData.totalItems / prev.pageSize)
+        }));
       } else if (ordersResponse.status === 401) {
         setShowSignInModal(true);
       } else {
@@ -301,7 +315,7 @@ export default function OrdersPage() {
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [pagination.currentPage]);
 
   const getStatusConfig = (status) => {
     switch (status) {
@@ -389,16 +403,22 @@ export default function OrdersPage() {
   };
 
   const handleViewDetails = async (order) => {
+    setDetailLoadingId(order.orderId);
+
     try {
       const token = getToken();
-      const headers = {
-        'Content-Type': 'application/json',
-      };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+      if (!token) {
+        setShowSignInModal(true);
+        setDetailLoadingId(null);
+        return;
       }
 
-      const detailResponse = await fetch(`${API_BASE}/api/Customer/orders/${order.orderId || order.saleId}`, {
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      };
+      
+      const detailResponse = await fetch(`${API_BASE}/api/Customer/orders/${order.orderId}`, {
         method: 'GET',
         headers: headers,
       });
@@ -406,37 +426,51 @@ export default function OrdersPage() {
       if (detailResponse.ok) {
         const detailedOrder = await detailResponse.json();
 
-        // 🛠️ Mapping API response to expected data structure
         const mappedOrder = {
-          ...detailedOrder,
+          ...detailedOrder, 
+          
+          orderId: detailedOrder.saleId,
+          orderDate: detailedOrder.createdAt,
+          currentSaleStatus: detailedOrder.status,
+          
           carDetails: {
             ...detailedOrder.carDetails,
             make: detailedOrder.carDetails?.manufacturerName,
+
             model: detailedOrder.carDetails?.modelName,
-            imageUrl: detailedOrder.carDetails?.imageUrls?.[0],
+
+            imageUrl: detailedOrder.carDetails?.imageUrls?.[0] || null, 
           },
-          currentSaleStatus: detailedOrder.status,
+
           pickupLocationDetails: detailedOrder.pickupLocation,
           shippingAddressDetails: detailedOrder.shippingAddress,
           depositPaymentDetails: detailedOrder.depositPayment,
           fullPaymentDetails: detailedOrder.fullPayment,
-          StatusHistory: detailedOrder.statusHistory,
-          sellerDetails: {
-            storePhone: detailedOrder.sellerDetails?.storePhone,
-            storeEmail: detailedOrder.sellerDetails?.storeEmail,
-            sellerInfo: detailedOrder.sellerDetails?.sellerInfo || {},
-          },
+          StatusHistory: detailedOrder.statusHistory || [],
         };
+        
         setSelectedOrder(mappedOrder);
+        setShowDetailModal(true);
+
       } else {
-        setSelectedOrder(order);
+
+        const errorData = await detailResponse.json();
+        Swal.fire({
+          icon: 'error',
+          title: 'Could Not Load Details',
+          text: errorData.message || 'The server returned an error. Please try again.',
+        });
       }
     } catch (error) {
       console.error("Error fetching order details:", error);
-      setSelectedOrder(order);
+      Swal.fire({
+        icon: 'error',
+        title: 'Network Error',
+        text: 'Could not connect to the server to get order details.',
+      });
+    } finally {
+      setDetailLoadingId(null);
     }
-
-    setShowDetailModal(true);
   };
 
   const handleCloseDetailModal = () => {
@@ -990,10 +1024,18 @@ export default function OrdersPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-center space-x-2">
                           <button
                             onClick={() => handleViewDetails(order)}
+                            disabled={detailLoadingId === order.orderId}
                             className="inline-flex items-center justify-center w-10 h-10 text-[#3452e1] hover:text-white hover:bg-[#3452e1] rounded-full transition-all duration-200 hover:shadow-md"
                             title="View Details"
                           >
-                            <InformationCircleIcon className="h-5 w-5" />
+                            {detailLoadingId === order.orderId ? (
+                              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                            ) : (
+                              <InformationCircleIcon className="h-5 w-5" />
+                            )}
                           </button>
                           {order.currentSaleStatus === 'Delivered' && (
                             <button
@@ -1010,6 +1052,27 @@ export default function OrdersPage() {
                 </tbody>
 
               </table>
+              {hasOrdersToShow && pagination.totalPages > 1 && (
+                <div className="flex items-center justify-center space-x-4 mt-8">
+                  <button
+                    onClick={() => handlePageChange(pagination.currentPage - 1)}
+                    disabled={pagination.currentPage === 1}
+                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm text-gray-600">
+                    Page <strong>{pagination.currentPage}</strong> of <strong>{pagination.totalPages}</strong>
+                  </span>
+                  <button
+                    onClick={() => handlePageChange(pagination.currentPage + 1)}
+                    disabled={pagination.currentPage === pagination.totalPages}
+                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1308,7 +1371,7 @@ export default function OrdersPage() {
                             {selectedOrder.depositPaymentDetails && (
                               <div className="relative pl-8 pb-6">
                                 {/* Trạng thái đã hoàn thành */}
-                                {selectedOrder.depositPaymentDetails.status === 'completed' ? (
+                                {selectedOrder.depositPaymentDetails.paymentStatus === 'completed' ? (
                                   <>
                                     <div className="absolute left-0 top-2 w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow"></div>
                                     <div className="absolute left-1.5 top-5 w-0.5 h-full bg-gray-200"></div>
