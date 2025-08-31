@@ -377,7 +377,7 @@ export default function Customers() {
   return (
     <div className="flex h-screen bg-gray-50">
       <AdminSidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col">
         <AdminTopbar />
         <main className="p-8 bg-gray-50 min-h-screen">
           {showAlert && (
