@@ -22,7 +22,6 @@ const sidebarItems = [
     { label: "Car Colors", icon: FaPalette, path: "/admin/car-colors" },
     { label: "Manufacturers & Models", icon: FaBuilding, path: "/admin/car-manufacturers-models" },
     { label: "Price Prediction", icon: HiOutlineCalculator, path: "/admin/car-prediction" },
-    { label: "Messages", icon: HiOutlineChat, path: "/admin/messages" }
 ];
 
 export default function AdminSidebar() {
