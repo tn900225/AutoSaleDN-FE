@@ -843,19 +843,7 @@ const handleExportReport = async (showroomId) => {
                 <Plus className="h-4 w-4 mr-2" />
                 Create Showroom
               </button>
-              <select
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="thisMonth">This Month</option>
-                <option value="lastMonth">Last Month</option>
-                <option value="thisYear">This Year</option>
-              </select>
-              <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                <Filter className="h-4 w-4 mr-2" />
-                Filter
-              </button>
+              
             </div>
           </div>
 
