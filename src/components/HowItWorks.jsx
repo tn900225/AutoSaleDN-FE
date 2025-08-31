@@ -4,7 +4,7 @@ export default function HowItWorks() {
   return (
     <section className="bg-[#f7f9fc] py-24">
       <div className="max-w-7xl mx-auto px-4">
-        <h2 className="text-4xl md:text-5xl font-extrabold text-center text-[#253887] mb-20" style={{fontFamily: 'Montserrat, sans-serif'}}>
+        <h2 className="text-4xl md:text-5xl font-extrabold text-center text-[#253887] mb-20" style={{ fontFamily: 'Montserrat, sans-serif' }}>
           How does it work?
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
@@ -22,8 +22,8 @@ export default function HowItWorks() {
               alt="Choose anywhere in Da Nang"
               className="mb-8 w-[200px] h-[120px] object-contain block md:hidden"
             />
-            <p className="text-[#3452e1] text-lg font-bold mb-2 tracking-wide" style={{fontFamily: 'Montserrat, sans-serif'}}>01.</p>
-            <h3 className="text-2xl font-extrabold text-[#253887] mb-4" style={{fontFamily: 'Montserrat, sans-serif'}}>
+            <p className="text-[#3452e1] text-lg font-bold mb-2 tracking-wide" style={{ fontFamily: 'Montserrat, sans-serif' }}>01.</p>
+            <h3 className="text-2xl font-extrabold text-[#253887] mb-4" style={{ fontFamily: 'Montserrat, sans-serif' }}>
               Choose anywhere in Da Nang
             </h3>
             <p className="text-[#253887] text-base opacity-80 max-w-xs">
@@ -42,8 +42,8 @@ export default function HowItWorks() {
               alt="We'll inspect the car closely"
               className="mb-8 w-[200px] h-[120px] object-contain block md:hidden"
             />
-            <p className="text-[#3452e1] text-lg font-bold mb-2 tracking-wide" style={{fontFamily: 'Montserrat, sans-serif'}}>02.</p>
-            <h3 className="text-2xl font-extrabold text-[#253887] mb-4" style={{fontFamily: 'Montserrat, sans-serif'}}>
+            <p className="text-[#3452e1] text-lg font-bold mb-2 tracking-wide" style={{ fontFamily: 'Montserrat, sans-serif' }}>02.</p>
+            <h3 className="text-2xl font-extrabold text-[#253887] mb-4" style={{ fontFamily: 'Montserrat, sans-serif' }}>
               We'll inspect the car closely
             </h3>
             <p className="text-[#253887] text-base opacity-80 max-w-xs">
@@ -62,12 +62,12 @@ export default function HowItWorks() {
               alt="We'll deliver it to your home"
               className="mb-8 w-[200px] h-[120px] object-contain block md:hidden"
             />
-            <p className="text-[#3452e1] text-lg font-bold mb-2 tracking-wide" style={{fontFamily: 'Montserrat, sans-serif'}}>03.</p>
-            <h3 className="text-2xl font-extrabold text-[#253887] mb-4" style={{fontFamily: 'Montserrat, sans-serif'}}>
-              We'll deliver it to your home
+            <p className="text-[#3452e1] text-lg font-bold mb-2 tracking-wide" style={{ fontFamily: 'Montserrat, sans-serif' }}>03.</p>
+            <h3 className="text-2xl font-extrabold text-[#253887] mb-4" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+              You'll pick up the car at our showroom
             </h3>
             <p className="text-[#253887] text-base opacity-80 max-w-xs">
-              We arrange all the paperwork, registration and delivery. All you need to do is enjoy your new car.
+              We arrange all the paperwork and registration. All you need to do is come and pick up your new car.
             </p>
           </div>
         </div>
