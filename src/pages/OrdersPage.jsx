@@ -950,71 +950,65 @@ export default function OrdersPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
-                  {filteredOrders.map(order => (
-                    <tr key={order.orderId} className="hover:bg-gray-50 transition-colors duration-150">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-[#253887]">#{order.orderNumber || order.orderId}</div>
-                        <div className="text-xs text-gray-500">
-                          {order.orderDate ? new Date(order.orderDate).toLocaleDateString('vi-VN') : 'N/A'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          {order.carDetails?.imageUrl && (
-                            <img
-                              src={order.carDetails.imageUrl}
-                              alt="Car"
-                              className="h-12 w-12 rounded-lg object-cover mr-3 border border-gray-200"
-                            />
-                          )}
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              {order.carDetails ? `${order.carDetails.make} ${order.carDetails.model}` : 'N/A'}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {order.carDetails?.year || 'N/A'}
-                            </div>
+                  {filteredOrders
+                    .filter(order =>
+                      order.currentSaleStatus !== "Available" &&
+                      order.currentSaleStatus !== "Pending Deposit"
+                    )
+                    .map(order => (
+                      <tr key={order.orderId} className="hover:bg-gray-50 transition-colors duration-150">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-semibold text-[#253887]">#{order.orderNumber || order.orderId}</div>
+                          <div className="text-xs text-gray-500">
+                            {order.orderDate ? new Date(order.orderDate).toLocaleDateString('vi-VN') : 'N/A'}
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(order.currentSaleStatus)} text-white shadow-sm`}>
-                          {order.currentSaleStatus}
-                        </span>
-                      </td>
-                      {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {order.currentSaleStatus === "Deposit Paid" && order.remainingBalance > 0 ? (
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            <CalendarDaysIcon className="h-4 w-4 text-gray-400 mr-1" />
-                            {order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString('vi-VN') : 'N/A'}
+                            {order.carDetails?.imageUrl && (
+                              <img
+                                src={order.carDetails.imageUrl}
+                                alt="Car"
+                                className="h-12 w-12 rounded-lg object-cover mr-3 border border-gray-200"
+                              />
+                            )}
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {order.carDetails ? `${order.carDetails.make} ${order.carDetails.model}` : 'N/A'}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {order.carDetails?.year || 'N/A'}
+                              </div>
+                            </div>
                           </div>
-                        ) : (
-                          <span className="text-gray-500">
-                            {order.currentSaleStatus === "Sold" ? "Completed" : "N/A"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(order.currentSaleStatus)} text-white shadow-sm`}>
+                            {order.currentSaleStatus}
                           </span>
-                        )}
-                      </td> */}
-                      <td className="px-6 py-4 whitespace-nowrap text-center space-x-2">
-                        <button
-                          onClick={() => handleViewDetails(order)}
-                          className="inline-flex items-center justify-center w-10 h-10 text-[#3452e1] hover:text-white hover:bg-[#3452e1] rounded-full transition-all duration-200 hover:shadow-md"
-                          title="View Details"
-                        >
-                          <InformationCircleIcon className="h-5 w-5" />
-                        </button>
-                        {order.currentSaleStatus === 'Delivered' && (
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center space-x-2">
                           <button
-                            onClick={() => handleOpenReviewModal(order)}
-                            className="inline-flex items-center justify-center w-10 h-10 text-yellow-500 hover:text-white hover:bg-yellow-500 rounded-full transition-all duration-200 hover:shadow-md"
-                            title="Leave a Review"
+                            onClick={() => handleViewDetails(order)}
+                            className="inline-flex items-center justify-center w-10 h-10 text-[#3452e1] hover:text-white hover:bg-[#3452e1] rounded-full transition-all duration-200 hover:shadow-md"
+                            title="View Details"
                           >
-                            <StarIcon className="h-5 w-5" />
+                            <InformationCircleIcon className="h-5 w-5" />
                           </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                          {order.currentSaleStatus === 'Delivered' && (
+                            <button
+                              onClick={() => handleOpenReviewModal(order)}
+                              className="inline-flex items-center justify-center w-10 h-10 text-yellow-500 hover:text-white hover:bg-yellow-500 rounded-full transition-all duration-200 hover:shadow-md"
+                              title="Leave a Review"
+                            >
+                              <StarIcon className="h-5 w-5" />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
+
               </table>
             </div>
           </div>
