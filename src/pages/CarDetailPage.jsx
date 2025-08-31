@@ -15,6 +15,93 @@ const formatCurrency = (num) =>
     minimumFractionDigits: 0,
   }).format(num);
 
+const LoanApplicationModal = ({ partner, car, loanDetails, onClose, onSubmit }) => {
+  const [formData, setFormData] = useState({
+    fullName: '',
+    phoneNumber: '',
+    dateOfBirth: '',
+    address: '',
+    email: ''
+  });
+  const [errors, setErrors] = useState({});
+
+  const validate = () => {
+    const newErrors = {};
+    if (!formData.fullName) newErrors.fullName = 'Full name is required.';
+    if (!formData.phoneNumber) newErrors.phoneNumber = 'Phone number is required.';
+    if (!formData.dateOfBirth) newErrors.dateOfBirth = 'Date of birth is required.';
+    if (!formData.address) newErrors.address = 'Address is required.';
+    if (!formData.email || !/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'A valid email is required.';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (validate()) {
+      // Pass the complete application data to the parent component
+      onSubmit({
+        ...formData,
+        carListingId: car.listingId,
+        partnerName: partner.name,
+        loanAmount: loanDetails.loanAmount,
+        interestRate: partner.interestRate,
+        paybackPeriodMonths: loanDetails.paybackPeriod
+      });
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
+        <div className="p-5 border-b">
+          <h3 className="text-xl font-bold">Loan Application with {partner.name}</h3>
+          <p className="text-sm text-gray-500">For {car.model.manufacturer.name} {car.model.name}</p>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
+            {/* Form Fields */}
+            <div>
+              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">Full Name</label>
+              <input type="text" id="fullName" name="fullName" value={formData.fullName} onChange={handleChange} className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm ${errors.fullName ? 'border-red-500' : 'border-gray-300'}`} />
+              {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
+            </div>
+            <div>
+              <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">Phone Number</label>
+              <input type="text" id="phoneNumber" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm ${errors.phoneNumber ? 'border-red-500' : 'border-gray-300'}`} />
+              {errors.phoneNumber && <p className="text-red-500 text-xs mt-1">{errors.phoneNumber}</p>}
+            </div>
+            <div>
+              <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700">Date of Birth</label>
+              <input type="date" id="dateOfBirth" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleChange} className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm ${errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'}`} />
+              {errors.dateOfBirth && <p className="text-red-500 text-xs mt-1">{errors.dateOfBirth}</p>}
+            </div>
+            <div>
+              <label htmlFor="address" className="block text-sm font-medium text-gray-700">Address</label>
+              <input type="text" id="address" name="address" value={formData.address} onChange={handleChange} className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm ${errors.address ? 'border-red-500' : 'border-gray-300'}`} />
+              {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
+            </div>
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+              <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm ${errors.email ? 'border-red-500' : 'border-gray-300'}`} />
+              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+            </div>
+          </div>
+          <div className="p-4 bg-gray-50 flex justify-end gap-3 rounded-b-lg">
+            <button type="button" onClick={onClose} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">Cancel</button>
+            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Submit Application</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 
 const TestDriveModal = ({ car, onClose, onSubmit }) => {
   const [selectedShowroomId, setSelectedShowroomId] = useState('');
@@ -306,6 +393,9 @@ export default function CarDetailPage({ carId: propCarId }) {
   const { user, chatWithSeller } = useUserContext();
   const [isTestDriveModalOpen, setIsTestDriveModalOpen] = useState(false);
 
+  const [showLoanModal, setShowLoanModal] = useState(false);
+  const [selectedPartnerForLoan, setSelectedPartnerForLoan] = useState(null);
+
   const API_BASE = getApiBaseUrl();
 
 
@@ -351,6 +441,42 @@ export default function CarDetailPage({ carId: propCarId }) {
         ★
       </span>
     ));
+  };
+  const handleFinancingSubmit = async (applicationData) => {
+    const API_BASE = getApiBaseUrl();
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(`${API_BASE}/api/Customer/financing`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // Add this line if your API requires authentication
+        },
+        body: JSON.stringify(applicationData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit application. Please try again.');
+      }
+
+      const result = await response.json();
+      setShowLoanModal(false); // Close modal on success
+
+      Swal.fire({
+        title: 'Success!',
+        text: result.message || 'Your application has been submitted successfully!',
+        icon: 'success',
+        confirmButtonText: 'Great!'
+      });
+      console.log("Generated Contract:", result.contract);
+
+    } catch (error) {
+      Swal.fire({
+        title: 'Error!',
+        text: error.message,
+        icon: 'error',
+      });
+    }
   };
 
   useEffect(() => {
@@ -894,17 +1020,20 @@ export default function CarDetailPage({ carId: propCarId }) {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handlePartnerContact(partner);
+                              // Open the modal and store the selected partner's info
+                              setSelectedPartnerForLoan(partner);
+                              setShowLoanModal(true);
                             }}
-                            class={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 ${isSelected
+                            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 ${isSelected
                               ? 'bg-blue-600 text-white hover:bg-blue-700'
                               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                               }`}
                           >
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            {/* You can replace this icon if you like */}
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                             </svg>
-                            Contact
+                            Apply for Loan
                           </button>
                           <a
                             href={`tel:${partner.hotline}`}
@@ -1440,9 +1569,22 @@ export default function CarDetailPage({ carId: propCarId }) {
           </div>
         </div>
       </div>
-
+      {showLoanModal && selectedPartnerForLoan && (
+        <LoanApplicationModal
+          partner={selectedPartnerForLoan}
+          car={car}
+          loanDetails={{
+            // Ensure you have these state variables available in this component's scope
+            loanAmount: price - (price * downPayment) / 100,
+            paybackPeriod: paybackPeriod,
+          }}
+          onClose={() => setShowLoanModal(false)}
+          onSubmit={handleFinancingSubmit}
+        />
+      )}
     </div>
   );
+
 }
 
 CarDetailPage.propTypes = {
