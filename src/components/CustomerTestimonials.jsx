@@ -128,7 +128,7 @@ export default function CustomerTestimonials() {
               {review.images && review.images.length > 0 && (
                 <div className="h-[200px] w-full">
                   <img
-                    src={review.images[0]}
+                    src={review.images[0] || "https://storage.alpha-analytics.cz/resize/342d2025-960e-4cfd-a0f2-08ff0386a0fe?fit=outside&height=338&namespace=carvago-review-prod&width=540&withoutEnlargement=false"}
                     alt={`Review from ${review.userName}`}
                     className="w-full h-full object-cover"
                   />
