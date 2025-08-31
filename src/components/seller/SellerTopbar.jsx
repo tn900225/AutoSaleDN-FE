@@ -13,7 +13,7 @@ export default function SellerTopbar() {
         </button>
         <div>
           <img
-            src="https://randomuser.me/api/portraits/men/32.jpg"
+            src="https://randomuser.me/api/portraits/men/3.jpg"
             alt="Seller"
             className="w-10 h-10 rounded-full object-cover border-2 border-violet-200"
           />

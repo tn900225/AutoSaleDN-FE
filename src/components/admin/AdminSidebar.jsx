@@ -56,13 +56,6 @@ export default function AdminSidebar() {
                 </nav>
             </div>
             <div className="mb-8 flex flex-col gap-1 px-8">
-                <NavLink
-                    to="/admin/settings"
-                    className="flex items-center gap-3 py-2 text-gray-500 hover:text-violet-600"
-                >
-                    <HiOutlineCog className="w-5 h-5" />
-                    Settings
-                </NavLink>
                 <button
                     onClick={handleLogout}
                     className="flex items-center gap-3 py-2 text-gray-500 hover:text-violet-600 cursor-pointer"

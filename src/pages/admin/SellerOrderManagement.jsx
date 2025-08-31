@@ -22,7 +22,6 @@ import { getApiBaseUrl } from "../../../util/apiconfig";
 const statusMap = {
   1: { name: 'Pending Deposit', color: 'bg-yellow-100 text-yellow-800', icon: ClockIcon },
   2: { name: 'Deposit Paid', color: 'bg-blue-100 text-blue-800', icon: CreditCardIcon },
-  3: { name: 'Pending Full Payment', color: 'bg-indigo-100 text-indigo-800', icon: CreditCardIcon },
   4: { name: 'Payment Complete', color: 'bg-green-100 text-green-800', icon: CheckCircleIcon },
   5: { name: 'Ready for Delivery', color: 'bg-teal-100 text-teal-800', icon: TruckIcon },
   6: { name: 'Delivered', color: 'bg-emerald-100 text-emerald-800', icon: CheckCircleIcon },
@@ -176,6 +175,7 @@ const SellerOrderManagement = () => {
     const lastStatus = getLastStatus(order);
     setUpdateData({
       saleStatusId: lastStatus?.id.toString() || '1',
+      currentStatusId: lastStatus?.id?.toString() || '1', // 👈 thêm dòng này
       estimatedDeliveryDate: order.expectedDeliveryDate ? order.expectedDeliveryDate.split('T')[0] : '',
       actualDeliveryDate: order.actualDeliveryDate ? order.actualDeliveryDate.split('T')[0] : '',
       notes: lastStatus?.notes || order.notes || ''
@@ -355,73 +355,77 @@ const SellerOrderManagement = () => {
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-100">
-                        {ordersToDisplay.map(order => {
+                        {ordersToDisplay.filter(order => {
                           const lastStatus = getLastStatus(order);
-                          const statusConfig = statusMap[lastStatus.id] || { color: 'bg-gray-100 text-gray-800' };
-                          return (
-                            <tr key={`${order.carDetails?.listingId || order.orderId || order.saleId}_${lastStatus.id}`} className="hover:bg-gray-50 transition-colors duration-150">
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm font-semibold text-[#253887]">#{order.orderNumber || order.orderId}</div>
-                                <div className="text-xs text-gray-500">
-                                  {order.orderDate ? new Date(order.orderDate).toLocaleDateString('vi-VN') : 'N/A'}
-                                </div>
-                                <div className="text-xs text-gray-600 mt-1">
-                                  ₫{(order.finalPrice || 0).toLocaleString('vi-VN')}
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm font-medium text-gray-900">
-                                  {order.customerInfo?.name || order.customerDetails?.fullName || 'N/A'}
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                  {order.customerInfo?.phone || order.customerDetails?.phoneNumber || 'N/A'}
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="flex items-center">
-                                  {order.carDetails?.imageUrl && (
-                                    <img
-                                      src={order.carDetails.imageUrl}
-                                      alt="Car"
-                                      className="h-12 w-12 rounded-lg object-cover mr-3 border border-gray-200"
-                                    />
-                                  )}
-                                  <div>
-                                    <div className="text-sm font-medium text-gray-900">
-                                      {order.carDetails ? `${order.carDetails.make} ${order.carDetails.model}` : 'N/A'}
-                                    </div>
-                                    <div className="text-xs text-gray-500">
-                                      {order.carDetails?.year || 'N/A'}
+                          return lastStatus?.name !== "Available" && lastStatus?.name !== "Pending Deposit";
+                        })
+                          .map(order => {
+                            const lastStatus = getLastStatus(order);
+                            const statusConfig = statusMap[lastStatus.id] || { color: 'bg-gray-100 text-gray-800' };
+                            return (
+                              <tr key={`${order.carDetails?.listingId || order.orderId || order.saleId}_${lastStatus.id}`} className="hover:bg-gray-50 transition-colors duration-150">
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="text-sm font-semibold text-[#253887]">#{order.orderNumber || order.orderId}</div>
+                                  <div className="text-xs text-gray-500">
+                                    {order.orderDate ? new Date(order.orderDate).toLocaleDateString('vi-VN') : 'N/A'}
+                                  </div>
+                                  <div className="text-xs text-gray-600 mt-1">
+                                    ₫{(order.finalPrice || 0).toLocaleString('vi-VN')}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="text-sm font-medium text-gray-900">
+                                    {order.customerInfo?.name || order.customerDetails?.fullName || 'N/A'}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {order.customerInfo?.phone || order.customerDetails?.phoneNumber || 'N/A'}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="flex items-center">
+                                    {order.carDetails?.imageUrl && (
+                                      <img
+                                        src={order.carDetails.imageUrl}
+                                        alt="Car"
+                                        className="h-12 w-12 rounded-lg object-cover mr-3 border border-gray-200"
+                                      />
+                                    )}
+                                    <div>
+                                      <div className="text-sm font-medium text-gray-900">
+                                        {order.carDetails ? `${order.carDetails.make} ${order.carDetails.model}` : 'N/A'}
+                                      </div>
+                                      <div className="text-xs text-gray-500">
+                                        {order.carDetails?.year || 'N/A'}
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusConfig.color}`}>
-                                  {lastStatus.name || 'N/A'}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-center">
-                                <div className="flex justify-center space-x-2">
-                                  <button
-                                    onClick={() => handleViewDetails(order)}
-                                    className="inline-flex items-center justify-center w-8 h-8 text-blue-600 hover:text-white hover:bg-blue-600 rounded-full transition-all duration-200"
-                                    title="View Details"
-                                  >
-                                    <EyeIcon className="h-4 w-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleUpdateStatus(order)}
-                                    className="inline-flex items-center justify-center w-8 h-8 text-green-600 hover:text-white hover:bg-green-600 rounded-full transition-colors duration-200"
-                                    title="Update Status"
-                                  >
-                                    <PencilSquareIcon className="h-4 w-4" />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusConfig.color}`}>
+                                    {lastStatus.name || 'N/A'}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-center">
+                                  <div className="flex justify-center space-x-2">
+                                    <button
+                                      onClick={() => handleViewDetails(order)}
+                                      className="inline-flex items-center justify-center w-8 h-8 text-blue-600 hover:text-white hover:bg-blue-600 rounded-full transition-all duration-200"
+                                      title="View Details"
+                                    >
+                                      <EyeIcon className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleUpdateStatus(order)}
+                                      className="inline-flex items-center justify-center w-8 h-8 text-green-600 hover:text-white hover:bg-green-600 rounded-full transition-colors duration-200"
+                                      title="Update Status"
+                                    >
+                                      <PencilSquareIcon className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
                       </tbody>
                     </table>
                   </div>
@@ -622,8 +626,18 @@ const SellerOrderManagement = () => {
                     <div className="p-6 space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Sale Status</label>
-                        <select id="saleStatusId" name="saleStatusId" value={updateData.saleStatusId} onChange={handleFormChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                          {Object.entries(statusMap).map(([id, { name }]) => (<option key={id} value={id}>{name}</option>))}
+                        <select
+                          id="saleStatusId"
+                          name="saleStatusId"
+                          value={updateData.saleStatusId}
+                          onChange={handleFormChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        >
+                          {Object.entries(statusMap)
+                            .filter(([id]) => Number(id) >= Number(updateData.currentStatusId)) // chỉ giữ nguyên hoặc tiến lên
+                            .map(([id, { name }]) => (
+                              <option key={id} value={id}>{name}</option>
+                            ))}
                         </select>
                       </div>
 
