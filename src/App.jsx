@@ -35,6 +35,8 @@ import BlogPostDetail from "./pages/BlogPostDetail";
 import SellerMessage from "./pages/seller/SellerMessage";
 import CarPredict from "./pages/admin/CarPredict";
 import WishlistPage from "./pages/WishlistPage";
+import MyBookingPage from "./pages/MyBookingPage";
+import ManageBooking from "./pages/seller/ManageBooking";
 import './index.css';
 
 function UserLayout({ children }) {
@@ -175,6 +177,8 @@ function App() {
                   <Route path="/blog" element={<BlogIndex />} />
                   <Route path="/blog/:slug" element={<BlogPostDetail />} />
                   <Route path="/wishlist" element={<WishlistPage />} />
+                  <Route path="/mybooking" element={<MyBookingPage />} />
+                  
                 </Routes>
               </UserLayout>
             }
@@ -216,6 +220,8 @@ function App() {
                     <Route path="order-management" element={<SellerOrderManagement />} />
                     <Route path="manage-posts" element={<ManagePosts />} />
                     <Route path="manage-message" element={<SellerMessage />} />
+                    <Route path="manage-booking" element={<ManageBooking />} />
+                    
                   </Routes>
                 </DashboardLayout>
               </RequireRole>

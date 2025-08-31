@@ -18,7 +18,9 @@ const sidebarItems = [
     { label: "Dashboard", icon: HiOutlineViewGrid, path: "/seller/dashboard" },
     { label: "ShowRoom", icon: HiOutlineBriefcase, path: "/seller/order-management" },
     { label: "Manage Posts", icon: HiOutlineDocumentText, path: "/seller/manage-posts" },
-    { label: "Messages", icon: HiOutlineMail, path: "/seller/manage-message" }
+    { label: "Messages", icon: HiOutlineMail, path: "/seller/manage-message" },
+    { label: "Manage Booking", icon: HiOutlineCalendar, path: "/seller/manage-booking" }
+    
 ];
 
 export default function AdminSidebar() {
