@@ -111,7 +111,7 @@ const TestDriveModal = ({ car, onClose, onSubmit }) => {
   // Tự động chọn showroom đầu tiên nếu chỉ có 1 lựa chọn
   useEffect(() => {
     if (car?.showrooms?.length === 1) {
-      setSelectedShowroomId(car.showrooms[0].storeLocationId.toString());
+      setSelectedShowroomId(car.showrooms[0].storeLocationId);
     }
   }, [car]);
 
