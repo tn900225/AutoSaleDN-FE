@@ -19,26 +19,12 @@ export default function HeaderUserDropdown({ onLoginClick }) {
         
         <div className="py-4 px-7 flex flex-col gap-1">
           {/* Menu items */}
-          <a href="/saved-searches" className="flex items-center gap-3 py-2 text-[#253887] hover:bg-[#f6f8fd] rounded-lg transition font-medium text-base">
-            {/* Saved searches icon */}
-            <svg width={22} height={22} fill="none" stroke="#3452e1" strokeWidth="1.6" viewBox="0 0 24 24">
-              <rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8 12l3 3 5-5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Saved searches
-          </a>
-          <a href="/last-searches" className="flex items-center gap-3 py-2 text-[#253887] hover:bg-[#f6f8fd] rounded-lg transition font-medium text-base">
-            {/* Last searches icon */}
-            <svg width={22} height={22} fill="none" stroke="#3452e1" strokeWidth="1.6" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 3" strokeLinecap="round"/>
-            </svg>
-            Last searches
-          </a>
-          <a href="/favourite-cars" className="flex items-center gap-3 py-2 text-[#253887] hover:bg-[#f6f8fd] rounded-lg transition font-medium text-base">
+          <a href="/wishlist" className="flex items-center gap-3 py-2 text-[#253887] hover:bg-[#f6f8fd] rounded-lg transition font-medium text-base">
             {/* Heart icon */}
             <svg width={22} height={22} fill="none" stroke="#3452e1" strokeWidth="1.6" viewBox="0 0 24 24">
               <path d="M12 21l-1.45-1.32C5.4 15.36 2 12.28 2 8.5A5.5 5.5 0 017.5 3c1.74 0 3.41.81 4.5 2.09A5.5 5.5 0 0116.5 3 5.5 5.5 0 0122 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21z" />
             </svg>
-            Favorite cars
+            WishList cars
           </a>
           <a href="/cars/orders" className="flex items-center gap-3 py-2 text-[#253887] hover:bg-[#f6f8fd] rounded-lg transition font-medium text-base">
             {/* Car icon */}
