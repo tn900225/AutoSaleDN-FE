@@ -8,7 +8,7 @@ const AccountMenu = ({ user, onLogout }) => {
     const strName = String(name);
     const cleanName = strName.replace(/[^\w\s]/g, '').trim();
     if (!cleanName) return '??';
-    
+
     const names = cleanName.split(' ');
     if (names.length > 1) {
       return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
@@ -33,71 +33,62 @@ const AccountMenu = ({ user, onLogout }) => {
           <h6 className="text-[#253887] font-semibold text-sm">{user.fullName}</h6>
           <p className="text-[#666] text-xs">{user.email}</p>
         </div>
-        <button 
+        <button
           onClick={handleLogout}
           className="flex items-center gap-2 text-[#253887] hover:text-[#3452e1] transition duration-200"
         >
-          <svg 
-            viewBox="0 0 24 24" 
+          <svg
+            viewBox="0 0 24 24"
             width="22"
             height="22"
             fill="none"
             stroke="#3452e1"
             strokeWidth="1.6"
           >
-            <path 
-              d="M16 17L21 12M21 12L16 7M21 12H9M12 17C12 17.2956 12 17.4434 11.989 17.5714C11.8748 18.902 10.8949 19.9968 9.58503 20.2573C9.45903 20.2823 9.31202 20.2987 9.01835 20.3313L7.99694 20.4448C6.46248 20.6153 5.69521 20.7005 5.08566 20.5055C4.27293 20.2454 3.60942 19.6515 3.26118 18.8725C3 18.2882 3 17.5162 3 15.9723V8.0277C3 6.48377 3 5.7118 3.26118 5.12752C3.60942 4.34848 4.27293 3.7546 5.08566 3.49453C5.69521 3.29947 6.46246 3.38472 7.99694 3.55522L9.01835 3.66871C9.31212 3.70135 9.45901 3.71767 9.58503 3.74273C10.8949 4.00316 11.8748 5.09804 11.989 6.42861C12 6.55663 12 6.70442 12 7" 
+            <path
+              d="M16 17L21 12M21 12L16 7M21 12H9M12 17C12 17.2956 12 17.4434 11.989 17.5714C11.8748 18.902 10.8949 19.9968 9.58503 20.2573C9.45903 20.2823 9.31202 20.2987 9.01835 20.3313L7.99694 20.4448C6.46248 20.6153 5.69521 20.7005 5.08566 20.5055C4.27293 20.2454 3.60942 19.6515 3.26118 18.8725C3 18.2882 3 17.5162 3 15.9723V8.0277C3 6.48377 3 5.7118 3.26118 5.12752C3.60942 4.34848 4.27293 3.7546 5.08566 3.49453C5.69521 3.29947 6.46246 3.38472 7.99694 3.55522L9.01835 3.66871C9.31212 3.70135 9.45901 3.71767 9.58503 3.74273C10.8949 4.00316 11.8748 5.09804 11.989 6.42861C12 6.55663 12 6.70442 12 7"
             />
           </svg>
           <span className="text-sm">Logout</span>
         </button>
       </div>
-      
+
       <hr className="border-t border-gray-200" />
-      
+
       <div className="space-y-2">
-        <Link 
-          to="/cars" 
+        <Link
+          to="/mybooking"
           className="flex items-center gap-3 py-2 text-[#253887] hover:bg-[#f6f8fd] rounded-lg transition font-medium text-base"
         >
-          <svg 
-            viewBox="0 0 24 24" 
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
             width="22"
             height="22"
             fill="none"
             stroke="#3452e1"
             strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
-            <rect x="4" y="4" width="16" height="16" rx="4"/>
-            <path d="M8 12l3 3 5-5" strokeLinecap="round" strokeLinejoin="round"/>
+            {/* Xe hơi */}
+            <rect x="3" y="11" width="18" height="6" rx="2" ry="2" />
+            <circle cx="7.5" cy="17.5" r="1.5" />
+            <circle cx="16.5" cy="17.5" r="1.5" />
+            {/* Đồng hồ trên nóc xe */}
+            <circle cx="12" cy="6" r="3" />
+            <path d="M12 5v1.5l1.2 1.2" />
           </svg>
-          <span>Saved searches</span>
+          <span>Schedule Test Drive</span>
         </Link>
 
-        <Link 
-          to="/cars" 
-          className="flex items-center gap-3 py-2 text-[#253887] hover:bg-[#f6f8fd] rounded-lg transition font-medium text-base"
-        >
-          <svg 
-            viewBox="0 0 24 24" 
-            width="22"
-            height="22"
-            fill="none"
-            stroke="#3452e1"
-            strokeWidth="1.6"
-          >
-            <circle cx="12" cy="12" r="9"/>
-            <path d="M12 8v5l3 3" strokeLinecap="round"/>
-          </svg>
-          <span>Last searches</span>
-        </Link>
 
-        <Link 
-          to="/wishlist" 
+        <Link
+          to="/wishlist"
           className="flex items-center gap-3 py-2 text-[#253887] hover:bg-[#f6f8fd] rounded-lg transition font-medium text-base"
         >
-          <svg 
-            viewBox="0 0 24 24" 
+          <svg
+            viewBox="0 0 24 24"
             width="22"
             height="22"
             fill="none"
@@ -109,22 +100,22 @@ const AccountMenu = ({ user, onLogout }) => {
           <span>WishList cars</span>
         </Link>
 
-        <Link 
-          to="/cars/orders" 
+        <Link
+          to="/cars/orders"
           className="flex items-center gap-3 py-2 text-[#253887] hover:bg-[#f6f8fd] rounded-lg transition font-medium text-base"
         >
-          <svg 
-            viewBox="0 0 24 24" 
+          <svg
+            viewBox="0 0 24 24"
             width="22"
             height="22"
             fill="none"
             stroke="#3452e1"
             strokeWidth="1.6"
           >
-            <rect x="3" y="11" width="18" height="6" rx="2"/>
-            <circle cx="7" cy="17" r="1.5"/>
-            <circle cx="17" cy="17" r="1.5"/>
-            <path d="M6 11V8a2 2 0 012-2h8a2 2 0 012 2v3"/>
+            <rect x="3" y="11" width="18" height="6" rx="2" />
+            <circle cx="7" cy="17" r="1.5" />
+            <circle cx="17" cy="17" r="1.5" />
+            <path d="M6 11V8a2 2 0 012-2h8a2 2 0 012 2v3" />
           </svg>
           <span>Orders in progress</span>
         </Link>
@@ -133,17 +124,17 @@ const AccountMenu = ({ user, onLogout }) => {
       <hr className="border-t border-gray-200" />
 
       <div className="space-y-2">
-        <Link 
-          to="/profile" 
+        <Link
+          to="/profile"
           className="flex items-center gap-3 py-2 text-[#253887] hover:bg-[#f6f8fd] rounded-lg transition font-medium text-base"
         >
-          <svg 
-            viewBox="0 0 1024 1024" 
-            width="22" 
-            height="22" 
-            class="icon" 
-            version="1.1" 
-            xmlns="http://www.w3.org/2000/svg" 
+          <svg
+            viewBox="0 0 1024 1024"
+            width="22"
+            height="22"
+            class="icon"
+            version="1.1"
+            xmlns="http://www.w3.org/2000/svg"
             fill="#000000"
           >
             <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
