@@ -6,6 +6,7 @@ import Swal from "sweetalert2";
 import Login from "../components/Login";
 import { getApiBaseUrl } from "../../util/apiconfig";
 import { useUserContext } from "../components/context/UserContext";
+import { Calendar, Clock, UserCheck, MessageSquare, Car, Info, X, MapPin } from "lucide-react";
 
 const formatCurrency = (num) =>
   new Intl.NumberFormat("vi-VN", {
@@ -13,6 +14,195 @@ const formatCurrency = (num) =>
     currency: "VND",
     minimumFractionDigits: 0,
   }).format(num);
+
+
+const TestDriveModal = ({ car, onClose, onSubmit }) => {
+  const [selectedShowroomId, setSelectedShowroomId] = useState('');
+  const [formData, setFormData] = useState({ date: '', time: '', hasLicense: false, notes: '' });
+  const [errors, setErrors] = useState({});
+
+  // Tự động chọn showroom đầu tiên nếu chỉ có 1 lựa chọn
+  useEffect(() => {
+    if (car?.showrooms?.length === 1) {
+      setSelectedShowroomId(car.showrooms[0].storeLocationId.toString());
+    }
+  }, [car]);
+
+  const validate = () => {
+    const newErrors = {};
+    if (!selectedShowroomId) newErrors.showroom = "Please select a showroom.";
+    if (!formData.date) newErrors.date = "Please select a date.";
+    if (!formData.time) newErrors.time = "Please select a time.";
+    const selectedDateTime = new Date(`${formData.date}T${formData.time}`);
+    if (selectedDateTime < new Date()) {
+      newErrors.dateTime = "The selected date and time cannot be in the past.";
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log("Available showrooms:", car.showrooms);
+    console.log("Selected showroomId:", selectedShowroomId, typeof selectedShowroomId);
+    console.log("Submitting booking with data:", { selectedShowroomId, formData });
+
+    if (validate()) {
+      // Vì selectedShowroomId được lưu dạng int, so sánh trực tiếp
+      const selectedShowroom = car.showrooms.find(
+        (s) => s.storeLocationId === selectedShowroomId
+      );
+      console.log("Selected showroom details:", selectedShowroom);
+      if (!selectedShowroom || !selectedShowroom.storeListingId) {
+        Swal.fire(
+          "Error",
+          "Could not find the car listing for the selected showroom.",
+          "error"
+        );
+        return;
+      }
+
+      const bookingDateTime = new Date(`${formData.date}T${formData.time}`);
+
+      onSubmit({
+        storeListingId: selectedShowroom.storeListingId,
+        bookingDate: bookingDateTime.toISOString(),
+        hasLicense: formData.hasLicense,
+        notes: formData.notes,
+      });
+    }
+  };
+
+
+
+  const minDate = new Date().toISOString().split("T")[0];
+
+  const uniqueShowrooms = Array.from(new Map(
+    (car?.showrooms || [])
+      .filter(s => s && s.storeLocationId && s.storeListingId)
+      .map(s => [s.storeLocationId, s])
+  ).values());
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg relative animate-fade-in-up">
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-800 transition-colors">
+          <X size={24} />
+        </button>
+        <div className="p-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Schedule a Test Drive</h2>
+          <p className="text-gray-600 mb-6">You are booking for: <span className="font-semibold">{car.model?.name}</span></p>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="showroom">Select Showroom</label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                <select
+                  id="showroom"
+                  className={`w-full pl-10 pr-3 py-2 border rounded-lg transition-all 
+        ${selectedShowroomId ? 'text-gray-900' : 'text-gray-400'} 
+        ${errors.showroom ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'}`}
+                  value={selectedShowroomId}
+                  onChange={(e) => setSelectedShowroomId(Number(e.target.value))}
+                >
+                  <option value="">-- Choose a location --</option>
+
+                  {/* Code đã được sửa để dùng đúng tên thuộc tính */}
+                  {Array.from(new Map(
+                    (car.showrooms || [])
+                      .filter(s => s && s.storeLocationId && s.storeListingId) // 🔥 đảm bảo có storeListingId
+                      .map(s => [s.storeLocationId, s])
+                  ).values())
+                    .map((showroom) => (
+                      <option key={showroom.storeListingId} value={showroom.storeLocationId}>
+                        {showroom.name} - {showroom.address}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              {errors.showroom && <p className="text-red-600 text-xs mt-1">{errors.showroom}</p>}
+            </div>
+            {/* Date and Time */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="date">Date</label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                  <input
+                    type="date"
+                    id="date"
+                    min={minDate}
+                    className={`w-full pl-10 pr-3 py-2 border rounded-lg transition-all text-gray-900 placeholder-gray-400 ${errors.date ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'}`}
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  />
+                </div>
+                {errors.date && <p className="text-red-600 text-xs mt-1">{errors.date}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="time">Time</label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                  <input
+                    type="time"
+                    id="time"
+                    className={`w-full pl-10 pr-3 py-2 border rounded-lg transition-all text-gray-900 placeholder-gray-400 ${errors.time ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'}`}
+                    value={formData.time}
+                    onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                  />
+                </div>
+                {errors.time && <p className="text-red-600 text-xs mt-1">{errors.time}</p>}
+              </div>
+            </div>
+            {errors.dateTime && <p className="text-red-600 text-xs mt-1">{errors.dateTime}</p>}
+
+            {/* Has License */}
+            <div className="flex items-center space-x-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
+              <UserCheck className="text-gray-500" size={20} />
+              <label htmlFor="hasLicense" className="text-sm font-medium text-gray-800">Do you have a valid driver's license?</label>
+              <input
+                type="checkbox"
+                id="hasLicense"
+                className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                checked={formData.hasLicense}
+                onChange={(e) => setFormData({ ...formData, hasLicense: e.target.checked })}
+              />
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="notes">Additional Notes (Optional)</label>
+              <div className="relative">
+                <MessageSquare className="absolute left-3 top-3 text-gray-400" size={20} />
+                <textarea
+                  id="notes"
+                  rows="3"
+                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 text-gray-900  placeholder-gray-400focus:border-blue-500 transition-all"
+                  placeholder="e.g., specific features you want to test"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="pt-4">
+              <button
+                type="submit"
+                className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2"
+              >
+                <Car size={20} />
+                <span>Confirm Booking</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 
 const formatDateTime = (dateString) => {
   const date = new Date(dateString);
@@ -114,8 +304,11 @@ export default function CarDetailPage({ carId: propCarId }) {
   const [saleInfoText, setSaleInfoText] = useState("");
 
   const { user, chatWithSeller } = useUserContext();
+  const [isTestDriveModalOpen, setIsTestDriveModalOpen] = useState(false);
 
   const API_BASE = getApiBaseUrl();
+
+
 
   const financingPartners = [
     {
@@ -261,7 +454,8 @@ export default function CarDetailPage({ carId: propCarId }) {
             }
             : { registrationFee: 0, dealerFee: 500, taxRate: 0.085 },
           showrooms: carData.showrooms?.map((s) => ({
-            id: s.storeLocationId, // Đảm bảo ID này khớp với ID bạn mong đợi trong PrePurchaseFormModal
+            storeListingId: s.storeListingId,
+            storeLocationId: s.storeLocationId,
             name: s.name,
             address: s.address,
             phone: s.Phone || "+1 (555) 123-4567", // Fallback phone
@@ -310,52 +504,60 @@ export default function CarDetailPage({ carId: propCarId }) {
   };
   const handleCloseLightbox = () => setLightboxContent(null);
 
-  const handleTestDrive = async (showroom) => {
-    try {
-      const { value } = await Swal.fire({
-        title: "Schedule Test Drive",
-        html: `
-          <input id="swal-name" class="swal2-input" placeholder="Full Name">
-          <input id="swal-phone" class="swal2-input" placeholder="Phone Number">
-          <input id="swal-email" class="swal2-input" placeholder="Email Address">
-          <input id="swal-date" class="swal2-input" type="datetime-local">
-        `,
-        focusConfirm: false,
-        showCancelButton: true,
-        confirmButtonText: "Schedule",
+  const handleTestDrive = () => {
+    // Kiểm tra đăng nhập trước khi mở modal
+    if (!user) {
+      Swal.fire({
+        icon: "info",
+        title: "Please Log In",
+        text: "You need to be logged in to schedule a test drive.",
         confirmButtonColor: "#3B82F6",
-        preConfirm: () => {
-          const name = document.getElementById("swal-name").value;
-          const phone = document.getElementById("swal-phone").value;
-          const email = document.getElementById("swal-email").value;
-          const date = document.getElementById("swal-date").value;
-          if (!name || !phone || !email || !date) {
-            Swal.showValidationMessage("Please fill in all fields");
-            return false;
-          }
-          return { name, phone, email, preferredDate: date };
+      });
+      // Mở modal login nếu cần
+      // showLoginModal();
+      return;
+    }
+    setIsTestDriveModalOpen(true);
+  };
+
+  const handleBookingSubmit = async (bookingData) => {
+    const token = localStorage.getItem('token');
+    const API_BASE = getApiBaseUrl();
+
+    try {
+      const response = await fetch(`${API_BASE}/api/Customer/test-drive`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
+        body: JSON.stringify(bookingData)
       });
 
-      if (value) {
-        await Swal.fire({
-          icon: "success",
-          title: "Test Drive Scheduled!",
-          text: `Your test drive at ${showroom.name} has been scheduled successfully. We'll contact you shortly.`,
-          confirmButtonText: "Great!",
-          confirmButtonColor: "#10B981",
-        });
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to book test drive.");
       }
-    } catch (err) {
-      await Swal.fire({
-        icon: "error",
-        title: "Booking Failed",
-        text: `Unable to schedule test drive: ${err.message}`,
-        confirmButtonText: "Try Again",
-        confirmButtonColor: "#EF4444",
+
+      setIsTestDriveModalOpen(false); // Đóng modal
+      Swal.fire({
+        icon: 'success',
+        title: 'Booking Successful!',
+        text: result.message,
+        confirmButtonColor: "#3B82F6",
+      });
+
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Booking Failed',
+        text: error.message,
+        confirmButtonColor: "#3B82F6",
       });
     }
   };
+
 
   const handleChatClick = () => {
     if (!user) {
@@ -548,11 +750,20 @@ export default function CarDetailPage({ carId: propCarId }) {
                     </button>
                   )}
                   <button
-                    className="border-2 border-white hover:bg-white hover:text-gray-900 font-bold px-8 py-4 rounded-xl transition-all duration-200"
-                    onClick={() => handleTestDrive(showrooms[0] || {})}
+                    className="border-2 border-white hover:bg-white hover:text-gray-900 font-bold px-12 py-4 rounded-xl transition-all duration-200 text-lg"
+                    onClick={handleTestDrive} // Thay đổi ở đây
                   >
                     Schedule Test Drive
                   </button>
+                  {/* Render Modal */}
+                  {isTestDriveModalOpen && (
+                    <TestDriveModal
+                      car={car} // Cần đảm bảo carDetail chứa thông tin xe
+                      showroom={showrooms[0] || {}} // Lấy showroom đầu tiên
+                      onClose={() => setIsTestDriveModalOpen(false)}
+                      onSubmit={handleBookingSubmit}
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -583,10 +794,6 @@ export default function CarDetailPage({ carId: propCarId }) {
               <div class="flex justify-between items-center py-2">
                 <span class="text-gray-600">Registration Fee</span>
                 <span class="font-semibold">{formatCurrency(regFee)}</span>
-              </div>
-              <div class="flex justify-between items-center py-2">
-                <span class="text-gray-600">Documentation Fee</span>
-                <span class="font-semibold">{formatCurrency(dealerFee)}</span>
               </div>
               <div class="flex justify-between items-center py-2">
                 <span class="text-gray-600">Tax ({(priceInfo.taxRate * 100).toFixed(1)}%)</span>
