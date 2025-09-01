@@ -124,16 +124,13 @@ export default function CustomerTestimonials() {
               key={review.saleId}
               className="flex flex-col bg-white rounded-xl border border-[#e8eaf3] shadow-[0_2px_18px_0_rgba(32,34,91,0.10)] w-[340px] min-w-[340px] max-w-[340px] overflow-hidden"
             >
-              {/* Review image */}
-              {review.images && review.images.length > 0 && (
-                <div className="h-[200px] w-full">
-                  <img
-                    src={review.images[0] || "https://storage.alpha-analytics.cz/resize/342d2025-960e-4cfd-a0f2-08ff0386a0fe?fit=outside&height=338&namespace=carvago-review-prod&width=540&withoutEnlargement=false"}
-                    alt={`Review from ${review.userName}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
+              <div className="h-[200px] w-full">
+                <img
+                  src={review.images?.[0] || "https://storage.alpha-analytics.cz/resize/342d2025-960e-4cfd-a0f2-08ff0386a0fe?fit=outside&height=338&namespace=carvago-review-prod&width=540&withoutEnlargement=false"}
+                  alt={`Review from ${review.userName}`}
+                  className="w-full h-full object-cover"
+                />
+              </div>
 
               {/* Card content */}
               <div className="flex flex-col px-5 pt-5 pb-4 flex-1">
