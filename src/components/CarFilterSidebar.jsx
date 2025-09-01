@@ -312,7 +312,7 @@ export default function CarFilterSidebar({ onFilter, currentFilters }) {
           </svg>
           <span className="text-sm">All</span>
         </button>
-        <button className="flex-1 flex flex-col items-center py-2 text-gray-400 font-semibold focus:outline-none">
+        {/* <button className="flex-1 flex flex-col items-center py-2 text-gray-400 font-semibold focus:outline-none">
           <svg width={20} height={20} fill="none" viewBox="0 0 24 24" className="mb-1">
             <rect x={5} y={3} width={14} height={18} rx={2} stroke="currentColor" strokeWidth={1.5} />
             <path d="M12 3v18" stroke="currentColor" strokeWidth={1.5} />
@@ -325,7 +325,7 @@ export default function CarFilterSidebar({ onFilter, currentFilters }) {
             <path d="M12 7v5l4 2" stroke="currentColor" strokeWidth={1.5} />
           </svg>
           <span className="text-sm">History</span>
-        </button>
+        </button> */}
       </div>
 
       <form id="form-search-filter" className="flex flex-col gap-5" onSubmit={handleSubmit}>
