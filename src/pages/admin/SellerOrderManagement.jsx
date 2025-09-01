@@ -38,6 +38,25 @@ const getLastStatus = (order) => {
   // Fallback nếu không có lịch sử, dùng trạng thái hiện tại
   return order.currentSaleStatus || { id: 0, name: 'Unknown' };
 };
+const formatVNDate = (dateString, { showTime = false } = {}) => {
+  if (!dateString) return 'N/A';
+
+  const date = new Date(dateString.endsWith('Z') ? dateString : `${dateString}Z`);
+
+  const config = {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  };
+
+  if (showTime) {
+    config.hour = '2-digit';
+    config.minute = '2-digit';
+  }
+
+  return date.toLocaleString('vi-VN', config);
+};
 
 const SellerOrderManagement = () => {
   const API_BASE = getApiBaseUrl();
@@ -367,7 +386,7 @@ const SellerOrderManagement = () => {
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   <div className="text-sm font-semibold text-[#253887]">#{order.orderNumber || order.orderId}</div>
                                   <div className="text-xs text-gray-500">
-                                    {order.orderDate ? new Date(order.orderDate).toLocaleDateString('vi-VN') : 'N/A'}
+                                       {formatVNDate(order.orderDate)}
                                   </div>
                                   <div className="text-xs text-gray-600 mt-1">
                                     ₫{(order.finalPrice || 0).toLocaleString('vi-VN')}
@@ -528,7 +547,7 @@ const SellerOrderManagement = () => {
                                         <div key={idx} className="relative">
                                           <div className="absolute w-4 h-4 bg-gray-400 rounded-full mt-1 -left-6 border-2 border-white" />
                                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.color}`}>{status.name}</span>
-                                          <p className="text-xs text-gray-500 mt-1">{status.date ? new Date(status.date).toLocaleString('vi-VN') : ''}</p>
+                                          <p className="text-xs text-gray-500 mt-1">{formatVNDate(status.date, { showTime: true })}</p>
                                           {status.notes && <p className="text-sm text-gray-600 mt-1">{status.notes}</p>}
                                         </div>
                                       );
@@ -545,13 +564,13 @@ const SellerOrderManagement = () => {
                               {selectedOrder.expectedDeliveryDate && (
                                 <div className="flex justify-between">
                                   <span className="text-gray-600">Expected Date:</span>
-                                  <span className="font-medium">{new Date(selectedOrder.expectedDeliveryDate).toLocaleDateString('vi-VN')}</span>
+                                  <span className="font-medium text-green-600">{formatVNDate(selectedOrder.expectedDeliveryDate)}</span>
                                 </div>
                               )}
                               {selectedOrder.actualDeliveryDate && (
                                 <div className="flex justify-between">
                                   <span className="text-gray-600">Actual Date:</span>
-                                  <span className="font-medium text-green-600">{new Date(selectedOrder.actualDeliveryDate).toLocaleDateString('vi-VN')}</span>
+                                  <span className="font-medium text-green-600">{formatVNDate(selectedOrder.actualDeliveryDate)}</span>
                                 </div>
                               )}
                             </div>
@@ -585,7 +604,7 @@ const SellerOrderManagement = () => {
                     {/* Footer */}
                     <div className="bg-gray-50 border-t border-gray-200 px-8 py-6 flex justify-between items-center">
                       <div className="text-sm text-gray-600">
-                        Order placed on {selectedOrder.orderDate ? new Date(selectedOrder.orderDate).toLocaleDateString('vi-VN') : 'N/A'}
+                        Order placed on {formatVNDate(selectedOrder.orderDate)}
                       </div>
                       <div className="flex space-x-4">
                         <button

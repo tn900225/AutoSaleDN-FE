@@ -312,7 +312,7 @@ export default function CarFilterSidebar({ onFilter, currentFilters }) {
           </svg>
           <span className="text-sm">All</span>
         </button>
-        <button className="flex-1 flex flex-col items-center py-2 text-gray-400 font-semibold focus:outline-none">
+        {/* <button className="flex-1 flex flex-col items-center py-2 text-gray-400 font-semibold focus:outline-none">
           <svg width={20} height={20} fill="none" viewBox="0 0 24 24" className="mb-1">
             <rect x={5} y={3} width={14} height={18} rx={2} stroke="currentColor" strokeWidth={1.5} />
             <path d="M12 3v18" stroke="currentColor" strokeWidth={1.5} />
@@ -325,7 +325,7 @@ export default function CarFilterSidebar({ onFilter, currentFilters }) {
             <path d="M12 7v5l4 2" stroke="currentColor" strokeWidth={1.5} />
           </svg>
           <span className="text-sm">History</span>
-        </button>
+        </button> */}
       </div>
 
       <form id="form-search-filter" className="flex flex-col gap-5" onSubmit={handleSubmit}>
@@ -384,45 +384,7 @@ export default function CarFilterSidebar({ onFilter, currentFilters }) {
             options={priceRangeOptions}
           />
           <div className="flex flex-col gap-2 mt-2">
-            <label className="flex items-center gap-2 text-[#1c274c] text-[15px] font-medium cursor-pointer">
-              <input
-                type="checkbox"
-                className="w-5 h-5 border-[#bcc6dd] rounded focus:ring-[#3452e1]"
-                checked={vatDeduction}
-                onChange={(e) => setVatDeduction(e.target.checked)}
-              />
-              VAT deduction
-            </label>
-            <label className="flex items-center gap-2 text-[#1c274c] text-[15px] font-medium cursor-pointer">
-              <input
-                type="checkbox"
-                className="w-5 h-5 border-[#bcc6dd] rounded focus:ring-[#3452e1]"
-                checked={discountedCars}
-                onChange={(e) => setDiscountedCars(e.target.checked)}
-              />
-              Discounted cars
-              <span className="ml-1 flex items-center text-gray-500" title="Cars with special discounts">
-                <svg width={18} height={18} fill="none" viewBox="0 0 18 18">
-                  <circle cx={9} cy={9} r={8} stroke="currentColor" strokeWidth={1.3} fill="none" />
-                  <text x="9" y="13" textAnchor="middle" fontSize="11" fill="currentColor" fontWeight="bold">i</text>
-                </svg>
-              </span>
-            </label>
-            <label className="flex items-center gap-2 text-[#1c274c] text-[15px] font-medium cursor-pointer">
-              <input
-                type="checkbox"
-                className="w-5 h-5 border-[#bcc6dd] rounded focus:ring-[#3452e1]"
-                checked={premiumPartners}
-                onChange={(e) => setPremiumPartners(e.target.checked)}
-              />
-              Premium partners
-              <span className="ml-1 flex items-center text-gray-500" title="Cars from trusted premium sellers">
-                <svg width={18} height={18} fill="none" viewBox="0 0 18 18">
-                  <circle cx={9} cy={9} r={8} stroke="currentColor" strokeWidth={1.3} fill="none" />
-                  <text x="9" y="13" textAnchor="middle" fontSize="11" fill="currentColor" fontWeight="bold">i</text>
-                </svg>
-              </span>
-            </label>
+           
           </div>
         </section>
 

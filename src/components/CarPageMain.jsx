@@ -292,11 +292,11 @@ export default function CarPageMain({
                 </div>
                 <div className="flex flex-col items-end mt-4">
                   <h4 className="text-3xl font-bold text-[#253887]">
-                    ₫{car.price.toLocaleString('vi-VN')}
+                    {car.price.toLocaleString('vi-VN')} ₫
                   </h4>
-                  <div className="text-sm text-gray-500 font-medium">
+                  {/* <div className="text-sm text-gray-500 font-medium">
                     ₫{priceWithoutVat.toLocaleString('vi-VN')} <span className="text-[#3452e1]">without VAT</span>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </div>

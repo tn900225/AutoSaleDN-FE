@@ -62,6 +62,21 @@ export default function OrdersPage() {
 
   const getToken = () => localStorage.getItem('token');
 
+  const formatVNDate = (dateString) => {
+  if (!dateString) return 'N/A';
+
+  const date = new Date(dateString.endsWith('Z') ? dateString : `${dateString}Z`);
+
+  return date.toLocaleString('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
   useEffect(() => {
     console.log("--- useEffect for Momo callback initiated (Orders Page) ---");
     const query = new URLSearchParams(location.search);
@@ -1574,13 +1589,7 @@ export default function OrdersPage() {
                                         {history.name}
                                       </span>
                                       <span className="text-xs text-gray-500">
-                                        {history.date ? new Date(history.date).toLocaleString('vi-VN', {
-                                          year: 'numeric',
-                                          month: 'numeric',
-                                          day: 'numeric',
-                                          hour: '2-digit',
-                                          minute: '2-digit'
-                                        }) : 'N/A'}
+                                        {formatVNDate(history.date)}
                                       </span>
                                     </div>
                                     {history.notes && (
