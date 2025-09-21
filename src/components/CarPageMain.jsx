@@ -9,7 +9,6 @@ import {
   HeartIcon,
   PhotoIcon,
   MapPinIcon,
-  CalculatorIcon,
   ChevronDownIcon,
   BoltIcon,
   CalendarDaysIcon,
@@ -58,10 +57,7 @@ export default function CarPageMain({
   sortBy,
   onSortChange,
 }) {
-
   const navigate = useNavigate();
-  
-  // Sử dụng hook useWishlist để lấy danh sách các xe trong wishlist và các hàm liên quan
   const { wishlistItems, addCarToWishlist, removeCarFromWishlist } = useWishlist();
 
   const getSaleStatusDisplay = (status) => {
@@ -80,7 +76,6 @@ export default function CarPageMain({
       case "Pending Full Payment":
         return "Deposit Paid";
       case "Refunded":
-        return "Available";
       case "Cancelled":
         return "Available";
       default:
@@ -90,7 +85,6 @@ export default function CarPageMain({
 
   const getStatusBadgeClass = (status) => {
     const displayStatus = getSaleStatusDisplay(status);
-
     switch (displayStatus) {
       case "Sold":
         return 'bg-red-500';
@@ -104,7 +98,6 @@ export default function CarPageMain({
     }
   };
 
-  // Hàm xử lý khi click vào nút wishlist
   const handleWishlistToggle = (carId, isWishlisted) => {
     if (isWishlisted) {
       removeCarFromWishlist(carId);
@@ -138,7 +131,6 @@ export default function CarPageMain({
           <span className="font-semibold text-[#253887] text-xl">
             <span className="font-extrabold">{totalResults.toLocaleString()}</span> results
           </span>
-
           <div className="relative">
             <label htmlFor="sort-by" className="sr-only">Sort By</label>
             <select
@@ -165,9 +157,7 @@ export default function CarPageMain({
       <div className="flex flex-col gap-8">
         {cars.map(car => {
           const firstSpec = car.specifications && car.specifications.length > 0 ? car.specifications[0] : {};
-          const priceWithoutVat = car.price - (car.pricing && car.pricing.length > 0 ? car.pricing[0].taxRate : 0);
           const isWishlisted = wishlistItems.includes(car.listingId);
-
           const statusToDisplay = getSaleStatusDisplay(car.currentSaleStatus);
           const statusBadgeClass = getStatusBadgeClass(car.currentSaleStatus);
 
@@ -176,46 +166,47 @@ export default function CarPageMain({
               <button
                 type="button"
                 onClick={() => navigate(`/cars/${car.listingId}`)}
-                className="flex-shrink-0 w-full md:w-[320px] relative block text-left p-0 m-0 border-none bg-none focus:outline-none cursor-pointer"
-                data-car-id={car.listingId}
-                style={{ all: "unset", cursor: "pointer" }}
+                className="flex-shrink-0 w-full md:w-[320px] relative block"
+                aria-label={`View details for ${car.model.manufacturer.name} ${car.model.name}`}
               >
-                
-                <div className="w-full h-[220px] md:h-[240px] overflow-hidden relative bg-[#e9ecfa]">
+                <div className="w-full aspect-[4/3] overflow-hidden relative bg-[#e9ecfa]">
+                  <div className="absolute top-3 right-3 z-10">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        handleWishlistToggle(car.listingId, isWishlisted);
+                      }}
+                      className={`rounded-full p-2 shadow-md flex items-center justify-center transition-colors duration-200
+                        ${isWishlisted ? 'bg-red-500 text-white' : 'bg-white text-[#3452e1]'}
+                        hover:bg-red-500 hover:text-white`}
+                    >
+                      <HeartIcon className="w-6 h-6" />
+                    </button>
+                  </div>
 
-                <div className="absolute top-3 right-3 z-10">
-                  {/* Nút wishlist */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation(); // Ngăn chặn sự kiện click lan truyền đến thẻ cha
-                      e.preventDefault();
-                      handleWishlistToggle(car.listingId, isWishlisted);
-
-                      setTimeout(() => {
-                        window.location.reload();
-                      }, 100);
-                    }}
-                    className={`rounded-full p-2 shadow-md flex items-center justify-center transition-colors duration-200
-                      ${isWishlisted ? 'bg-red-500 text-white' : 'bg-white text-[#3452e1]'}
-                      hover:bg-red-500 hover:text-white`}
-                  >
-                    <HeartIcon className="w-6 h-6" />
-                  </button>
-                </div>
                   <img
                     alt={`${car.model.manufacturer.name} ${car.model.name} image`}
                     src={car.images[0]?.url || "/images/no-image.png"}
                     loading="lazy"
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     decoding="async"
+                    onError={(e) => {
+                      e.target.src = "/images/no-image.png";
+                    }}
                   />
-                  <div data-testid="carousel-photo-count-badge" className="absolute bottom-3 left-3 bg-white/90 rounded-full px-3 py-1 flex items-center gap-1 text-[#3452e1] font-bold text-xs shadow">
+
+                  <div
+                    data-testid="carousel-photo-count-badge"
+                    className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 flex items-center gap-1 text-[#3452e1] font-bold text-xs shadow-lg"
+                  >
                     <PhotoIcon className="w-4 h-4" />
                     <p>{car.images?.length || 0}</p>
                   </div>
                 </div>
               </button>
+
               <div className="flex-1 p-6 flex flex-col justify-between">
                 <div>
                   <div className="mb-4">
@@ -288,15 +279,11 @@ export default function CarPageMain({
                       </span>
                     )}
                   </div>
-
                 </div>
                 <div className="flex flex-col items-end mt-4">
                   <h4 className="text-3xl font-bold text-[#253887]">
                     {car.price.toLocaleString('vi-VN')} ₫
                   </h4>
-                  {/* <div className="text-sm text-gray-500 font-medium">
-                    ₫{priceWithoutVat.toLocaleString('vi-VN')} <span className="text-[#3452e1]">without VAT</span>
-                  </div> */}
                 </div>
               </div>
             </div>

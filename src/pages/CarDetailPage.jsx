@@ -1297,33 +1297,24 @@ export default function CarDetailPage({ carId: propCarId }) {
             />
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {groupedFeatures.map((category) => (
-              <div key={category.title} className="space-y-4">
-                <h3 className="text-xl font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                  {category.title}
-                </h3>
-                <div className="space-y-3">
-                  {category.keys.map((feature) => (
-                    <div
-                      key={feature}
-                      className="flex items-center space-x-3 p-3 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg"
-                    >
-                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="white"
-                          strokeWidth="3"
-                        >
-                          <path d="M20 6L9 17l-5-5" />
-                        </svg>
-                      </div>
-                      <span className="text-gray-800 font-medium">{feature}</span>
-                    </div>
-                  ))}
+            {features.map((feature) => (
+              <div
+                key={feature.featureId}
+                className="flex items-center space-x-3 p-3 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg"
+              >
+                <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="3"
+                  >
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
                 </div>
+                <span className="text-gray-800 font-medium">{feature.name}</span>
               </div>
             ))}
           </div>
