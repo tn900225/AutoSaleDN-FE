@@ -1590,7 +1590,7 @@ export default function PrePurchasePage() {
 function Modal({ children, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl max-h-[90vh] overflow-hidden relative w-full max-w-2xl">
+      <div className="bg-white rounded-2xl shadow-xl max-h-[95vh] overflow-hidden relative w-full max-w-2xl">
         <button
           className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-3xl font-bold"
           onClick={onClose}
@@ -1659,12 +1659,14 @@ function ContractViewerModal({ content, onClose }) {
     return htmlContent;
   };
 
-  return (
+return (
     <Modal onClose={onClose}>
-      <div className="bg-white rounded-3xl shadow-2xl max-h-[95vh] overflow-hidden relative w-full max-w-5xl border-2 border-blue-100 backdrop-blur-sm">
-        {/* Modal Header with enhanced gradient and glass effect */}
-        <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 p-8 text-white relative overflow-hidden">
-          {/* Decorative background elements */}
+      {/* SỬA 1: Thêm `flex flex-col` để kích hoạt layout Flexbox */}
+      <div className="bg-white rounded-3xl shadow-2xl max-h-[95vh] w-full max-w-5xl border-2 border-blue-100 flex flex-col">
+
+        
+        {/* Modal Header: Không cần thay đổi */}
+        <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 p-8 text-white relative">
           <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
           <div className="absolute -top-2 -right-2 w-32 h-32 bg-white/5 rounded-full blur-xl"></div>
           <div className="absolute -bottom-4 -left-4 w-24 h-24 bg-white/5 rounded-full blur-lg"></div>
@@ -1693,34 +1695,14 @@ function ContractViewerModal({ content, onClose }) {
           </div>
         </div>
 
-        {/* Modal Content with enhanced styling */}
-        <div className="p-10 max-h-[calc(95vh-200px)] overflow-y-auto bg-gradient-to-br from-gray-50 to-blue-50/30 text-gray-800 leading-relaxed">
-          {/* Custom scrollbar styling */}
-          <style jsx>{`
-            .p-10::-webkit-scrollbar {
-              width: 8px;
-            }
-            .p-10::-webkit-scrollbar-track {
-              background: #f1f5f9;
-              border-radius: 4px;
-            }
-            .p-10::-webkit-scrollbar-thumb {
-              background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-              border-radius: 4px;
-            }
-            .p-10::-webkit-scrollbar-thumb:hover {
-              background: linear-gradient(135deg, #2563eb, #7c3aed);
-            }
-          `}</style>
-
-          {/* Content wrapper with subtle animation */}
+        <div className="flex-1 p-10 overflow-y-auto bg-gradient-to-br from-gray-50 to-blue-50/30 text-gray-800 leading-relaxed scrollbar-custom">
           <div
             className="animate-fade-in"
             dangerouslySetInnerHTML={{ __html: formatContractTextToHtml(content) }}
           />
         </div>
 
-        {/* Enhanced Modal Footer */}
+        {/* Modal Footer: Không cần thay đổi */}
         <div className="p-6 bg-white/80 backdrop-blur-sm border-t border-gray-200/50 flex justify-between items-center">
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1728,7 +1710,6 @@ function ContractViewerModal({ content, onClose }) {
             </svg>
             <span>Legal document - Please review carefully</span>
           </div>
-
           <div className="flex gap-3">
             <button
               onClick={() => window.print()}
@@ -1752,20 +1733,28 @@ function ContractViewerModal({ content, onClose }) {
         </div>
       </div>
 
-      {/* Add custom CSS for animations */}
+      {/* CSS cho animation và scrollbar (đã gộp chung) */}
       <style jsx>{`
         @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
         }
         .animate-fade-in {
           animation: fade-in 0.6s ease-out;
+        }
+        .scrollbar-custom::-webkit-scrollbar {
+          width: 8px;
+        }
+        .scrollbar-custom::-webkit-scrollbar-track {
+          background: #f1f5f9;
+          border-radius: 4px;
+        }
+        .scrollbar-custom::-webkit-scrollbar-thumb {
+          background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+          border-radius: 4px;
+        }
+        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(135deg, #2563eb, #7c3aed);
         }
       `}</style>
     </Modal>
